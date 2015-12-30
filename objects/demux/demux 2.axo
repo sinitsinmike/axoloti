@@ -91,4 +91,27 @@
    outlet_o1= (inlet_s)?inlet_i:inlet_d1;
 ]]></code.krate>
    </obj.normal>
+   <obj.normal id="demux 2" uuid="24a326a0a0cb4f4fe140c6e5283e12959889ec66" sha="193a40d9abc0fe55526e52053e76bd644296ee13">
+      <upgradeSha>ec945c1196c70ec29918ec78d2f6a88228c3198</upgradeSha>
+      <sDescription>Demultiplexer. Connects inlet i to outlet o0 when s is false, to outlet o1 when s is true.</sDescription>
+      <author>Johannes Taelman</author>
+      <license>BSD</license>
+      <helpPatch>demux 2.axh</helpPatch>
+      <inlets>
+         <charptr32 name="i" description="input"/>
+         <charptr32 name="d0" description="default 0"/>
+         <charptr32 name="d1" description="default 1"/>
+         <bool32 name="s" description="select"/>
+      </inlets>
+      <outlets>
+         <charptr32 name="o0" description="output 0"/>
+         <charptr32 name="o1" description="output 1"/>
+      </outlets>
+      <displays/>
+      <params/>
+      <attribs/>
+      <code.krate><![CDATA[   outlet_o0= (inlet_s)?(char *)inlet_d0:(char *)inlet_i;
+   outlet_o1= (inlet_s)?(char *)inlet_i:(char *)inlet_d1;
+]]></code.krate>
+   </obj.normal>
 </objdefs>

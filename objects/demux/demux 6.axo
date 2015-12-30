@@ -343,4 +343,90 @@
 }
 ]]></code.krate>
    </obj.normal>
+   <obj.normal id="demux 6" uuid="596a5a0f7e9eaec23db2e5eb6fdccd77bc4079ed" sha="93c0aaf32416e99c29224bac33c8d468d2dd6cbe">
+      <upgradeSha>84a8ef062d299f894063b0a8230a3a97f30ea243</upgradeSha>
+      <sDescription>Demultiplexer. Connects inlet i to outlet number s. Other outlets copy their corresponding default inlets.</sDescription>
+      <author>Johannes Taelman</author>
+      <license>BSD</license>
+      <helpPatch>demux 3.axh</helpPatch>
+      <inlets>
+         <charptr32 name="i" description="input"/>
+         <charptr32 name="d0" description="default 0"/>
+         <charptr32 name="d1" description="default 1"/>
+         <charptr32 name="d2" description="default 2"/>
+         <charptr32 name="d3" description="default 3"/>
+         <charptr32 name="d4" description="default 4"/>
+         <charptr32 name="d5" description="default 5"/>
+         <int32.positive name="s" description="select"/>
+      </inlets>
+      <outlets>
+         <charptr32 name="o0" description="output 0"/>
+         <charptr32 name="o1" description="output 1"/>
+         <charptr32 name="o2" description="output 2"/>
+         <charptr32 name="o3" description="output 3"/>
+         <charptr32 name="o4" description="output 4"/>
+         <charptr32 name="o5" description="output 5"/>
+      </outlets>
+      <displays/>
+      <params/>
+      <attribs/>
+      <code.krate><![CDATA[   switch(inlet_s>0?inlet_s:0){
+      case 0: 
+         outlet_o0 = (char *)inlet_i;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+         outlet_o3 = (char *)inlet_d3;
+         outlet_o4 = (char *)inlet_d4;
+         outlet_o5 = (char *)inlet_d5;
+         break;
+      case 1: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_i;
+         outlet_o2 = (char *)inlet_d2;
+         outlet_o3 = (char *)inlet_d3;
+         outlet_o4 = (char *)inlet_d4;
+         outlet_o5 = (char *)inlet_d5;
+         break;
+      case 2: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_i;
+         outlet_o3 = (char *)inlet_d3;
+         outlet_o4 = (char *)inlet_d4;
+         outlet_o5 = (char *)inlet_d5;
+         break;
+      case 3: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+         outlet_o3 = (char *)inlet_i;
+         outlet_o4 = (char *)inlet_d4;
+         outlet_o5 = (char *)inlet_d5;
+         break;
+      case 4: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+         outlet_o3 = (char *)inlet_d3;
+         outlet_o4 = (char *)inlet_i;
+         outlet_o5 = (char *)inlet_d5;
+         break;
+      case 5: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+         outlet_o3 = (char *)inlet_d3;
+         outlet_o4 = (char *)inlet_d4;
+         outlet_o5 = (char *)inlet_i;
+         break;
+      default:
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+         outlet_o3 = (char *)inlet_d3;
+         outlet_o4 = (char *)inlet_d4;
+         outlet_o5 = (char *)inlet_d5;
+}
+]]></code.krate>
+   </obj.normal>
 </objdefs>

@@ -175,4 +175,48 @@
 }
 ]]></code.krate>
    </obj.normal>
+   <obj.normal id="demux 3" uuid="94d518e11a7ce7b575c97da8e49cb5994787876f" sha="3ac7e97e5e5fe1dedfe4dc62846b79a670bfbb41">
+      <upgradeSha>e503e342dcc61abf7aae5940689770d21ff08d77</upgradeSha>
+      <sDescription>Demultiplexer. Connects inlet i to outlet number s. Other outlets copy their corresponding default inlets.</sDescription>
+      <author>Johannes Taelman</author>
+      <license>BSD</license>
+      <helpPatch>demux 3.axh</helpPatch>
+      <inlets>
+         <charptr32 name="i" description="input"/>
+         <charptr32 name="d0" description="default 0"/>
+         <charptr32 name="d1" description="default 1"/>
+         <charptr32 name="d2" description="default 2"/>
+         <int32.positive name="s" description="select"/>
+      </inlets>
+      <outlets>
+         <charptr32 name="o0" description="output 0"/>
+         <charptr32 name="o1" description="output 1"/>
+         <charptr32 name="o2" description="output 2"/>
+      </outlets>
+      <displays/>
+      <params/>
+      <attribs/>
+      <code.krate><![CDATA[   switch(inlet_s>0?inlet_s:0){
+      case 0: 
+         outlet_o0 = (char *)inlet_i;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+         break;
+      case 1: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_i;
+         outlet_o2 = (char *)inlet_d2;
+         break;
+      case 2: 
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_i;
+         break;
+      default:
+         outlet_o0 = (char *)inlet_d0;
+         outlet_o1 = (char *)inlet_d1;
+         outlet_o2 = (char *)inlet_d2;
+}
+]]></code.krate>
+   </obj.normal>
 </objdefs>
