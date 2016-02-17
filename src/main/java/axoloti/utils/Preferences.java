@@ -17,7 +17,8 @@
  */
 package axoloti.utils;
 
-import axoloti.MainFrame;
+import axoloti.Axoloti;
+import axoloti.Version;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
+import org.simpleframework.xml.ElementListUnion;
 import org.simpleframework.xml.ElementMap;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.Serializer;
@@ -39,7 +41,11 @@ public class Preferences {
 
     @Element(required = false)
     String CurrentFileDirectory;
-    @Element
+
+    // search path will be removed from persistance, 
+    // here for compatibility only
+    @Deprecated
+    @Element(required = false)
     String ObjectSearchPath;
     @Deprecated
     @Element(required = false)
@@ -52,7 +58,7 @@ public class Preferences {
     Boolean ExpertMode;
     @ElementList(required = false)
     ArrayList<String> recentFiles = new ArrayList<String>();
-    
+
     @Deprecated
     @Element(required = false)
     String MidiInputDevice;
@@ -66,23 +72,32 @@ public class Preferences {
     String ControllerObject;
     @Element(required = false)
     Boolean ControllerEnabled;
-    
-    @ElementMap(required=false, entry="Boards", key="cpuid", attribute=true, inline=true)
-    HashMap<String,String> BoardNames;
-    
+
+    @ElementMap(required = false, entry = "Boards", key = "cpuid", attribute = true, inline = true)
+    HashMap<String, String> BoardNames;
+
+//    @Path("outlets")
+    @ElementListUnion({
+        @ElementList(entry = "gitlib", type = AxoGitLibrary.class, inline = true, required = false),
+        @ElementList(entry = "filelib", type = AxoFileLibrary.class, inline = true, required = false)
+    }
+    )
+    ArrayList<AxolotiLibrary> libraries;
+
+    String[] ObjectPath;
+
     boolean isDirty = false;
 
-    final int nRecentFiles = 8;
+    final int nRecentFiles = 16;
 
     final int minimumPollInterval = 20;
 
-    public Preferences() {
+    protected Preferences() {
         if (CurrentFileDirectory == null) {
             CurrentFileDirectory = "";
         }
-        if (ObjectSearchPath == null) {
-            ObjectSearchPath = "objects";
-        }
+        ObjectSearchPath = null;
+
         if (PollInterval == null) {
             PollInterval = 50;
         }
@@ -102,6 +117,10 @@ public class Preferences {
             ControllerObject = "";
             ControllerEnabled = false;
         }
+
+        if (libraries == null) {
+            libraries = new ArrayList<AxolotiLibrary>();
+        }
     }
 
     void SetDirty() {
@@ -112,17 +131,60 @@ public class Preferences {
         isDirty = false;
     }
 
-    public String[] getObjectSearchPath() {
-        return ObjectSearchPath.split(";");
+    public ArrayList<AxolotiLibrary> getLibraries() {
+        return libraries;
     }
 
-    public void setObjectSearchPath(String[] osp) {
-        String p = "";
-        for (String s : osp) {
-            p += s + ";";
+    public AxolotiLibrary getLibrary(String id) {
+        for (AxolotiLibrary lib : libraries) {
+            if (lib.getId().equals(id)) {
+                return lib;
+            }
         }
-        ObjectSearchPath = p;
+        return null;
+    }
+
+    public String[] getObjectSearchPath() {
+        return ObjectPath;
+    }
+
+    public void updateLibrary(String id, AxolotiLibrary newlib) {
+        boolean found = false;
+        for (AxolotiLibrary lib : libraries) {
+            if (lib.getId().equals(id)) {
+                if (lib != newlib) {
+                    int idx = libraries.indexOf(lib);
+                    libraries.set(idx, newlib);
+                }
+                found = true;
+            }
+        }
+        if (!found) {
+            libraries.add(newlib);
+        }
+        buildObjectSearchPatch();
         SetDirty();
+    }
+
+    public void removeLibrary(String id) {
+        for (AxolotiLibrary lib : libraries) {
+            if (lib.getId().equals(id)) {
+                libraries.remove(lib);
+                return;
+            }
+        }
+        SetDirty();
+        buildObjectSearchPatch();
+    }
+
+    public void enableLibrary(String id, boolean e) {
+        for (AxolotiLibrary lib : libraries) {
+            if (lib.getId().equals(id)) {
+                lib.setEnabled(e);
+            }
+        }
+        SetDirty();
+        buildObjectSearchPatch();
     }
 
     public String getCurrentFileDirectory() {
@@ -154,53 +216,72 @@ public class Preferences {
     }
 
     static String GetPrefsFileLoc() {
-        return System.getProperty(axoloti.Axoloti.HOME_DIR)+File.separator+"axoloti.prefs";
+        return System.getProperty(axoloti.Axoloti.HOME_DIR) + File.separator + "axoloti.prefs";
     }
-    
+
     private static Preferences singleton;
 
     public static Preferences LoadPreferences() {
         if (singleton == null) {
             File p = new File(Preferences.GetPrefsFileLoc());
             if (p.exists()) {
+                Preferences prefs = null;
                 try {
                     Serializer serializer = new Persister();
-                    Preferences prefs = serializer.read(Preferences.class, p);
-                    singleton = prefs;
-                    if (prefs.RuntimeDir == null ) {
-                        prefs.RuntimeDir = System.getProperty(axoloti.Axoloti.RUNTIME_DIR);
-                        prefs.SetDirty();
-                    } else {
-                        System.setProperty(axoloti.Axoloti.RUNTIME_DIR, prefs.RuntimeDir);
-                    }
-                    if (prefs.FirmwareDir == null ) {
-                        prefs.FirmwareDir = System.getProperty(axoloti.Axoloti.FIRMWARE_DIR);
-                        prefs.SetDirty();
-                    } else {
-                        System.setProperty(axoloti.Axoloti.FIRMWARE_DIR, prefs.FirmwareDir);
-                    }
-                    singleton.MidiInputDevice = null; // clear it out for the future
+                    prefs = serializer.read(Preferences.class, p);
                 } catch (Exception ex) {
-                    Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(Preferences.class
+                            .getName()).log(Level.SEVERE, null, ex);
                 }
-            }
-            else {
+                if (prefs == null){
+                    prefs = new Preferences();
+                }
+                singleton = prefs;
+                if (prefs.RuntimeDir
+                        == null) {
+                    prefs.RuntimeDir = System.getProperty(axoloti.Axoloti.RUNTIME_DIR);
+                    prefs.SetDirty();
+                } else {
+                    System.setProperty(axoloti.Axoloti.RUNTIME_DIR, prefs.RuntimeDir);
+                }
+                if (prefs.FirmwareDir
+                        == null) {
+                    prefs.FirmwareDir = System.getProperty(axoloti.Axoloti.FIRMWARE_DIR);
+                    prefs.SetDirty();
+                } else {
+                    System.setProperty(axoloti.Axoloti.FIRMWARE_DIR, prefs.FirmwareDir);
+                }
+
+                if (prefs.libraries.isEmpty()) {
+                    prefs.ResetLibraries(false);
+                }
+
+                prefs.buildObjectSearchPatch();
+
+                singleton.MidiInputDevice = null; // clear it out for the future
+            } else {
                 singleton = new Preferences();
+                singleton.ResetLibraries(false);
             }
         }
         return singleton;
     }
 
     public void SavePrefs() {
-        Logger.getLogger(Preferences.class.getName()).log(Level.INFO, "Saving preferences...");
+        Logger.getLogger(Preferences.class
+                .getName()).log(Level.INFO, "Saving preferences...");
         Serializer serializer = new Persister();
         File f = new File(GetPrefsFileLoc());
-        Logger.getLogger(Preferences.class.getName()).log(Level.INFO, "preferences path : {0}", f.getAbsolutePath());
+
+        Logger.getLogger(Preferences.class
+                .getName()).log(Level.INFO, "preferences path : {0}", f.getAbsolutePath());
+
         try {
             serializer.write(this, f);
         } catch (Exception ex) {
             Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
+
         ClearDirty();
     }
 
@@ -255,7 +336,6 @@ public class Preferences {
             return;
         }
         this.FavouriteDir = favouriteDir;
-        MainFrame.mainframe.updateFavouriteMenu();
         SetDirty();
     }
 
@@ -270,17 +350,19 @@ public class Preferences {
     }
 
     public String getBoardName(String cpu) {
-        if(cpu==null) return null;
-        if (BoardNames.containsKey(cpu)) 
+        if (cpu == null) {
+            return null;
+        }
+        if (BoardNames.containsKey(cpu)) {
             return BoardNames.get(cpu);
+        }
         return null;
     }
 
     public void setBoardName(String cpuid, String name) {
         if (name == null) {
             BoardNames.remove(cpuid);
-        }
-        else {
+        } else {
             BoardNames.put(cpuid, name);
         }
         SetDirty();
@@ -289,7 +371,7 @@ public class Preferences {
     public String getControllerObject() {
         return ControllerObject;
     }
-    
+
     public void setControllerObject(String s) {
         ControllerObject = s;
     }
@@ -297,7 +379,73 @@ public class Preferences {
     public void setControllerEnabled(boolean b) {
         ControllerEnabled = b;
     }
+
     public boolean isControllerEnabled() {
         return ControllerEnabled;
+    }
+
+    public final void ResetLibraries(boolean delete) {
+        libraries = new ArrayList<AxolotiLibrary>();
+
+        AxoGitLibrary factory = new AxoGitLibrary(
+                AxolotiLibrary.FACTORY_ID,
+                "git",
+                System.getProperty(axoloti.Axoloti.HOME_DIR) + File.separator + "axoloti-factory" + File.separator,
+                true,
+                "https://github.com/axoloti/axoloti-factory.git",
+                false
+        );
+        if (!Axoloti.isDeveloper()) {
+            String ver = Version.AXOLOTI_VERSION;
+            // an unclean version has something like 1.0.6-82-gf5a5e03-dirty
+            // strip it to 1.0.6
+            if (ver.indexOf('-') >= 0) {
+                ver = ver.substring(0, ver.indexOf('-'));
+            }
+            factory.setRevision(ver);
+        }
+        libraries.add(factory);
+
+        libraries.add(new AxoFileLibrary(
+                "home",
+                "local",
+                System.getProperty(axoloti.Axoloti.HOME_DIR) + File.separator,
+                true
+        ));
+
+        libraries.add(new AxoGitLibrary(
+                AxolotiLibrary.USER_LIBRARY_ID,
+                "git",
+                System.getProperty(axoloti.Axoloti.HOME_DIR) + File.separator + "axoloti-contrib" + File.separator,
+                true,
+                "https://github.com/axoloti/axoloti-contrib.git",
+                false
+        ));
+
+        if (!Axoloti.isFailSafeMode()) {
+            // initialise the libraries
+            for (AxolotiLibrary lib : libraries) {
+                if (lib.getEnabled()) {
+                    lib.init(delete);
+                }
+            }
+        }
+        buildObjectSearchPatch();
+    }
+
+    private void buildObjectSearchPatch() {
+        ArrayList<String> objPath = new ArrayList<String>();
+
+        for (AxolotiLibrary lib : libraries) {
+            if (lib.getEnabled()) {
+                String lpath = lib.getLocalLocation() + "objects";
+
+                //might be two libs pointing to same place
+                if (!objPath.contains(lpath)) {
+                    objPath.add(lpath);
+                }
+            }
+        }
+        ObjectPath = objPath.toArray(new String[0]);
     }
 }

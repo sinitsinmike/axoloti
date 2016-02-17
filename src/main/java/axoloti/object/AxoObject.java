@@ -23,11 +23,12 @@ import axoloti.attributedefinition.AxoAttribute;
 import axoloti.attributedefinition.AxoAttributeComboBox;
 import axoloti.attributedefinition.AxoAttributeInt32;
 import axoloti.attributedefinition.AxoAttributeObjRef;
+import axoloti.attributedefinition.AxoAttributeSDFile;
 import axoloti.attributedefinition.AxoAttributeSpinner;
 import axoloti.attributedefinition.AxoAttributeTablename;
 import axoloti.attributedefinition.AxoAttributeTextEditor;
 import axoloti.attributedefinition.AxoAttributeWavefile;
-import axoloti.dialogs.AxoObjectEditor;
+import axoloti.objecteditor.AxoObjectEditor;
 import axoloti.inlets.Inlet;
 import axoloti.inlets.InletBool32;
 import axoloti.inlets.InletBool32Rising;
@@ -85,26 +86,26 @@ import axoloti.parameters.ParameterInt32Box;
 import axoloti.parameters.ParameterInt32BoxSmall;
 import axoloti.parameters.ParameterInt32HRadio;
 import axoloti.parameters.ParameterInt32VRadio;
-import displays.Display;
-import displays.DisplayBool32;
-import displays.DisplayFrac32SChart;
-import displays.DisplayFrac32SDial;
-import displays.DisplayFrac32UChart;
-import displays.DisplayFrac32UDial;
-import displays.DisplayFrac32VBar;
-import displays.DisplayFrac32VBarDB;
-import displays.DisplayFrac32VU;
-import displays.DisplayFrac4ByteVBar;
-import displays.DisplayFrac4UByteVBar;
-import displays.DisplayFrac4UByteVBarDB;
-import displays.DisplayFrac8S128VBar;
-import displays.DisplayFrac8U128VBar;
-import displays.DisplayInt32Bar16;
-import displays.DisplayInt32Bar32;
-import displays.DisplayInt32HexLabel;
-import displays.DisplayInt32Label;
-import displays.DisplayNoteLabel;
-import displays.DisplayVScale;
+import axoloti.displays.Display;
+import axoloti.displays.DisplayBool32;
+import axoloti.displays.DisplayFrac32SChart;
+import axoloti.displays.DisplayFrac32SDial;
+import axoloti.displays.DisplayFrac32UChart;
+import axoloti.displays.DisplayFrac32UDial;
+import axoloti.displays.DisplayFrac32VBar;
+import axoloti.displays.DisplayFrac32VBarDB;
+import axoloti.displays.DisplayFrac32VU;
+import axoloti.displays.DisplayFrac4ByteVBar;
+import axoloti.displays.DisplayFrac4UByteVBar;
+import axoloti.displays.DisplayFrac4UByteVBarDB;
+import axoloti.displays.DisplayFrac8S128VBar;
+import axoloti.displays.DisplayFrac8U128VBar;
+import axoloti.displays.DisplayInt32Bar16;
+import axoloti.displays.DisplayInt32Bar32;
+import axoloti.displays.DisplayInt32HexLabel;
+import axoloti.displays.DisplayInt32Label;
+import axoloti.displays.DisplayNoteLabel;
+import axoloti.displays.DisplayVScale;
 import java.awt.Point;
 import java.io.File;
 import java.math.BigInteger;
@@ -228,7 +229,7 @@ public class AxoObject extends AxoObjectAbstract {
         @ElementList(entry = "combo", type = AxoAttributeComboBox.class, inline = true, required = false),
         @ElementList(entry = "int", type = AxoAttributeInt32.class, inline = true, required = false),
         @ElementList(entry = "spinner", type = AxoAttributeSpinner.class, inline = true, required = false),
-        @ElementList(entry = "file", type = AxoAttributeWavefile.class, inline = true, required = false),
+        @ElementList(entry = "file", type = AxoAttributeSDFile.class, inline = true, required = false),
         @ElementList(entry = "text", type = AxoAttributeTextEditor.class, inline = true, required = false)})
     public ArrayList<AxoAttribute> attributes; // literal constants
     @ElementList(name = "includes", entry = "include", type = String.class, required = false)
@@ -290,7 +291,7 @@ public class AxoObject extends AxoObjectAbstract {
         includes = new HashSet<String>();
     }
 
-    ArrayList<AxoObjectInstance> instances;
+    ArrayList<ObjectModifiedListener> instances = new ArrayList<ObjectModifiedListener>();
     AxoObjectEditor editor;
 
     public void OpenEditor() {
@@ -304,9 +305,7 @@ public class AxoObject extends AxoObjectAbstract {
     @Override
     public void DeleteInstance(AxoObjectInstanceAbstract o) {
         if ((o != null) && (o instanceof AxoObjectInstance)) {
-            if (instances != null) {
-                instances.remove((AxoObjectInstance) o);
-            }
+            instances.remove((AxoObjectInstance) o);
         }
     }
 
@@ -330,13 +329,6 @@ public class AxoObject extends AxoObjectAbstract {
             patch.objectinstances.add(o);
         }
         o.PostConstructor();
-
-        if (patch != null) {
-            if (instances == null) {
-                instances = new ArrayList<AxoObjectInstance>();
-            }
-            instances.add(o);
-        }
         return o;
     }
 
@@ -379,7 +371,7 @@ public class AxoObject extends AxoObjectAbstract {
     @Override
     public Inlet GetInlet(String n) {
         for (Inlet i : inlets) {
-            if (i.name.equals(n)) {
+            if (i.getName().equals(n)) {
                 return i;
             }
         }
@@ -389,7 +381,7 @@ public class AxoObject extends AxoObjectAbstract {
     @Override
     public Outlet GetOutlet(String n) {
         for (Outlet i : outlets) {
-            if (i.name.equals(n)) {
+            if (i.getName().equals(n)) {
                 return i;
             }
         }
@@ -449,7 +441,7 @@ public class AxoObject extends AxoObjectAbstract {
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(AxoObject.class.getName()).log(Level.SEVERE, null, ex);
             return null;
-        }        
+        }
     }
 
     @Override
@@ -472,14 +464,13 @@ public class AxoObject extends AxoObjectAbstract {
             for (Display i : displays) {
                 i.updateSHA(md);
             }
-            return  (new BigInteger(1, md.digest())).toString(16);
+            return (new BigInteger(1, md.digest())).toString(16);
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(AxoObject.class.getName()).log(Level.SEVERE, null, ex);
             return null;
         }
     }
-    
-    
+
     public Boolean getRotatedParams() {
         if (rotatedParams == null) {
             return false;
@@ -569,7 +560,7 @@ public class AxoObject extends AxoObjectAbstract {
     }
 
     public File GetHelpPatchFile() {
-        if (helpPatch == null) {
+        if ((helpPatch == null) || (sPath == null) || sPath.isEmpty()) {
             return null;
         }
         File o = new File(sPath);
@@ -582,4 +573,49 @@ public class AxoObject extends AxoObjectAbstract {
         }
     }
 
+    @Override
+    public void FireObjectModified(Object src) {
+        ArrayList<ObjectModifiedListener> c = new ArrayList<ObjectModifiedListener>(instances);
+        for (ObjectModifiedListener oml : c) {
+            oml.ObjectModified(src);
+        }
+    }
+
+    @Override
+    public void addObjectModifiedListener(ObjectModifiedListener oml) {
+        if (!instances.contains(oml)) {
+            instances.add(oml);
+        }
+    }
+
+    @Override
+    public void removeObjectModifiedListener(ObjectModifiedListener oml) {
+        instances.remove(oml);
+    }
+
+    @Override
+    public AxoObject clone() throws CloneNotSupportedException {
+        AxoObject c = (AxoObject) super.clone();
+        c.inlets = new ArrayList<Inlet>();
+        for (Inlet i : inlets) {
+            c.inlets.add(i.clone());
+        }
+        c.outlets = new ArrayList<Outlet>();
+        for (Outlet i : outlets) {
+            c.outlets.add(i.clone());
+        }
+        c.params = new ArrayList<Parameter>();
+        for (Parameter i : params) {
+            c.params.add(i.clone());
+        }
+        c.displays = new ArrayList<Display>();
+        for (Display i : displays) {
+            c.displays.add(i.clone());
+        }
+        c.attributes = new ArrayList<AxoAttribute>();
+        for (AxoAttribute i : attributes) {
+            c.attributes.add(i.clone());
+        }
+        return c;
+    }
 }

@@ -2,6 +2,8 @@ package axoloti;
 
 import axoloti.targetprofile.axoloti_core;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Calendar;
 import qcmds.QCmdSerialTask;
 
 /**
@@ -21,6 +23,10 @@ public abstract class Connection {
     abstract public void TransmitGetFileList();
     abstract public void TransmitVirtualButton(int b_or, int b_and, int enc1, int enc2, int enc3, int enc4);
     abstract public void TransmitCreateFile(String filename, int size);
+    abstract public void TransmitCreateFile(String filename, int size, Calendar date);
+    abstract public void TransmitCreateDirectory(String filename, Calendar date);
+    abstract public void TransmitDeleteFile(String filename);
+    abstract public void TransmitChangeWorkingDirectory(String path);
     abstract public void TransmitAppendFile(byte[] buffer);
     abstract public void TransmitCloseFile();
     abstract public void TransmitMemoryRead(int addr, int length);
@@ -32,6 +38,7 @@ public abstract class Connection {
     abstract public void TransmitCopyToFlash();
     abstract public void BringToDFU();
     abstract public void ClearSync();
+    abstract public boolean WaitSync(int msec);
     abstract public boolean WaitSync();
     abstract public void ClearReadSync();
     abstract public boolean WaitReadSync();
@@ -39,6 +46,28 @@ public abstract class Connection {
     abstract public axoloti_core getTargetProfile();
     abstract public ByteBuffer getMemReadBuffer();
     abstract public int getMemRead1Word();
+
+    private ArrayList<ConnectionStatusListener> csls = new ArrayList<ConnectionStatusListener>();
+
+    public void addConnectionStatusListener(ConnectionStatusListener csl) {
+        csls.add(csl);
+    }
+
+    public void removeConnectionStatusListener(ConnectionStatusListener csl) {
+        csls.remove(csl);
+    }
+
+    public void ShowDisconnect() {
+        for (ConnectionStatusListener csl : csls) {
+            csl.ShowDisconnect();
+        }
+    }
+
+    public void ShowConnect() {
+        for (ConnectionStatusListener csl : csls) {
+            csl.ShowConnect();
+        }
+    }
     
     @Deprecated
     abstract public void writeBytes(byte[] data);

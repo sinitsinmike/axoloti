@@ -21,6 +21,7 @@ import axoloti.MainFrame;
 import axoloti.Net;
 import axoloti.Patch;
 import axoloti.PatchGUI;
+import axoloti.SDFileReference;
 import axoloti.Synonyms;
 import axoloti.attribute.*;
 import axoloti.attributedefinition.AxoAttribute;
@@ -33,8 +34,8 @@ import axoloti.outlets.OutletInstance;
 import axoloti.parameters.*;
 import components.LabelComponent;
 import components.PopupIcon;
-import displays.Display;
-import displays.DisplayInstance;
+import axoloti.displays.Display;
+import axoloti.displays.DisplayInstance;
 import static java.awt.Component.LEFT_ALIGNMENT;
 import java.awt.MenuItem;
 import java.awt.Point;
@@ -42,6 +43,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,7 +57,7 @@ import org.simpleframework.xml.*;
  * @author Johannes Taelman
  */
 @Root(name = "obj")
-public class AxoObjectInstance extends AxoObjectInstanceAbstract {
+public class AxoObjectInstance extends AxoObjectInstanceAbstract implements ObjectModifiedListener {
 
     public ArrayList<InletInstance> inletInstances;
     public ArrayList<OutletInstance> outletInstances;
@@ -83,11 +85,13 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         @ElementList(entry = "combo", type = AttributeInstanceComboBox.class, inline = true, required = false),
         @ElementList(entry = "int", type = AttributeInstanceInt32.class, inline = true, required = false),
         @ElementList(entry = "spinner", type = AttributeInstanceSpinner.class, inline = true, required = false),
-        @ElementList(entry = "file", type = AttributeInstanceWavefile.class, inline = true, required = false),
+        @ElementList(entry = "file", type = AttributeInstanceSDFile.class, inline = true, required = false),
         @ElementList(entry = "text", type = AttributeInstanceTextEditor.class, inline = true, required = false)})
     ArrayList<AttributeInstance> attributeInstances;
     public ArrayList<DisplayInstance> displayInstances;
     LabelComponent IndexLabel;
+
+    boolean deferredObjTypeUpdate = false;
 
     @Override
     public void refreshIndex() {
@@ -113,22 +117,19 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         super.PostConstructor();
         if (this instanceof AxoObjectInstancePatcher) {
             ((AxoObjectInstancePatcher) this).updateObj1();
+        } else if (this instanceof AxoObjectInstancePatcherObject) {
+            ((AxoObjectInstancePatcherObject) this).updateObj1();
         }
-        if (parameterInstances == null) {
-            parameterInstances = new ArrayList<ParameterInstance>();
-        }
-        if (attributeInstances == null) {
-            attributeInstances = new ArrayList<AttributeInstance>();
-        }
-        if (displayInstances == null) {
-            displayInstances = new ArrayList<DisplayInstance>();
-        }
-        if (inletInstances == null) {
-            inletInstances = new ArrayList<InletInstance>();
-        }
-        if (outletInstances == null) {
-            outletInstances = new ArrayList<OutletInstance>();
-        }
+        ArrayList<ParameterInstance> pParameterInstances = parameterInstances;
+        ArrayList<AttributeInstance> pAttributeInstances = attributeInstances;
+        ArrayList<InletInstance> pInletInstances = inletInstances;
+        ArrayList<OutletInstance> pOutletInstances = outletInstances;
+        parameterInstances = new ArrayList<ParameterInstance>();
+        attributeInstances = new ArrayList<AttributeInstance>();
+        displayInstances = new ArrayList<DisplayInstance>();
+        inletInstances = new ArrayList<InletInstance>();
+        outletInstances = new ArrayList<OutletInstance>();
+
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
         final PopupIcon popupIcon = new PopupIcon();
@@ -182,7 +183,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
             popm_help.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent ae) {
-                    MainFrame.mainframe.OpenPatch(getType().GetHelpPatchFile());
+                    PatchGUI.OpenPatch(getType().GetHelpPatchFile());
                 }
             });
             popup.add(popm_help);
@@ -197,6 +198,15 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
             });
             popup.add(popm_adapt);
         }
+
+        MenuItem popm_embed = new MenuItem("embed (convert to patcher/object");
+        popm_embed.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                ConvertToEmbeddedObj();
+            }
+        });
+        popup.add(popm_embed);
 
         /*
          h.add(Box.createHorizontalStrut(3));
@@ -267,12 +277,15 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         JPanel p_iolets = new JPanel();
         p_iolets.setLayout(new BoxLayout(p_iolets, BoxLayout.LINE_AXIS));
         p_iolets.setAlignmentX(LEFT_ALIGNMENT);
+        p_iolets.setAlignmentY(TOP_ALIGNMENT);
         JPanel p_inlets = new JPanel();
         p_inlets.setLayout(new BoxLayout(p_inlets, BoxLayout.PAGE_AXIS));
         p_inlets.setAlignmentX(LEFT_ALIGNMENT);
+        p_inlets.setAlignmentY(TOP_ALIGNMENT);
         JPanel p_outlets = new JPanel();
         p_outlets.setLayout(new BoxLayout(p_outlets, BoxLayout.PAGE_AXIS));
         p_outlets.setAlignmentX(RIGHT_ALIGNMENT);
+        p_outlets.setAlignmentY(TOP_ALIGNMENT);
         p_params = new JPanel();
         if (getType().getRotatedParams()) {
             p_params.setLayout(new BoxLayout(p_params, BoxLayout.LINE_AXIS));
@@ -288,34 +301,55 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         p_displays.add(Box.createHorizontalGlue());
         p_params.add(Box.createHorizontalGlue());
 
-//        inletInstances = new ArrayList<InletInstance>();
-//        outletInstances =
         for (Inlet inl : getType().inlets) {
-            InletInstance inlin = GetInletInstance(inl.name);
-            if (inlin == null) {
-                inlin = new InletInstance(inl, this);
-                inletInstances.add(inlin);
+            InletInstance inlinp = null;
+            for (InletInstance inlin1 : pInletInstances) {
+                if (inlin1.GetLabel().equals(inl.getName())) {
+                    inlinp = inlin1;
+                }
             }
+            InletInstance inlin = new InletInstance(inl, this);
+            if (inlinp != null) {
+                Net n = getPatch().GetNet(inlinp);
+                if (n != null) {
+                    n.connectInlet(inlin);
+                }
+                getPatch().disconnect(inlinp);
+                inletInstances.remove(inlinp);
+            }
+            inletInstances.add(inlin);
             inlin.setAlignmentX(LEFT_ALIGNMENT);
             p_inlets.add(inlin);
         }
 
         for (Outlet o : getType().outlets) {
-            OutletInstance oin = GetOutletInstance(o.name);
-            if (oin == null) {
-                oin = new OutletInstance(o, this);
-                outletInstances.add(oin);
+            OutletInstance oinp = null;
+            for (OutletInstance oinp1 : pOutletInstances) {
+                if (oinp1.GetLabel().equals(o.getName())) {
+                    oinp = oinp1;
+                }
             }
+            OutletInstance oin = new OutletInstance(o, this);
+            if (oinp != null) {
+                Net n = getPatch().GetNet(oinp);
+                if (n != null) {
+                    n.connectOutlet(oin);
+                }
+                getPatch().disconnect(oinp);
+                outletInstances.remove(oinp);
+            }
+            outletInstances.add(oin);
             oin.setAlignmentX(RIGHT_ALIGNMENT);
             p_outlets.add(oin);
-        }/*
+        }
+
+        /*
          if (p_inlets.getComponents().length == 0){
          p_inlets.add(Box.createHorizontalGlue());
          }
          if (p_outlets.getComponents().length == 0){
          p_outlets.add(Box.createHorizontalGlue());
          }*/
-
         p_iolets.add(p_inlets);
         p_iolets.add(Box.createHorizontalGlue());
         p_iolets.add(p_outlets);
@@ -323,7 +357,13 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
 //        p_iolets.setBackground(Color.red);
 
         for (AxoAttribute p : getType().attributes) {
-            AttributeInstance attri = p.CreateInstance(this);
+            AttributeInstance attrp1 = null;
+            for (AttributeInstance attrp : pAttributeInstances) {
+                if (attrp.getName().equals(p.getName())) {
+                    attrp1 = attrp;
+                }
+            }
+            AttributeInstance attri = p.CreateInstance(this, attrp1);
             attri.setAlignmentX(LEFT_ALIGNMENT);
             add(attri);
             attri.doLayout();
@@ -332,36 +372,18 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
 
         for (Parameter p : getType().params) {
             ParameterInstance pin = p.CreateInstance(this);
+            for (ParameterInstance pinp : pParameterInstances) {
+                if (pinp.getName().equals(pin.getName())) {
+                    pin.CopyValueFrom(pinp);
+                }
+            }
+            pin.PostConstructor();
             pin.setAlignmentX(RIGHT_ALIGNMENT);
             pin.doLayout();
             parameterInstances.add(pin);
         }
-        boolean cont;
-        do {
-            cont = false;
-            for (ParameterInstance pi : parameterInstances) {
-                if (pi.axoObj == null) {
-                    parameterInstances.remove(pi);
-                    Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.SEVERE, "Unresolved parameter {0}:{1}", new Object[]{getInstanceName(), pi.name});
-                    cont = true;
-                    break;
-                }
-            }
-        } while (cont);
-        do {
-            cont = false;
-            for (AttributeInstance pi : attributeInstances) {
-                if (pi.axoObj == null) {
-                    attributeInstances.remove(pi);
-                    Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.SEVERE, "Unresolved attribute {0}:{1}", new Object[]{getInstanceName(), pi.getAttributeName()});
-                    cont = true;
-                    break;
-                }
-            }
-        } while (cont);
 
         for (Display p : getType().displays) {
-            System.out.println(p.toString());
             DisplayInstance pin = p.CreateInstance(this);
             pin.setAlignmentX(RIGHT_ALIGNMENT);
             pin.doLayout();
@@ -373,6 +395,9 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         add(p_displays);
         p_params.setAlignmentX(LEFT_ALIGNMENT);
         p_displays.setAlignmentX(LEFT_ALIGNMENT);
+
+        getType().addObjectModifiedListener(this);
+
         resizeToGrid();
     }
 
@@ -410,11 +435,11 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
             if (n.equals(o.GetLabel())) {
                 return o;
             }
-            else {
-                String s = Synonyms.instance().inlet(n);
-                if(o.GetLabel().equals(s)) {
-                    return o;
-                }
+        }
+        for (InletInstance o : inletInstances) {
+            String s = Synonyms.instance().inlet(n);
+            if (o.GetLabel().equals(s)) {
+                return o;
             }
         }
         return null;
@@ -426,11 +451,11 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
             if (n.equals(o.GetLabel())) {
                 return o;
             }
-            else {
-                String s = Synonyms.instance().outlet(n);
-                if(o.GetLabel().equals(s)) {
-                    return o;
-                }
+        }
+        for (OutletInstance o : outletInstances) {
+            String s = Synonyms.instance().outlet(n);
+            if (o.GetLabel().equals(s)) {
+                return o;
             }
         }
         return null;
@@ -458,6 +483,10 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         super.Unlock();
         for (AttributeInstance a : attributeInstances) {
             a.UnLock();
+        }
+        if (deferredObjTypeUpdate) {
+            getPatch().ChangeObjectInstanceType(this, this.getType());
+            deferredObjTypeUpdate = false;
         }
     }
 
@@ -525,14 +554,16 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         c += "parent = _parent;\n";
         for (ParameterInstance p : parameterInstances) {
             if (p.parameter.PropagateToChild != null) {
-                c += "// on Parent: propagate " + p.name + " " + enableOnParent + " " + getLegalName() + "" + p.parameter.PropagateToChild + "\n";
+                c += "// on Parent: propagate " + p.getName() + " " + enableOnParent + " " + getLegalName() + "" + p.parameter.PropagateToChild + "\n";
                 c += p.PExName("parent->") + ".pfunction = PropagateToSub;\n";
                 c += p.PExName("parent->") + ".finalvalue = (int32_t)(&(parent->instance"
                         + getLegalName() + "_i.PExch[instance" + getLegalName() + "::PARAM_INDEX_"
                         + p.parameter.PropagateToChild + "]));\n";
+
             } else {
                 c += p.GenerateCodeInit("parent->", "");
             }
+            c += p.GenerateCodeInitModulator("parent->", "");
             //           if ((p.isOnParent() && !enableOnParent)) {
             //c += "// on Parent: propagate " + p.name + "\n";
             //String parentparametername = classname.substring(8);
@@ -590,13 +621,6 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
             }
             s = s.replace("attr_name", getCInstanceName());
             s = s.replace("attr_legal_name", getLegalName());
-            for (InletInstance i : inletInstances) {
-                Net n = patch.GetNet(i);
-//                s = s.replace("%" + i.GetLabel() + "%", i.GetCName());
-            }
-            for (OutletInstance i : outletInstances) {
-//                s = s.replace("%" + i.GetLabel() + "%", i.GetCName());
-            }
             for (ParameterInstance p : parameterInstances) {
                 if (p.isOnParent() && enableOnParent) {
 //                    s = s.replace("%" + p.name + "%", OnParentAccess + p.variableName(vprefix, enableOnParent));
@@ -635,7 +659,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
 
             s = s.replace("attr_name", getCInstanceName());
             s = s.replace("attr_legal_name", getLegalName());
-           
+
             return s;
         }
         return "";
@@ -688,6 +712,8 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         return s;
     }
 
+    public final static String MidiHandlerFunctionHeader = "void MidiInHandler(midi_device_t dev, uint8_t port, uint8_t status, uint8_t data1, uint8_t data2) {\n";
+
     @Override
     public String GenerateClass(String ClassName, String OnParentAccess, Boolean enableOnParent) {
         String s = "";
@@ -701,7 +727,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
         {
             String d3 = GenerateCodeMidiHandler("");
             if (!d3.isEmpty()) {
-                s += "void MidiInHandler(midi_device_t dev, uint8_t port, uint8_t status, uint8_t data1, uint8_t data2){\n";
+                s += MidiHandlerFunctionHeader;
                 s += d3;
                 s += "}\n";
             }
@@ -791,7 +817,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
             if (d == null) {
                 continue;
             }
-            String name = j.getInlet().name;
+            String name = j.getInlet().getName();
             for (int i = 0; i < candidates.size(); i++) {
                 AxoObjectAbstract o = candidates.get(i);
                 Inlet i2 = o.GetInlet(name);
@@ -837,5 +863,45 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract {
     @Override
     public ArrayList<DisplayInstance> GetDisplayInstances() {
         return displayInstances;
+    }
+
+    @Override
+    public void ObjectModified(Object src) {
+        if (getPatch() != null) {
+            if (!getPatch().IsLocked()) {
+                getPatch().ChangeObjectInstanceType(this, this.getType());
+            } else {
+                deferredObjTypeUpdate = true;
+            }
+        }
+    }
+
+    @Override
+    public ArrayList<SDFileReference> GetDependendSDFiles() {
+        ArrayList<SDFileReference> files = new ArrayList<SDFileReference>();
+        for (AttributeInstance a : attributeInstances) {
+            ArrayList<SDFileReference> f2 = a.GetDependendSDFiles();
+            if (f2 != null) {
+                files.addAll(f2);
+            }
+        }
+        return files;
+    }
+
+    void ConvertToEmbeddedObj() {
+        try {
+            ArrayList<AxoObjectAbstract> ol = MainFrame.mainframe.axoObjects.GetAxoObjectFromName("patch/object", null);
+            if (ol.isEmpty()) {
+                return;
+            }
+            AxoObjectAbstract o = ol.get(0);
+            AxoObjectInstancePatcherObject oi = (AxoObjectInstancePatcherObject) getPatch().ChangeObjectInstanceType(this, o);
+            oi.ao = getType().clone();
+            oi.ao.sPath = "";
+            oi.ao.upgradeSha = null;
+            oi.updateObj();
+        } catch (CloneNotSupportedException ex) {
+            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }

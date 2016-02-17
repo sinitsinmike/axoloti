@@ -18,6 +18,7 @@
 package axoloti.object;
 
 import axoloti.MainFrame;
+import axoloti.utils.AxolotiLibrary;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -77,11 +78,11 @@ public class AxoObjects {
             { // try object file
                 ArrayList<AxoObjectAbstract> set = new ArrayList<AxoObjectAbstract>();
                 String fnameA = bfname + ".axo";
-                Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "attempt to create object from object file : {0}", fnameA);
+                Logger.getLogger(AxoObjects.class.getName()).log(Level.FINE, "attempt to create object from object file : {0}", fnameA);
                 File f = new File(fnameA);
                 if (f.isFile()) {
                     try {
-                        Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "hit : {0}", fnameA);
+                        Logger.getLogger(AxoObjects.class.getName()).log(Level.FINE, "hit : {0}", fnameA);
                         AxoObjectFile of = serializer.read(AxoObjectFile.class, f);
                         AxoObjectAbstract o = of.objs.get(0);
                         if (o != null) {
@@ -100,10 +101,10 @@ public class AxoObjects {
             { // try subpatch file
                 ArrayList<AxoObjectAbstract> set = new ArrayList<AxoObjectAbstract>();
                 String fnameP = bfname + ".axs";
-                Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "attempt to create object from subpatch file in patch directory: {0}", fnameP);
+                Logger.getLogger(AxoObjects.class.getName()).log(Level.FINE, "attempt to create object from subpatch file in patch directory: {0}", fnameP);
                 File f = new File(fnameP);
                 if (f.isFile()) {
-                    Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "hit : {0}", fnameP);
+                    Logger.getLogger(AxoObjects.class.getName()).log(Level.FINE, "hit : {0}", fnameP);
                     AxoObjectAbstract o = new AxoObjectFromPatch(f);
                     if (n.startsWith("./") || n.startsWith("../")) {
                         o.createdFromRelativePath = true;
@@ -125,13 +126,13 @@ public class AxoObjects {
             String spath[] = MainFrame.prefs.getObjectSearchPath();
             for (String s : spath) {
                 String fsname = s + "/" + n + ".axs";
-                Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "attempt to create object from subpatch file : {0}", fsname);
+                Logger.getLogger(AxoObjects.class.getName()).log(Level.FINE, "attempt to create object from subpatch file : {0}", fsname);
                 File fs = new File(fsname);
                 if (fs.isFile()) {
                     AxoObjectAbstract o = new AxoObjectFromPatch(fs);
 //                    o.createdFromRelativePath = true;
                     o.sPath = n + ".axs";
-                    Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "attempt to create object from subpatch file succeeded :{0}", fsname);
+                    Logger.getLogger(AxoObjects.class.getName()).log(Level.INFO, "loaded :{0}", fsname);
                     set.add(o);
                     return set;
                 }
@@ -158,7 +159,23 @@ public class AxoObjects {
     }
 
     public AxoObjectTreeNode LoadAxoObjectsFromFolder(File folder, String prefix) {
-        AxoObjectTreeNode t = new AxoObjectTreeNode(folder.getName());
+
+        String id = folder.getName();
+        // is this objects in a library, if so use the library name
+        if (prefix.length() == 0 && folder.getName().equals("objects")) {
+            try {
+                String libpath = folder.getParentFile().getCanonicalPath() + File.separator;
+                for (AxolotiLibrary lib : MainFrame.prefs.getLibraries()) {
+                    if (lib.getLocalLocation().equals(libpath)) {
+                        id = lib.getId();
+                        break;
+                    }
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        AxoObjectTreeNode t = new AxoObjectTreeNode(id);
         File fdescription = new File(folder.getAbsolutePath() + "/index.html");
         if (fdescription.canRead()) {
             BufferedReader reader = null;
@@ -235,7 +252,7 @@ public class AxoObjects {
                             }
                             String shaVerify = a.GenerateSHA();
                             if ((shaVerify != null) && (!shaVerify.equals(a.getSHA()))) {
-                                Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, "Incorrect sha hash detected for object: {0} its implementation does not match its signature. Correct SHA hash would be {1}", new Object[]{fileEntry.getAbsolutePath(),shaVerify});
+                                Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, "Incorrect sha hash detected for object: {0} its implementation does not match its signature. Correct SHA hash would be {1}", new Object[]{fileEntry.getAbsolutePath(), shaVerify});
                             }
                             AxoObjectTreeNode s = t.SubNodes.get(ShortID);
                             if (s == null) {
@@ -295,27 +312,27 @@ public class AxoObjects {
             AxoObjectTreeNode t = LoadAxoObjectsFromFolder(folder, "");
             if (t.Objects.size() > 0 || t.SubNodes.size() > 0) {
                 String dirname = folder.getName();
-                if(!ObjectTree.SubNodes.containsKey(dirname)) {
+                if (!ObjectTree.SubNodes.containsKey(dirname)) {
                     ObjectTree.SubNodes.put(dirname, t);
                 } else {
                     // it should be noted, here , we never see this name...
                     // it just needs to be unique, so not to overwirte the map
                     // but just in case it becomes relevant in the future
-                    String pname=dirname;
+                    String pname = dirname;
                     try {
                         pname = folder.getCanonicalFile().getParent();
                     } catch (IOException ex) {
                         Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                    if(!ObjectTree.SubNodes.containsKey(pname)){
+                    if (!ObjectTree.SubNodes.containsKey(pname)) {
                         ObjectTree.SubNodes.put(pname, t);
                     } else {
                         // hmm, lets use the orig name with number
-                        int i=1;
-                        dirname=folder.getName() + "#" + i;
-                        while(ObjectTree.SubNodes.containsKey(dirname)){
+                        int i = 1;
+                        dirname = folder.getName() + "#" + i;
+                        while (ObjectTree.SubNodes.containsKey(dirname)) {
                             i++;
-                            dirname=folder.getName() + "#" + i;
+                            dirname = folder.getName() + "#" + i;
                         }
                         ObjectTree.SubNodes.put(dirname, t);
                     }

@@ -17,6 +17,7 @@
  */
 package axoloti.parameters;
 
+import axoloti.atom.AtomDefinition;
 import axoloti.datatypes.DataType;
 import axoloti.object.AxoObjectInstance;
 import axoloti.utils.CharEscape;
@@ -33,25 +34,26 @@ import org.simpleframework.xml.core.Persister;
 /**
  *
  * @author Johannes Taelman
- * @param <dt> data type
  */
-public abstract class Parameter<dt extends DataType> {
+public abstract class Parameter<T extends ParameterInstance> implements AtomDefinition, Cloneable {
 
     @Attribute
     public String name;
+    @Attribute(required = false)
+    public String description;
+
 //    @Attribute(required = false)
 //    Value<dt> defaultVal;
     @Attribute(required = false)
     public Boolean noLabel;
-    
-    public String PropagateToChild;
 
+    public String PropagateToChild;
 
     public String CType() {
         // fixme
         return "int";
     }
-    
+
     public Parameter() {
     }
 
@@ -61,45 +63,45 @@ public abstract class Parameter<dt extends DataType> {
 
     public String GetCName() {
         return "param_" + CharEscape.CharEscape(name);
-    }        
-
-    public ParameterInstance<dt> CreateInstance(AxoObjectInstance o) {
-        // resolve deserialized object, copy value and remove
-        ParameterInstance<dt> pidn = null;
-        for (ParameterInstance pi : o.parameterInstances) {
-//            System.out.println("compare " + this.name + "<>" + pi.name);
-            if (pi.name.equals(this.name)) {
-                pidn = (ParameterInstance<dt>) pi;
-                break;
-            }
-        }
-        if (pidn == null) {
-//            System.out.println("no match " + this.name);
-            ParameterInstance<dt> pi = InstanceFactory();
-            pi.axoObj = o;
-            pi.name = this.name;
-            pi.parameter = this;
-//            pi.SetValue(DefaultValue);
-            pi.applyDefaultValue();
-            o.p_params.add(pi);
-            pi.PostConstructor();
-            return pi;
-        } else {
-//            System.out.println("match" + pidn.getName());
-            ParameterInstance<dt> pi = InstanceFactory();
-//            pidn.convs = pi.convs;
-            o.parameterInstances.remove(pidn);
-            pi.axoObj = o;
-            pi.name = this.name;
-            pi.parameter = this;
-            pi.CopyValueFrom(pidn);
-            pi.PostConstructor();
-            o.p_params.add(pi);
-            return pi;
-        }
     }
 
-    public abstract ParameterInstance InstanceFactory();
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    @Override
+    public void setDescription(String description) {
+        this.description = description;
+    }
+   
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName();
+    }
+
+    @Override
+    public ParameterInstance CreateInstance(AxoObjectInstance o) {
+        ParameterInstance pi = InstanceFactory();
+        pi.axoObj = o;
+        pi.name = this.name;
+        pi.parameter = this;
+        pi.applyDefaultValue();
+        o.p_params.add(pi);
+        return pi;
+    }
+
+    public abstract T InstanceFactory();
 
     public Parameter getClone() {
         Serializer serializer = new Persister();
@@ -114,7 +116,7 @@ public abstract class Parameter<dt extends DataType> {
         return p;
     }
 
-    public dt getDatatype() {
+    public DataType getDatatype() {
         return null;
     }
 
@@ -122,4 +124,9 @@ public abstract class Parameter<dt extends DataType> {
         md.update(name.getBytes());
 //        md.update((byte) getDatatype().hashCode());
     }
+    
+    @Override
+    public Parameter clone() throws CloneNotSupportedException {
+        return (Parameter) super.clone();
+    }    
 }

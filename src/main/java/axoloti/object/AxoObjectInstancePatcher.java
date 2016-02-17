@@ -83,6 +83,7 @@ public class AxoObjectInstancePatcher extends AxoObjectInstance {
             pg.setFileNamePath(getInstanceName());
             pg.PostContructor();
         }
+        pf.setState(java.awt.Frame.NORMAL);
         pf.setVisible(true);
     }
 

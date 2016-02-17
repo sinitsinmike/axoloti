@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013, 2014 Johannes Taelman
+ * Copyright (C) 2013 - 2016 Johannes Taelman
  *
  * This file is part of Axoloti.
  *
@@ -17,8 +17,8 @@
  */
 package axoloti.attributedefinition;
 
-import axoloti.attribute.AttributeInstance;
 import axoloti.attribute.AttributeInstanceComboBox;
+import axoloti.object.AxoObjectInstance;
 import java.util.ArrayList;
 import java.util.Arrays;
 import org.simpleframework.xml.ElementList;
@@ -29,16 +29,22 @@ import org.simpleframework.xml.ElementList;
  */
 public class AxoAttributeComboBox extends AxoAttribute {
 
-    @ElementList
+    @ElementList(required = false)
     ArrayList<String> MenuEntries;
-    @ElementList
+    @ElementList(required = false)
     ArrayList<String> CEntries;
 
     public AxoAttributeComboBox() {
+        if (MenuEntries == null) {
+            MenuEntries = new ArrayList<String>();
+        }
+        if (CEntries == null) {
+            CEntries = new ArrayList<String>();
+        }
     }
 
     public AxoAttributeComboBox(String name, String MenuEntries[], String CEntries[]) {
-        this.name = name;
+        super(name);
         this.MenuEntries = new ArrayList<String>();
         this.CEntries = new ArrayList<String>();
         this.MenuEntries.addAll(Arrays.asList(MenuEntries));
@@ -54,7 +60,7 @@ public class AxoAttributeComboBox extends AxoAttribute {
     }
 
     @Override
-    public AttributeInstance InstanceFactory() {
-        return new AttributeInstanceComboBox();
+    public AttributeInstanceComboBox InstanceFactory(AxoObjectInstance o) {
+        return new AttributeInstanceComboBox(this, o);
     }
 }

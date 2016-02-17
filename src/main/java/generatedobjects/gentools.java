@@ -17,6 +17,7 @@
  */
 package generatedobjects;
 
+import axoloti.MainFrame;
 import axoloti.attributedefinition.AxoAttribute;
 import axoloti.inlets.Inlet;
 import axoloti.inlets.InletFrac32;
@@ -32,6 +33,7 @@ import axoloti.outlets.OutletFrac32Buffer;
 import axoloti.outlets.OutletInt32;
 import axoloti.parameters.Parameter;
 import axoloti.parameters.ParameterFrac32UMap;
+import axoloti.utils.AxolotiLibrary;
 import axoloti.utils.Preferences;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -72,20 +74,20 @@ public class gentools {
     @Deprecated
     static void CheckString(AxoObject o, String s) {
         for (Parameter p : o.params) {
-            s = s.replaceAll("%" + p.name + "%", "");
-            s = s.replaceAll("_" + p.name, "");
+            s = s.replaceAll("%" + p.getName() + "%", "");
+            s = s.replaceAll("_" + p.getName(), "");
         }
         for (Inlet p : o.inlets) {
-            s = s.replaceAll("%" + p.name + "%", "");
-            s = s.replaceAll("_" + p.name, "");
+            s = s.replaceAll("%" + p.getName() + "%", "");
+            s = s.replaceAll("_" + p.getName(), "");
         }
         for (Outlet p : o.outlets) {
-            s = s.replaceAll("%" + p.name + "%", "");
-            s = s.replaceAll("_" + p.name, "");
+            s = s.replaceAll("%" + p.getName() + "%", "");
+            s = s.replaceAll("_" + p.getName(), "");
         }
-        for (displays.Display p : o.displays) {
-            s = s.replaceAll("%" + p.name + "%", "");
-            s = s.replaceAll("_" + p.name, "");
+        for (axoloti.displays.Display p : o.displays) {
+            s = s.replaceAll("%" + p.getName() + "%", "");
+            s = s.replaceAll("_" + p.getName(), "");
         }
 
         s = s.replaceAll("ntrig", "");
@@ -97,18 +99,18 @@ public class gentools {
         s = s.replaceAll("int", "");
         s = s.replaceAll("default", "");
         for (Parameter p : o.params) {
-            if (s.contains(p.name)) {
-                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.name + "\n" + s);
+            if (s.contains(p.getName())) {
+                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
             }
         }
         for (Inlet p : o.inlets) {
-            if (s.contains(p.name)) {
-                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.name + "\n" + s);
+            if (s.contains(p.getName())) {
+                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
             }
         }
         for (Outlet p : o.outlets) {
-            if (s.contains(p.name)) {
-                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.name + "\n" + s);
+            if (s.contains(p.getName())) {
+                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
             }
         }
 
@@ -247,26 +249,26 @@ public class gentools {
             }
             for (Inlet p : oo.inlets) {
                 if (oo.sKRateCode != null) {
-                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
                 if (oo.sSRateCode != null) {
-                    oo.sSRateCode = oo.sSRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sSRateCode = oo.sSRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
             }
             for (Outlet p : oo.outlets) {
                 if (oo.sKRateCode != null) {
-                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
                 if (oo.sSRateCode != null) {
-                    oo.sSRateCode = oo.sSRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sSRateCode = oo.sSRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
             }
-            for (displays.Display p : oo.displays) {
+            for (axoloti.displays.Display p : oo.displays) {
                 if (oo.sInitCode != null) {
-                    oo.sInitCode = oo.sInitCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sInitCode = oo.sInitCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
                 if (oo.sKRateCode != null) {
-                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
             }
             if (oo.sInitCode != null) {
@@ -286,12 +288,12 @@ public class gentools {
             }
 
             if (oo.helpPatch == null) {
-                File f = new File("objects/" + catname + "/" + fn + ".axh");
+                File f = new File(getObjDir() + catname + "/" + fn + ".axh");
                 if (f.exists()) {
                     oo.helpPatch = fn + ".axh";
                 } else {
                     String fcatname = catname.replaceAll("/", "_");
-                    File fcat = new File("objects/" + catname + "/" + fcatname + ".axh");
+                    File fcat = new File(getObjDir() + catname + "/" + fcatname + ".axh");
                     if (fcat.exists()) {
                         oo.helpPatch = fcatname + ".axh";
                     }
@@ -326,11 +328,11 @@ public class gentools {
                 o.id = o.id.substring(i + 1);
             }
 
-            File fd = new File("objects/" + path);
+            File fd = new File(getObjDir() + path);
             if (!fd.isDirectory()) {
                 fd.mkdirs();
             }
-            f = new File("objects/" + path + "/" + fn + ".axo");
+            f = new File(getObjDir() + path + "/" + fn + ".axo");
         } else {
             f = new File(path);
             fn = f.getName();
@@ -407,7 +409,7 @@ public class gentools {
                 // overwrite with new
                 try {
                     System.out.println("object file changed : " + f.getName());
-                    File f2 = new File("objects/" + path + "/" + fn + ".axo");
+                    File f2 = new File(getObjDir() + path + "/" + fn + ".axo");
                     serializer.write(a, f2);
                 } catch (Exception ex) {
                     Logger.getLogger(GeneratedObjects.class.getName()).log(Level.SEVERE, null, ex);
@@ -442,11 +444,11 @@ public class gentools {
         path = path.replace('\\', '/');
         fn = fn.replace('\\', '/');
 
-        File fd = new File("objects/" + path);
+        File fd = new File(getObjDir() + path);
         if (!fd.isDirectory()) {
             fd.mkdirs();
         }
-        File f = new File("objects/" + path + "/" + fn + ".axo");
+        File f = new File(getObjDir() + path + "/" + fn + ".axo");
         AxoObjectFile a = new AxoObjectFile();
         a.objs = o;
         for (AxoObjectAbstract oa : a.objs) {
@@ -497,7 +499,7 @@ public class gentools {
                 // overwrite with new
                 try {
                     System.out.println("object file changed : " + f.getName());
-                    File f2 = new File("objects/" + path + "/" + fn + ".axo");
+                    File f2 = new File(getObjDir() + path + "/" + fn + ".axo");
                     serializer.write(a, f2);
                 } catch (Exception ex) {
                     Logger.getLogger(GeneratedObjects.class.getName()).log(Level.SEVERE, null, ex);
@@ -708,5 +710,14 @@ public class gentools {
         o_s.sSRateCode = "%out%= " + op_prefix + "%in%" + op_suffix + ";";
         a.add(o_s);
         return a;
+    }
+
+    static String getObjDir() {
+        AxolotiLibrary lib = MainFrame.prefs.getLibrary(AxolotiLibrary.FACTORY_ID);
+        String objdir = "objects/";
+        if (lib != null) {
+            objdir = lib.getLocalLocation() + objdir;
+        }
+        return objdir;
     }
 }

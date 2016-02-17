@@ -4,44 +4,12 @@
   <NonVisualComponents>
     <Menu class="javax.swing.JMenuBar" name="jMenuBar1">
       <SubComponents>
-        <Menu class="javax.swing.JMenu" name="jMenuFile">
+        <Menu class="axoloti.menus.FileMenu" name="fileMenu1">
           <Properties>
-            <Property name="mnemonic" type="int" value="70"/>
             <Property name="text" type="java.lang.String" value="File"/>
           </Properties>
           <SubComponents>
-            <MenuItem class="javax.swing.JMenuItem" name="jMenuNew">
-              <Properties>
-                <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-                  <Connection code="KeyStroke.getKeyStroke(KeyEvent.VK_N,&#xa;    Toolkit.getDefaultToolkit().getMenuShortcutKeyMask())" type="code"/>
-                </Property>
-                <Property name="text" type="java.lang.String" value="New"/>
-              </Properties>
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuNewActionPerformed"/>
-              </Events>
-            </MenuItem>
-            <MenuItem class="javax.swing.JMenuItem" name="jMenuOpen">
-              <Properties>
-                <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-                  <Connection code="KeyStroke.getKeyStroke(KeyEvent.VK_O,&#xa;    Toolkit.getDefaultToolkit().getMenuShortcutKeyMask())" type="code"/>
-                </Property>
-                <Property name="text" type="java.lang.String" value="Open..."/>
-              </Properties>
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuOpenActionPerformed"/>
-              </Events>
-            </MenuItem>
-            <MenuItem class="javax.swing.JMenuItem" name="jMenuClose">
-              <Properties>
-                <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-                  <Connection code="KeyStroke.getKeyStroke(KeyEvent.VK_W,&#xa;    Toolkit.getDefaultToolkit().getMenuShortcutKeyMask())" type="code"/>
-                </Property>
-                <Property name="text" type="java.lang.String" value="Close"/>
-              </Properties>
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuCloseActionPerformed"/>
-              </Events>
+            <MenuItem class="javax.swing.JPopupMenu$Separator" name="jSeparator1">
             </MenuItem>
             <MenuItem class="javax.swing.JMenuItem" name="jMenuSave">
               <Properties>
@@ -70,17 +38,15 @@
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuSaveClipActionPerformed"/>
               </Events>
             </MenuItem>
-            <MenuItem class="javax.swing.JPopupMenu$Separator" name="jSeparator1">
-            </MenuItem>
-            <MenuItem class="javax.swing.JMenuItem" name="jMenuQuit">
+            <MenuItem class="javax.swing.JMenuItem" name="jMenuClose">
               <Properties>
                 <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-                  <Connection code="KeyStroke.getKeyStroke(KeyEvent.VK_Q,&#xa;    Toolkit.getDefaultToolkit().getMenuShortcutKeyMask())" type="code"/>
+                  <Connection code="KeyStroke.getKeyStroke(KeyEvent.VK_W,&#xa;    Toolkit.getDefaultToolkit().getMenuShortcutKeyMask())" type="code"/>
                 </Property>
-                <Property name="text" type="java.lang.String" value="Quit"/>
+                <Property name="text" type="java.lang.String" value="Close"/>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuQuitActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuCloseActionPerformed"/>
               </Events>
             </MenuItem>
           </SubComponents>
@@ -259,6 +225,14 @@
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuItemUnlockActionPerformed"/>
               </Events>
             </MenuItem>
+            <MenuItem class="javax.swing.JMenuItem" name="jMenuItem1">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Dump modulation matrix"/>
+              </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuItem1ActionPerformed"/>
+              </Events>
+            </MenuItem>
           </SubComponents>
         </Menu>
         <Menu class="javax.swing.JMenu" name="jMenuPreset">
@@ -293,42 +267,12 @@
             </MenuItem>
           </SubComponents>
         </Menu>
-        <Menu class="javax.swing.JMenu" name="jMenuWindow">
-          <Properties>
-            <Property name="mnemonic" type="int" value="87"/>
-            <Property name="text" type="java.lang.String" value="Window"/>
-          </Properties>
-          <Events>
-            <EventHandler event="menuDeselected" listener="javax.swing.event.MenuListener" parameters="javax.swing.event.MenuEvent" handler="jMenuWindowMenuDeselected"/>
-            <EventHandler event="menuSelected" listener="javax.swing.event.MenuListener" parameters="javax.swing.event.MenuEvent" handler="jMenuWindowMenuSelected"/>
-          </Events>
+        <Menu class="axoloti.menus.WindowMenu" name="windowMenu1">
         </Menu>
-        <Menu class="javax.swing.JMenu" name="jMenuHelp">
+        <Menu class="axoloti.menus.HelpMenu" name="helpMenu1">
           <Properties>
-            <Property name="mnemonic" type="int" value="72"/>
             <Property name="text" type="java.lang.String" value="Help"/>
           </Properties>
-          <SubComponents>
-            <MenuItem class="javax.swing.JMenuItem" name="jMenuHelpContents">
-              <Properties>
-                <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.editors.KeyStrokeEditor">
-                  <KeyStroke key="F1"/>
-                </Property>
-                <Property name="text" type="java.lang.String" value="Help Contents"/>
-              </Properties>
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuHelpContentsActionPerformed"/>
-              </Events>
-            </MenuItem>
-            <MenuItem class="javax.swing.JMenuItem" name="jMenuAbout">
-              <Properties>
-                <Property name="text" type="java.lang.String" value="About..."/>
-              </Properties>
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jMenuAboutActionPerformed"/>
-              </Events>
-            </MenuItem>
-          </SubComponents>
         </Menu>
       </SubComponents>
     </Menu>
@@ -342,8 +286,10 @@
     <SyntheticProperty name="generateCenter" type="boolean" value="false"/>
   </SyntheticProperties>
   <Events>
-    <EventHandler event="windowClosing" listener="java.awt.event.WindowListener" parameters="java.awt.event.WindowEvent" handler="formWindowClosing"/>
     <EventHandler event="focusLost" listener="java.awt.event.FocusListener" parameters="java.awt.event.FocusEvent" handler="formFocusLost"/>
+    <EventHandler event="componentHidden" listener="java.awt.event.ComponentListener" parameters="java.awt.event.ComponentEvent" handler="formComponentHidden"/>
+    <EventHandler event="componentShown" listener="java.awt.event.ComponentListener" parameters="java.awt.event.ComponentEvent" handler="formComponentShown"/>
+    <EventHandler event="windowClosing" listener="java.awt.event.WindowListener" parameters="java.awt.event.WindowEvent" handler="formWindowClosing"/>
   </Events>
   <AuxValues>
     <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>

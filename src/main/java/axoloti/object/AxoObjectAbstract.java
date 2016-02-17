@@ -22,6 +22,7 @@ import axoloti.Patch;
 import axoloti.inlets.Inlet;
 import axoloti.outlets.Outlet;
 import java.awt.Point;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +37,7 @@ import org.simpleframework.xml.Root;
  * @author Johannes Taelman
  */
 @Root(name = "objdef")
-public abstract class AxoObjectAbstract implements Comparable {
+public abstract class AxoObjectAbstract implements Comparable, Cloneable {
 
     @Attribute
     public String id;
@@ -163,7 +164,7 @@ public abstract class AxoObjectAbstract implements Comparable {
     }
 
     public abstract String GenerateUUID();
-    
+
     public void addUpgradeSHA(String s) {
         if (upgradeSha == null) {
             upgradeSha = new HashSet<String>();
@@ -178,4 +179,14 @@ public abstract class AxoObjectAbstract implements Comparable {
     public HashSet<String> getUpgradeSha() {
         return upgradeSha;
     }
+
+    public void FireObjectModified(Object src) {
+    }
+
+    public void addObjectModifiedListener(ObjectModifiedListener oml) {
+    }
+
+    public void removeObjectModifiedListener(ObjectModifiedListener oml) {
+    }
+
 }

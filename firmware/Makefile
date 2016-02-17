@@ -77,17 +77,8 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-#include $(CHIBIOS)/test/test.mk
 	
-# not using fatfs.mk, since ccsbcs.c should not be included in nonLFN fatfs config
-# include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
-
-#include $(CHIBIOS)/test/test.mk
-FATFSSRC = ${CHIBIOS}/os/various/fatfs_bindings/fatfs_diskio.c \
-           ${CHIBIOS}/os/various/fatfs_bindings/fatfs_syscall.c \
-           ${CHIBIOS}/ext/fatfs/src/ff.c 
-
-FATFSINC = ${CHIBIOS}/ext/fatfs/src
+include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 CMSIS = ${axoloti_release}/CMSIS/
 
@@ -168,6 +159,7 @@ CSRC = $(PORTSRC) \
        ${FIRMWARE}/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
        ${FIRMWARE}/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hcd.c \
        ${FIRMWARE}/usbh_midi_core.c \
+       ${FIRMWARE}/usbh_vendor.c \
        ${FIRMWARE}/usbh_conf.c \
        ${FIRMWARE}/serial_midi.c \
        ${FIRMWARE}/bulk_usb.c \

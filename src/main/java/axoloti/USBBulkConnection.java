@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013, 2014 Johannes Taelman
+ * Copyright (C) 2013 - 2016 Johannes Taelman
  *
  * This file is part of Axoloti.
  *
@@ -25,12 +25,13 @@ import axoloti.dialogs.USBPortSelectionDlg;
 import static axoloti.dialogs.USBPortSelectionDlg.ErrorString;
 import axoloti.parameters.ParameterInstance;
 import axoloti.targetprofile.axoloti_core;
-import displays.DisplayInstance;
+import axoloti.displays.DisplayInstance;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.Charset;
+import java.util.Calendar;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
@@ -55,28 +56,23 @@ import qcmds.QCmdWriteMem;
 public class USBBulkConnection extends Connection {
 
     private Patch patch;
-    boolean disconnectRequested;
-    boolean connected;
-    Thread transmitterThread;
-    Thread receiverThread;
-    BlockingQueue<QCmdSerialTask> queueSerialTask;
-    private final BlockingQueue<QCmd> queueResponse;
-    String cpuid;
+    private boolean disconnectRequested;
+    private boolean connected;
+    private Thread transmitterThread;
+    private Thread receiverThread;
+    private final BlockingQueue<QCmdSerialTask> queueSerialTask;
+    private String cpuid;
     private axoloti_core targetProfile;
     private final Context context;
     private DeviceHandle handle;
-    private Device device;
-    private String devicePath;
-
     private final short bulkVID = (short) 0x16C0;
     private final short bulkPID = (short) 0x0442;
     private final int interfaceNumber = 2;
 
-    public USBBulkConnection(Patch patch, BlockingQueue<QCmd> queueResponse) {
+    protected USBBulkConnection() {
         this.sync = new Sync();
         this.readsync = new Sync();
-        this.patch = patch;
-        this.queueResponse = queueResponse;
+        this.patch = null;
         disconnectRequested = false;
         connected = false;
         queueSerialTask = new ArrayBlockingQueue<QCmdSerialTask>(10);
@@ -112,7 +108,7 @@ public class USBBulkConnection extends Connection {
         if (connected) {
             disconnectRequested = true;
             connected = false;
-            MainFrame.mainframe.ShowDisconnect();
+            ShowDisconnect();
             queueSerialTask.clear();
             try {
                 Thread.sleep(100);
@@ -149,7 +145,6 @@ public class USBBulkConnection extends Connection {
             }
 
             LibUsb.close(handle);
-            devicePath = null;
             handle = null;
             CpuId0 = 0;
             CpuId1 = 0;
@@ -379,12 +374,12 @@ public class USBBulkConnection extends Connection {
                 System.out.println("</signature>");
 
             }
-            MainFrame.mainframe.ShowConnect();
+            ShowConnect();
             return true;
 
         } catch (Exception ex) {
             Logger.getLogger(USBBulkConnection.class.getName()).log(Level.SEVERE, null, ex);
-            MainFrame.mainframe.ShowDisconnect();
+            ShowDisconnect();
             return false;
         }
     }
@@ -434,15 +429,17 @@ public class USBBulkConnection extends Connection {
 
     @Override
     public void SendMidi(int m0, int m1, int m2) {
-        byte[] data = new byte[7];
-        data[0] = 'A';
-        data[1] = 'x';
-        data[2] = 'o';
-        data[3] = 'M';
-        data[4] = (byte) m0;
-        data[5] = (byte) m1;
-        data[6] = (byte) m2;
-        writeBytes(data);
+        if (isConnected()) {
+            byte[] data = new byte[7];
+            data[0] = 'A';
+            data[1] = 'x';
+            data[2] = 'o';
+            data[3] = 'M';
+            data[4] = (byte) m0;
+            data[5] = (byte) m1;
+            data[6] = (byte) m2;
+            writeBytes(data);
+        }
     }
 
     @Override
@@ -467,11 +464,20 @@ public class USBBulkConnection extends Connection {
         spsDlg.setVisible(true);
         cpuid = spsDlg.getCPUID();
         String name = MainFrame.prefs.getBoardName(cpuid);
-        if(name==null) {
+        if (name == null) {
             Logger.getLogger(USBBulkConnection.class.getName()).log(Level.INFO, "port: {0}", cpuid);
         } else {
             Logger.getLogger(USBBulkConnection.class.getName()).log(Level.INFO, "port: {0} name: {1}", new Object[]{cpuid, name});
         }
+    }
+
+    static private USBBulkConnection conn = null;
+
+    public static Connection GetConnection() {
+        if (conn == null) {
+            conn = new USBBulkConnection();
+        }
+        return conn;
     }
 
     class Sync {
@@ -489,18 +495,23 @@ public class USBBulkConnection extends Connection {
     }
 
     @Override
-    public boolean WaitSync() {
+    public boolean WaitSync(int msec) {
         synchronized (sync) {
             if (sync.Acked) {
                 return sync.Acked;
             }
             try {
-                sync.wait(1000);
+                sync.wait(msec);
             } catch (InterruptedException ex) {
                 //              Logger.getLogger(SerialConnection.class.getName()).log(Level.SEVERE, "Sync wait interrupted");
             }
             return sync.Acked;
         }
+    }
+
+    @Override
+    public boolean WaitSync() {
+        return WaitSync(1000);
     }
 
     @Override
@@ -624,6 +635,123 @@ public class USBBulkConnection extends Connection {
     }
 
     @Override
+    public void TransmitCreateFile(String filename, int size, Calendar date) {
+        byte[] data = new byte[15 + filename.length()];
+        data[0] = 'A';
+        data[1] = 'x';
+        data[2] = 'o';
+        data[3] = 'C';
+        data[4] = (byte) size;
+        data[5] = (byte) (size >> 8);
+        data[6] = (byte) (size >> 16);
+        data[7] = (byte) (size >> 24);
+        data[8] = 0;
+        data[9] = 'f';
+        int dy = date.get(Calendar.YEAR);
+        int dm = date.get(Calendar.MONTH) + 1;
+        int dd = date.get(Calendar.DAY_OF_MONTH);
+        int th = date.get(Calendar.HOUR_OF_DAY);
+        int tm = date.get(Calendar.MINUTE);
+        int ts = date.get(Calendar.SECOND);
+        int t = ((dy - 1980) * 512) | (dm * 32) | dd;
+        int d = (th * 2048) | (tm * 32) | (ts / 2);
+        data[10] = (byte) (t & 0xff);
+        data[11] = (byte) (t >> 8);
+        data[12] = (byte) (d & 0xff);
+        data[13] = (byte) (d >> 8);
+        int i = 14;
+        for (int j = 0; j < filename.length(); j++) {
+            data[i++] = (byte) filename.charAt(j);
+        }
+        data[i] = 0;
+        ClearSync();
+        writeBytes(data);
+        WaitSync();
+    }
+
+    @Override
+    public void TransmitDeleteFile(String filename) {
+        byte[] data = new byte[15 + filename.length()];
+        data[0] = 'A';
+        data[1] = 'x';
+        data[2] = 'o';
+        data[3] = 'C';
+        data[4] = 0;
+        data[5] = 0;
+        data[6] = 0;
+        data[7] = 0;
+        data[8] = 0;
+        data[9] = 'D';
+        data[10] = 0;
+        data[11] = 0;
+        data[12] = 0;
+        data[13] = 0;
+        int i = 14;
+        for (int j = 0; j < filename.length(); j++) {
+            data[i++] = (byte) filename.charAt(j);
+        }
+        data[i] = 0;
+        ClearSync();
+        writeBytes(data);
+        WaitSync();
+    }
+
+    @Override
+    public void TransmitChangeWorkingDirectory(String path) {
+        byte[] data = new byte[15 + path.length()];
+        data[0] = 'A';
+        data[1] = 'x';
+        data[2] = 'o';
+        data[3] = 'C';
+        data[4] = 0;
+        data[5] = 0;
+        data[6] = 0;
+        data[7] = 0;
+        data[8] = 0;
+        data[9] = 'C';
+        data[10] = 0;
+        data[11] = 0;
+        data[12] = 0;
+        data[13] = 0;
+        int i = 14;
+        for (int j = 0; j < path.length(); j++) {
+            data[i++] = (byte) path.charAt(j);
+        }
+        data[i] = 0;
+        ClearSync();
+        writeBytes(data);
+        WaitSync();
+    }
+
+    @Override
+    public void TransmitCreateDirectory(String filename, Calendar date) {
+        byte[] data = new byte[15 + filename.length()];
+        data[0] = 'A';
+        data[1] = 'x';
+        data[2] = 'o';
+        data[3] = 'C';
+        data[4] = 0;
+        data[5] = 0;
+        data[6] = 0;
+        data[7] = 0;
+        data[8] = 0;
+        data[9] = 'd';
+        data[10] = 0;
+        data[11] = 0;
+        data[12] = 0;
+        data[13] = 0;
+
+        int i = 14;
+        for (int j = 0; j < filename.length(); j++) {
+            data[i++] = (byte) filename.charAt(j);
+        }
+        data[i] = 0;
+        ClearSync();
+        writeBytes(data);
+        WaitSync();
+    }
+
+    @Override
     public void TransmitAppendFile(byte[] buffer) {
         byte[] data = new byte[8];
         data[0] = 'A';
@@ -726,7 +854,7 @@ public class USBBulkConnection extends Connection {
                     QCmdSerialTask cmd = queueSerialTask.take();
                     QCmd response = cmd.Do(USBBulkConnection.this);
                     if (response != null) {
-                        queueResponse.add(response);
+                        QCmdProcessor.getQCmdProcessor().getQueueResponse().add(response);
                     }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(USBBulkConnection.class.getName()).log(Level.SEVERE, null, ex);
@@ -741,34 +869,38 @@ public class USBBulkConnection extends Connection {
     int CpuId1 = 0;
     int CpuId2 = 0;
     int fwcrc = -1;
-    int IID = 0;
 
     void Acknowledge(int DSPLoad, int PatchID, int Voltages, int CpuId1, int CpuId2) {
         synchronized (sync) {
             sync.Acked = true;
             sync.notifyAll();
         }
-        IID = PatchID;
         if (patch != null) {
-            patch.SetDSPLoad(DSPLoad);
+            if ((patch.GetIID() != PatchID) && patch.IsLocked()) {
+                patch.Unlock();
+            } else {
+                patch.SetDSPLoad(DSPLoad);
+            }
         }
         targetProfile.setVoltages(Voltages);
     }
 
-    void RPacketParamChange(final int index, final int value) {
+    void RPacketParamChange(final int index, final int value, final int patchID) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public
                     void run() {
                 if (patch == null) {
-                    Logger.getLogger(USBBulkConnection.class
-                            .getName()).log(Level.INFO, "Rx paramchange patch null{0} {1}", new Object[]{index, value});
-
+                    //Logger.getLogger(USBBulkConnection.class.getName()).log(Level.INFO, "Rx paramchange patch null {0} {1}", new Object[]{index, value});
                     return;
                 }
                 if (!patch.IsLocked()) {
                     return;
 
+                }
+                if (patch.GetIID() != patchID) {
+                    patch.Unlock();
+                    return;
                 }
                 if (index >= patch.ParameterInstances.size()) {
                     Logger.getLogger(USBBulkConnection.class
@@ -784,14 +916,10 @@ public class USBBulkConnection extends Connection {
                     return;
                 }
 
-                if (patch.GetIID() != IID) {
-                    Logger.getLogger(USBBulkConnection.class
-                            .getName()).log(Level.INFO, "Rx paramchange IID mismatch{0} {1}", new Object[]{index, value});
-                    return;
+                if (!pi.GetNeedsTransmit()) {
+                    pi.SetValueRaw(value);
                 }
-
 //                System.out.println("rcv ppc objname:" + pi.axoObj.getInstanceName() + " pname:"+ pi.name);
-                pi.SetValueRaw(value);
             }
         });
 
@@ -930,11 +1058,11 @@ public class USBBulkConnection extends Connection {
                         break;
                     case 3:
                         switch (c) {
-                            case 'P':
+                            case 'Q':
                                 state = ReceiverState.paramchangePckt;
                                 //System.out.println("param packet start");
                                 dataIndex = 0;
-                                dataLength = 8;
+                                dataLength = 12;
                                 break;
                             case 'A':
                                 state = ReceiverState.ackPckt;
@@ -981,7 +1109,7 @@ public class USBBulkConnection extends Connection {
                                 state = ReceiverState.fileinfo;
                                 fileinfoRcvBuffer.clear();
                                 dataIndex = 0;
-                                dataLength = 4;
+                                dataLength = 8;
                                 break;
                             case 'r':
                                 state = ReceiverState.memread;
@@ -1015,7 +1143,7 @@ public class USBBulkConnection extends Connection {
 //                    System.out.println("pch packet i=" +dataIndex + " v=" + c + " c="+ (char)(cc));
                 if (dataIndex == dataLength) {
                     //System.out.println("param packet complete 0x" + Integer.toHexString(packetData[1]) + "    0x" + Integer.toHexString(packetData[0]));
-                    RPacketParamChange(packetData[1], packetData[0]);
+                    RPacketParamChange(packetData[2], packetData[1], packetData[0]);
                     GoIdleState();
                 }
                 break;
@@ -1084,7 +1212,7 @@ public class USBBulkConnection extends Connection {
 //                            + sdinfoRcvBuffer.asIntBuffer().get(0) + " "
 //                            + sdinfoRcvBuffer.asIntBuffer().get(1) + " "
 //                            + sdinfoRcvBuffer.asIntBuffer().get(2));
-                    MainFrame.mainframe.filemanager.ShowSDInfo(sdinfoRcvBuffer.asIntBuffer().get(0), sdinfoRcvBuffer.asIntBuffer().get(1), sdinfoRcvBuffer.asIntBuffer().get(2));
+                    SDCardInfo.getInstance().SetInfo(sdinfoRcvBuffer.asIntBuffer().get(0), sdinfoRcvBuffer.asIntBuffer().get(1), sdinfoRcvBuffer.asIntBuffer().get(2));
                     GoIdleState();
                 }
                 break;
@@ -1099,8 +1227,9 @@ public class USBBulkConnection extends Connection {
                     fileinfoRcvBuffer.limit(fileinfoRcvBuffer.position());
                     fileinfoRcvBuffer.rewind();
                     int size = fileinfoRcvBuffer.getInt();
+                    int timestamp = fileinfoRcvBuffer.getInt();
                     CharBuffer cb = Charset.forName("ISO-8859-1").decode(fileinfoRcvBuffer);
-                    MainFrame.mainframe.filemanager.AddFile(cb.toString(), size);
+                    SDCardInfo.getInstance().AddFile(cb.toString(), size, timestamp);
 //                    Logger.getLogger(SerialConnection.class.getName()).info("fileinfo: " + cb.toString());
                     GoIdleState();
                 }
@@ -1236,7 +1365,7 @@ public class USBBulkConnection extends Connection {
                         break;
                     case 11:
                         patchentrypoint += (cc & 0xFF);
-                        String sFwcrc = String.format("%08X",fwcrc);
+                        String sFwcrc = String.format("%08X", fwcrc);
                         Logger.getLogger(USBBulkConnection.class.getName()).info(String.format("Firmware version: %d.%d.%d.%d, crc=0x%s, entrypoint=0x%08X",
                                 fwversion[0], fwversion[1], fwversion[2], fwversion[3], sFwcrc, patchentrypoint));
                         MainFrame.mainframe.setFirmwareID(sFwcrc);

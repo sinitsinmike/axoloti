@@ -18,7 +18,10 @@
 package axoloti;
 
 import java.awt.BorderLayout;
+import java.io.File;
+import java.util.ArrayList;
 import javax.swing.ImageIcon;
+import javax.swing.JFrame;
 import org.fife.ui.rtextarea.*;
 import org.fife.ui.rsyntaxtextarea.*;
 
@@ -26,23 +29,27 @@ import org.fife.ui.rsyntaxtextarea.*;
  *
  * @author Johannes Taelman
  */
-public class TextEditor extends javax.swing.JFrame {
+public class TextEditor extends javax.swing.JFrame implements DocumentWindow {
 
     StringRef s;
     RSyntaxTextArea textArea;
+    final DocumentWindow parent;
+
     /**
      * Creates new form TextEditor
+     *
      * @param s initial string
      */
-    public TextEditor(StringRef s) {
+    public TextEditor(StringRef s, DocumentWindow parent) {
         initComponents();
+        this.parent = parent;
         this.s = s;
         textArea = new RSyntaxTextArea(20, 60);
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_CPLUSPLUS);
         textArea.setCodeFoldingEnabled(true);
         RTextScrollPane sp = new RTextScrollPane(textArea);
         cp.setLayout(new BorderLayout());
-        cp.add(sp);      
+        cp.add(sp);
         textArea.setVisible(true);
         setContentPane(cp);
         textArea.setText(s.s);
@@ -55,6 +62,11 @@ public class TextEditor extends javax.swing.JFrame {
 
     public String GetText() {
         return textArea.getText();
+    }
+
+    public void Close() {
+        parent.GetChildDocuments().remove(this);
+        dispose();
     }
 
     /**
@@ -70,6 +82,14 @@ public class TextEditor extends javax.swing.JFrame {
 
         setMinimumSize(new java.awt.Dimension(256, 128));
         setModalExclusionType(java.awt.Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentHidden(java.awt.event.ComponentEvent evt) {
+                formComponentHidden(evt);
+            }
+            public void componentShown(java.awt.event.ComponentEvent evt) {
+                formComponentShown(evt);
+            }
+        });
         addWindowFocusListener(new java.awt.event.WindowFocusListener() {
             public void windowGainedFocus(java.awt.event.WindowEvent evt) {
             }
@@ -108,7 +128,37 @@ public class TextEditor extends javax.swing.JFrame {
 //        attr.sText = jEditorPane1.getText();
         s.s = textArea.getText();
     }//GEN-LAST:event_formWindowLostFocus
+
+    private void formComponentHidden(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentHidden
+        parent.GetChildDocuments().remove(this);
+    }//GEN-LAST:event_formComponentHidden
+
+    private void formComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentShown
+        parent.GetChildDocuments().add(this);
+    }//GEN-LAST:event_formComponentShown
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel cp;
     // End of variables declaration//GEN-END:variables
+
+    @Override
+    public JFrame GetFrame() {
+        return this;
+    }
+
+    @Override
+    public boolean AskClose() {
+        Close();
+        return false; //TBC
+    }
+
+    @Override
+    public File getFile() {
+        return null;
+    }
+
+    @Override
+    public ArrayList<DocumentWindow> GetChildDocuments() {
+        return null;
+    }
 }

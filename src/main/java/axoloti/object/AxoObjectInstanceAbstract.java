@@ -20,6 +20,7 @@ package axoloti.object;
 import axoloti.MainFrame;
 import axoloti.Patch;
 import axoloti.PatchGUI;
+import axoloti.SDFileReference;
 import axoloti.attribute.AttributeInstance;
 import axoloti.inlets.InletInstance;
 import axoloti.outlets.OutletInstance;
@@ -28,7 +29,7 @@ import axoloti.utils.CharEscape;
 import axoloti.utils.Constants;
 import components.LabelComponent;
 import components.TextFieldComponent;
-import displays.DisplayInstance;
+import axoloti.displays.DisplayInstance;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -42,6 +43,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +58,7 @@ import org.simpleframework.xml.Root;
  * @author Johannes Taelman
  */
 @Root(name = "obj_abstr")
-public abstract class AxoObjectInstanceAbstract extends JPanel implements Comparable<AxoObjectInstanceAbstract> {
+public abstract class AxoObjectInstanceAbstract extends JPanel implements Comparable<AxoObjectInstanceAbstract>, ObjectModifiedListener {
 
     @Attribute(name = "type")
     public String typeName;
@@ -609,5 +611,13 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
         d.width = ((d.width + Constants.xgrid - 1) / Constants.xgrid) * Constants.xgrid;
         d.height = ((d.height + Constants.ygrid - 1) / Constants.ygrid) * Constants.ygrid;
         setSize(d);
+    }
+
+    @Override
+    public void ObjectModified(Object src) {
+    }
+
+    public ArrayList<SDFileReference> GetDependendSDFiles() {
+        return null;
     }
 }

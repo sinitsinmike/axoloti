@@ -18,7 +18,7 @@
 package axoloti.parameters;
 
 import axoloti.Preset;
-import axoloti.datatypes.DataType;
+import axoloti.atom.AtomInstance;
 import axoloti.datatypes.Value;
 import axoloti.object.AxoObjectInstance;
 import axoloti.realunits.NativeToReal;
@@ -50,22 +50,20 @@ import org.simpleframework.xml.Root;
 /**
  *
  * @author Johannes Taelman
- * @param <dt> data type
  */
 @Root(name = "param")
-public abstract class ParameterInstance<dt extends DataType> extends JPanel implements ActionListener {
+public abstract class ParameterInstance<T extends Parameter> extends JPanel implements ActionListener, AtomInstance<T> {
 
     @Attribute
-    public String name;
+    String name;
     @Attribute(required = false)
     private Boolean onParent;
     protected int index;
-    public Parameter<dt> parameter;
+    public T parameter;
     @ElementList(required = false)
     ArrayList<Preset> presets;
     protected boolean needsTransmit = false;
-    public AxoObjectInstance axoObj;
-//    JLabel lbl;
+    AxoObjectInstance axoObj;
     LabelComponent valuelbl = new LabelComponent("123456789");
     NativeToReal convs[];
     int selectedConv = 0;
@@ -78,7 +76,7 @@ public abstract class ParameterInstance<dt extends DataType> extends JPanel impl
     public ParameterInstance() {
     }
 
-    public ParameterInstance(Parameter<dt> param, AxoObjectInstance axoObj1) {
+    public ParameterInstance(T param, AxoObjectInstance axoObj1) {
         super();
         parameter = param;
         axoObj = axoObj1;
@@ -148,6 +146,11 @@ public abstract class ParameterInstance<dt extends DataType> extends JPanel impl
 //            ShowPreset(axoObj.patch.presetNo);
 
         ctrl = CreateControl();
+        if (parameter.description != null) {
+            ctrl.setToolTipText(parameter.description);
+        } else {
+            ctrl.setToolTipText(parameter.name);
+        }
         add(getControlComponent());
         getControlComponent().addMouseListener(popupMouseListener);
         getControlComponent().addACtrlListener(new ACtrlListener() {
@@ -202,18 +205,23 @@ public abstract class ParameterInstance<dt extends DataType> extends JPanel impl
 
     public byte[] TXData() {
         needsTransmit = false;
-        byte[] data = new byte[10];
+        byte[] data = new byte[14];
         data[0] = 'A';
         data[1] = 'x';
         data[2] = 'o';
         data[3] = 'P';
+        int pid = GetObjectInstance().getPatch().GetIID();
+        data[4] = (byte) pid;
+        data[5] = (byte) (pid >> 8);
+        data[6] = (byte) (pid >> 16);
+        data[7] = (byte) (pid >> 24);
         int tvalue = GetValueRaw();
-        data[4] = (byte) tvalue;
-        data[5] = (byte) (tvalue >> 8);
-        data[6] = (byte) (tvalue >> 16);
-        data[7] = (byte) (tvalue >> 24);
-        data[8] = (byte) (index);
-        data[9] = (byte) (index >> 8);
+        data[8] = (byte) tvalue;
+        data[9] = (byte) (tvalue >> 8);
+        data[10] = (byte) (tvalue >> 16);
+        data[11] = (byte) (tvalue >> 24);
+        data[12] = (byte) (index);
+        data[13] = (byte) (index >> 8);
         return data;
     }
 
@@ -254,9 +262,9 @@ public abstract class ParameterInstance<dt extends DataType> extends JPanel impl
         }
     }
 
-    public abstract Value<dt> getValue();
+    public abstract Value getValue();
 
-    public void setValue(Value<dt> value) {
+    public void setValue(Value value) {
         if (axoObj != null) {
             if (axoObj.getPatch() != null) {
                 axoObj.getPatch().SetDirty();
@@ -280,6 +288,11 @@ public abstract class ParameterInstance<dt extends DataType> extends JPanel impl
     public String indexName() {
         return "PARAM_INDEX_" + axoObj.getLegalName() + "_" + getLegalName();
 //        return ("" + index);
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 
     public String getLegalName() {
@@ -485,4 +498,19 @@ public abstract class ParameterInstance<dt extends DataType> extends JPanel impl
             SetMidiCC(-1);
         }
     }
+
+    @Override
+    public AxoObjectInstance GetObjectInstance() {
+        return axoObj;
+    }
+
+    @Override
+    public T GetDefinition() {
+        return parameter;
+    }
+    
+    public String GenerateCodeInitModulator(String vprefix, String StructAccces) {
+        return "";
+    }
+
 }

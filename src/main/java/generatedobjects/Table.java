@@ -19,10 +19,10 @@ package generatedobjects;
 
 import axoloti.attributedefinition.AxoAttributeComboBox;
 import axoloti.attributedefinition.AxoAttributeObjRef;
+import axoloti.attributedefinition.AxoAttributeSDFile;
 import axoloti.attributedefinition.AxoAttributeTablename;
 import axoloti.attributedefinition.AxoAttributeTextEditor;
 import axoloti.inlets.InletBool32Rising;
-import axoloti.inlets.InletBool32RisingFalling;
 import axoloti.inlets.InletCharPtr32;
 import axoloti.inlets.InletFrac32;
 import axoloti.inlets.InletFrac32Bipolar;
@@ -33,7 +33,6 @@ import axoloti.inlets.InletInt32Pos;
 import axoloti.object.AxoObject;
 import axoloti.outlets.OutletFrac32;
 import axoloti.outlets.OutletFrac32Buffer;
-import axoloti.outlets.OutletInt32;
 import axoloti.parameters.ParameterFrac32SMapPitch;
 import axoloti.parameters.ParameterFrac32SMapVSlider;
 import axoloti.parameters.ParameterInt32Box;
@@ -136,9 +135,9 @@ public class Table extends gentools {
         AxoObject o = new AxoObject("alloc 8b sdram", "allocate table in SDRAM memory, -128..127");
         String mentries[] = {"2", "4", "8", "16", "32", "64", "128", "256", "512",
             "1024", "2048", "4096", "8192", "16384", "32768",
-            "65536", "131072", "262144", "524288", "1048576", "2097152"};
+            "65536", "131072", "262144", "524288", "1048576", "2097152","4194304"};
         String centries[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
-            "16", "17", "18", "19", "20", "21"};
+            "16", "17", "18", "19", "20", "21", "22"};
         o.attributes.add(new AxoAttributeComboBox("size", mentries, centries));
         o.attributes.add(new AxoAttributeTextEditor("init"));
         o.sLocalData = "static const uint32_t LENGTHPOW = (%size%);\n"
@@ -161,9 +160,9 @@ public class Table extends gentools {
         AxoObject o = new AxoObject("alloc 16b sdram", "allocate 16bit table in SDRAM memory, -128.00 .. 127.99");
         String mentries[] = {"2", "4", "8", "16", "32", "64", "128", "256", "512",
             "1024", "2048", "4096", "8192", "16384", "32768",
-            "65536", "131072", "262144", "524288", "1048576", "2097152"};
+            "65536", "131072", "262144", "524288", "1048576", "2097152", "4194304"};
         String centries[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
-            "16", "17", "18", "19", "20", "21"};
+            "16", "17", "18", "19", "20", "21", "22"};
         o.attributes.add(new AxoAttributeComboBox("size", mentries, centries));
         o.attributes.add(new AxoAttributeTextEditor("init"));
         o.sLocalData = "static const uint32_t LENGTHPOW = (%size%);\n"
@@ -190,7 +189,7 @@ public class Table extends gentools {
         String centries[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
             "16", "17", "18", "19", "20", "21", "22"};
         o.attributes.add(new AxoAttributeComboBox("size", mentries, centries));
-        o.attributes.add(new AxoAttributeTablename("filename"));
+        o.attributes.add(new AxoAttributeSDFile("filename"));
         o.sLocalData = "static const uint32_t LENGTHPOW = (%size%);\n"
                 + "static const uint32_t LENGTH = (1<<%size%);\n"
                 + "static const uint32_t LENGTHMASK = ((1<<%size%)-1);\n"
@@ -205,7 +204,7 @@ public class Table extends gentools {
                 + "FRESULT err;\n"
                 + "UINT bytes_read;\n"
                 + "err = f_open(&FileObject, \"%filename%\", FA_READ | FA_OPEN_EXISTING);\n"
-                + "if (err != FR_OK) {LogTextMessage(\"Open failed\\n\"); return;}\n"
+                + "if (err != FR_OK) {report_fatfs_error(err,\"%filename%\"); return;}\n"
                 + "int rem_sz = sizeof(_array[0]);\n"
                 + "int offset = 0;\n"
                 + "while (rem_sz>0) {\n"
@@ -345,6 +344,7 @@ public class Table extends gentools {
         o.inlets.add(new InletBool32Rising("trig", "trigger"));
         o.attributes.add(new AxoAttributeObjRef("table"));
         o.sLocalData = "   int ntrig;\n";
+        o.sInitCode =  "   int ntrig = 0;\n";
         o.sKRateCode = "   if ((%trig%>0) && !ntrig) {\n"
                 + "      ntrig=1;\n"
                 + "      %table%.array[__USAT(%a%,27)>>(27-%table%.LENGTHPOW)]=__SSAT(%v%,28)>>%table%.GAIN;\n"
@@ -360,6 +360,7 @@ public class Table extends gentools {
         o.inlets.add(new InletBool32Rising("trig", "trigger"));
         o.attributes.add(new AxoAttributeObjRef("table"));
         o.sLocalData = "   int ntrig;\n";
+        o.sInitCode =  "   int ntrig = 0;\n";
         o.sKRateCode = "   if ((%trig%>0) && !ntrig) {\n"
                 + "      ntrig=1;\n"
                 + "      if (%a%<%table%.LENGTH)\n"
@@ -533,7 +534,7 @@ public class Table extends gentools {
                 + "    FRESULT err;\n"
                 + "    UINT bytes_written;\n"
                 + "    err = f_open(&FileObject, %filename%, FA_WRITE | FA_CREATE_ALWAYS);\n"
-                + "    if (err != FR_OK) LogTextMessage(\"Open failed\\n\");\n"
+                + "    if (err != FR_OK) {report_fatfs_error(err,\"%filename%\"); return;}\n"
                 + "    int rem_sz = sizeof(*%table%.array)*%table%.LENGTH;\n"
                 + "    int offset = 0;\n"
                 + "    while (rem_sz>0) {\n"
@@ -548,9 +549,9 @@ public class Table extends gentools {
                 + "        rem_sz = 0;\n"
                 + "      }\n"
                 + "    }"
-                + "    if (err != FR_OK) LogTextMessage(\"Write failed\\n\");\n"
+                + "    if (err != FR_OK) report_fatfs_error(err,\"%filename%\");\n"
                 + "    err = f_close(&FileObject);\n"
-                + "    if (err != FR_OK) LogTextMessage(\"Close failed\\n\");\n"
+                + "    if (err != FR_OK) report_fatfs_error(err,\"%filename%\");\n"
                 + "  }\n"
                 + "  else if (!(%trig%>0)) ntrig=0;\n";
         return o;
@@ -561,19 +562,16 @@ public class Table extends gentools {
         o.attributes.add(new AxoAttributeObjRef("table"));
         o.inlets.add(new InletCharPtr32("filename", "file name"));
         o.inlets.add(new InletBool32Rising("trig", "trigger"));
-        o.outlets.add(new OutletInt32("bw", "bw"));
         o.includes.add("chibios/ext/fatfs/src/ff.h");
-        o.sLocalData = "  int ntrig;\n"
-                + "   int _bw;\n";
-        o.sInitCode = "  ntrig = 0;\n"
-                + "_bw = 0;\n";
+        o.sLocalData = "  int ntrig;\n";
+        o.sInitCode = "  ntrig = 0;\n";
         o.sKRateCode = "  if ((%trig%>0) && !ntrig) {\n"
                 + "    ntrig=1;\n"
                 + "    FIL FileObject;\n"
                 + "    FRESULT err;\n"
                 + "    UINT bytes_read;\n"
                 + "    err = f_open(&FileObject, %filename%, FA_READ | FA_OPEN_EXISTING);\n"
-                + "    if (err != FR_OK) {LogTextMessage(\"Open failed\\n\"); _bw = err; return;}\n"
+                + "    if (err != FR_OK) { report_fatfs_error(err,\"%filename%\"); return;}\n"
                 + "    int rem_sz = sizeof(*%table%.array)*%table%.LENGTH;\n"
                 + "    int offset = 0;\n"
                 + "    while (rem_sz>0) {\n"
@@ -589,12 +587,11 @@ public class Table extends gentools {
                 + "        rem_sz = 0;\n"
                 + "      }\n"
                 + "    }"
-                + "    if (err != FR_OK) {LogTextMessage(\"Read failed\\n\"); _bw = err; return;};\n"
+                + "    if (err != FR_OK) { report_fatfs_error(err,\"%filename%\"); return;};\n"
                 + "    err = f_close(&FileObject);\n"
-                + "    if (err != FR_OK) {LogTextMessage(\"Close failed\\n\");_bw = err; return;};\n"
+                + "    if (err != FR_OK) { report_fatfs_error(err,\"%filename%\"); return;};\n"
                 + "  }\n"
-                + "  else if (!(%trig%>0)) ntrig=0;\n"
-                + "%bw% = _bw;\n";
+                + "  else if (!(%trig%>0)) ntrig=0;\n";
         return o;
     }
 
