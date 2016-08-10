@@ -171,9 +171,6 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
             InstanceLabel.setText(InstanceName);
         }
         doLayout();
-        if (getParent() != null) {
-            getParent().repaint();
-        }
     }
 
     public AxoObjectAbstract getType() {
@@ -245,15 +242,16 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
                     if (me.getClickCount() == 1) {
                         if (me.isShiftDown()) {
                             SetSelected(!GetSelected());
-                            ((PatchGUI) patch).repaint();
+                            me.consume();
                         } else if (Selected == false) {
                             ((PatchGUI) patch).SelectNone();
                             SetSelected(true);
-                            ((PatchGUI) patch).repaint();
+                            me.consume();
                         }
                     }
                     if (me.getClickCount() == 2) {
                         ((PatchGUI) patch).ShowClassSelector(AxoObjectInstanceAbstract.this.getLocation(), AxoObjectInstanceAbstract.this, null);
+                        me.consume();
                     }
                 }
             }
@@ -323,25 +321,7 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
 
         Titlebar.addMouseMotionListener(mml);
         addMouseMotionListener(mml);
-
-        addComponentListener(
-                new ComponentListener() {
-            public void componentHidden(ComponentEvent e) {
-                updateDummyDropTargets();
-            }
-
-            public void componentMoved(ComponentEvent e) {
-                updateDummyDropTargets();
-            }
-
-            public void componentResized(ComponentEvent e) {
-                updateDummyDropTargets();
-            }
-
-            public void componentShown(ComponentEvent e) {
-                updateDummyDropTargets();
-            }
-        });
+        
     }
 
     private void moveToDraggedLayer(AxoObjectInstanceAbstract o) {
@@ -424,9 +404,20 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
         this.x = x;
         this.y = y;
         if (patch != null) {
-            patch.repaint();
-            for (Net n : patch.nets) {
-                n.updateBounds();
+            repaint();
+            for (InletInstance i : GetInletInstances()) {
+                Net n = getPatch().GetNet(i);
+                if (n != null) {
+                    n.updateBounds();
+                    n.repaint();
+                }
+            }
+            for (OutletInstance i : GetOutletInstances()) {
+                Net n = getPatch().GetNet(i);
+                if (n != null) {
+                    n.updateBounds();
+                    n.repaint();
+                }
             }
         }
     }
@@ -458,7 +449,6 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
                 String s = InstanceNameTF.getText();
                 setInstanceName(s);
                 getParent().remove(InstanceNameTF);
-                patch.repaint();
             }
 
             @Override
@@ -596,7 +586,7 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
         super.setLocation(x1, y1);
         x = x1;
         y = y1;
-        
+
         if (patch != null) {
             for (Net n : patch.nets) {
                 n.updateBounds();
@@ -699,23 +689,4 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
         return ZoomUtils.getToolTipLocation(this, event, this);
     }
 
-    public void updateDummyDropTargets() {
-        for (InletInstance i : this.GetInletInstances()) {
-            i.updateDummyDropTarget();
-        }
-
-        for (OutletInstance oi : this.GetOutletInstances()) {
-            oi.updateDummyDropTarget();
-        }
-    }
-
-    public void deleteDummyDropTargets() {
-        for (InletInstance i : this.GetInletInstances()) {
-            i.deleteDummyDropTarget();
-        }
-
-        for (OutletInstance oi : this.GetOutletInstances()) {
-            oi.deleteDummyDropTarget();
-        }
-    }
 }

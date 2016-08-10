@@ -30,6 +30,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import javax.swing.JComponent;
@@ -42,6 +46,7 @@ import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
+
 
 /**
  *
@@ -272,6 +277,34 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         p.y = Constants.Y_GRID * (p.y / Constants.Y_GRID);
         return p;
     }
+    
+    private Point clipToStayWithinScreen(Point patchLoc) {
+
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice[] gs = ge.getScreenDevices();
+        Rectangle allScreenBounds = new Rectangle();
+
+        for(GraphicsDevice curGs : gs)
+        {
+            GraphicsConfiguration[] gc = curGs.getConfigurations();
+            for(GraphicsConfiguration curGc : gc)
+            {
+                Rectangle bounds = curGc.getBounds();
+                allScreenBounds = allScreenBounds.union(bounds);
+            }
+        }
+
+        Point patchFrameOnScreen = p.getPatchframe().patch.objectLayerPanel.getLocationOnScreen();
+
+        if(patchFrameOnScreen.getX() + patchLoc.getX() + getWidth() > allScreenBounds.getWidth() + allScreenBounds.getX()) {
+            patchLoc.x = (int) (allScreenBounds.getWidth() + allScreenBounds.getX() - patchFrameOnScreen.getX() - getWidth());
+        }
+        if(patchFrameOnScreen.getY() + patchLoc.getY() + getHeight() > allScreenBounds.getHeight() + allScreenBounds.getY()) {
+            patchLoc.y = (int) (allScreenBounds.getHeight() + allScreenBounds.getY() - patchFrameOnScreen.getY() - getHeight());
+        }
+
+        return patchLoc;
+    }
 
     void Launch(Point patchLoc, AxoObjectInstanceAbstract o, String searchString) {
         if (this.objectTree != MainFrame.axoObjects.ObjectTree) {
@@ -281,7 +314,7 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             tm = new DefaultTreeModel(this.root);
             jTree1.setModel(tm);
         }
-
+        MainFrame.mainframe.SetGrabFocusOnSevereErrors(false);
         accepted = false;
         snapToGrid(patchLoc);
         patchLocX = patchLoc.x;
@@ -292,6 +325,8 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         Point patchLocZoomed = snapToGrid(new Point(
                 (int) Math.round(patchLoc.x * zoom),
                 (int) Math.round(patchLoc.y * zoom)));
+        
+        patchLocZoomed = clipToStayWithinScreen(patchLocZoomed);
 
         setLocation(patchLocZoomed.x + ps.x, patchLocZoomed.y + ps.y);
 
@@ -457,12 +492,14 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
 
     void Cancel() {
         accepted = false;
+        MainFrame.mainframe.SetGrabFocusOnSevereErrors(true);
         setVisible(false);
     }
 
     void Accept() {
         if (!accepted) {
             accepted = true;
+            MainFrame.mainframe.SetGrabFocusOnSevereErrors(true);
             setVisible(false);
             AxoObjectAbstract x = type;
             if (x == null) {
@@ -609,8 +646,12 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void formWindowLostFocus(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowLostFocus
-//        System.out.println("Source = " + evt.getSource());
-//        Accept();
+        if ((evt.getOppositeWindow() == null)
+                || !(evt.getOppositeWindow() instanceof axoloti.PatchFrame)) {
+            Cancel();
+        } else {
+            Accept();
+        }
     }//GEN-LAST:event_formWindowLostFocus
 
     private void jTextFieldObjNameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextFieldObjNameActionPerformed

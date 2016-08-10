@@ -35,6 +35,7 @@ import axoloti.utils.KeyUtils;
 import axoloti.utils.Preferences;
 import java.awt.Cursor;
 import java.awt.EventQueue;
+import java.awt.Font;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -96,6 +97,7 @@ public final class MainFrame extends javax.swing.JFrame implements ActionListene
     static public Cursor transparentCursor;
     private final String[] args;
     JMenu favouriteMenu;
+    boolean bGrabFocusOnSevereErrors = true;
 
     /**
      * Creates new form MainFrame
@@ -112,11 +114,16 @@ public final class MainFrame extends javax.swing.JFrame implements ActionListene
 
         mainframe = this;
 
-        final Style styleSevere = jTextPaneLog.addStyle("severe", null);
-        final Style styleFine = jTextPaneLog.addStyle("fine", null);
+        final Style styleParent = jTextPaneLog.addStyle(null, null);
+        StyleConstants.setFontFamily(styleParent, Font.MONOSPACED);
+
+        final Style styleSevere = jTextPaneLog.addStyle("severe", styleParent);
+        final Style styleInfo = jTextPaneLog.addStyle("info", styleParent);
+        final Style styleWarning = jTextPaneLog.addStyle("warning", styleParent);
         jTextPaneLog.setBackground(Theme.getCurrentTheme().Console_Background);
         StyleConstants.setForeground(styleSevere, Theme.getCurrentTheme().Error_Text);
-        StyleConstants.setForeground(styleFine, Theme.getCurrentTheme().Normal_Text);
+        StyleConstants.setForeground(styleInfo, Theme.getCurrentTheme().Normal_Text);
+        StyleConstants.setForeground(styleWarning, Theme.getCurrentTheme().Warning_Text);
 
         Handler logHandler = new Handler() {
             @Override
@@ -154,10 +161,15 @@ public final class MainFrame extends javax.swing.JFrame implements ActionListene
 
                             jTextPaneLog.getDocument().insertString(jTextPaneLog.getDocument().getEndPosition().getOffset(),
                                     txt + "\n", styleSevere);
-                            MainFrame.this.toFront();
+                            if (bGrabFocusOnSevereErrors) {
+                                MainFrame.this.toFront();
+                            }
+                        } else if (lr.getLevel() == Level.WARNING) {
+                            jTextPaneLog.getDocument().insertString(jTextPaneLog.getDocument().getEndPosition().getOffset(),
+                                    txt + "\n", styleWarning);
                         } else {
                             jTextPaneLog.getDocument().insertString(jTextPaneLog.getDocument().getEndPosition().getOffset(),
-                                    txt + "\n", styleFine);
+                                    txt + "\n", styleInfo);
                         }
                     } catch (BadLocationException ex) {
                         Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
@@ -189,7 +201,6 @@ public final class MainFrame extends javax.swing.JFrame implements ActionListene
         keyboard.setVisible(false);
 
         filemanager = new FileManagerFrame();
-        //piano.setAlwaysOnTop(true);
         filemanager.setTitle("File Manager");
         filemanager.setVisible(false);
 
@@ -1165,4 +1176,7 @@ public final class MainFrame extends javax.swing.JFrame implements ActionListene
         return keyboard;
     }
 
+    public void SetGrabFocusOnSevereErrors(boolean b) {
+        bGrabFocusOnSevereErrors = b;
+    }
 }
