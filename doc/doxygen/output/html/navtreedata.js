@@ -63,6 +63,13 @@ var NAVTREE =
       [ "Memory map", "developers.html#developers_memory_map", null ],
       [ "Future work", "developers.html#developers_performance", null ]
     ] ],
+    [ "Getting started", "getting_started.html", [
+      [ "Getting started on OSX", "getting_started.html#getting_started_on_osx", null ],
+      [ "Getting started on Windows", "getting_started.html#getting_started_on_win", null ]
+    ] ],
+    [ "Updating firmware", "updating_firmware.html", null ],
+    [ "Directory tree", "directory_structure.html", null ],
+    [ "Pure Data", "pd_user.html", null ],
     [ "Modules", "modules.html", "modules" ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],

@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['start_5fflash',['START_FLASH',['../group__PATCH.html#gga3bcfa0e2fd6136eb75131fe31d3c0ecfa14501ea9e7b84bf1917c39939a4fe295',1,'patch.h']]],
-  ['start_5fsd',['START_SD',['../group__PATCH.html#gga3bcfa0e2fd6136eb75131fe31d3c0ecfa4ea978b80c692bb277f7219bc4941cac',1,'patch.h']]]
+  ['patch',['PATCH',['../group__PATCH.html',1,'']]],
+  ['patch_2eh',['patch.h',['../patch_8h.html',1,'']]],
+  ['patchmeta_5ft',['patchMeta_t',['../structpatchMeta__t.html',1,'']]],
+  ['pure_20data',['Pure Data',['../pd_user.html',1,'']]],
+  ['presetparamchange_5ft',['PresetParamChange_t',['../structPresetParamChange__t.html',1,'']]]
 ];

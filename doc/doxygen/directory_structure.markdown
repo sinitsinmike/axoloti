@@ -1,0 +1,16 @@
+# Directory tree {#directory_structure}
+
+<ul>
+	<li><a href="http://www.chibios.org/dokuwiki/doku.php">chibios</a> : real time operatisch system for firmware 
+	<li>firmware : the C firmware running on the board
+	<li>axoloti-factory
+	<li>axoloti-factory/objects : objects you can use in a patch, also corresponding help files
+	<li>axoloti-factory/patches : demo and tutorial patches
+	<li>axoloti-contrib/objects : objects developed by the user community
+	<li>axoloti-contrib/patches : patches developed by the user community
+	<li>archive : unmaintained patches and objects
+	<li>CMSIS : ARM's DSP_Lib
+	<li>platform_xxx : scripts and binaries for every platform. They are executed with the Axoloti root folder as working directory!
+	<li>src : the GUI source code (in JAVA)
+	<li>dist : the Java executable
+</ul>

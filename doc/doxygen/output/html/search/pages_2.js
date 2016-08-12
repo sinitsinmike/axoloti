@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['list_20of_20contents',['List of contents',['../index.html',1,'']]]
+  ['getting_20started',['Getting started',['../getting_started.html',1,'']]]
 ];

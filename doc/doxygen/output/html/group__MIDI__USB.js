@@ -1,5 +1,11 @@
 var group__MIDI__USB =
 [
+    [ "Scaling, units", "pd_user.html#pd_user_scaling", null ],
+    [ "Control rate versus messages", "pd_user.html#pd_user_control_rate_vs_messages", null ],
+    [ "Wire types", "pd_user.html#pd_user_wire_types", null ],
+    [ "Object arguments", "pd_user.html#pd_user_object_arguments", null ],
+    [ "Object conversions (PD to Axoloti)", "pd_user.html#pd_user_object_conversions", null ],
+    [ "Idiom conversion", "pd_user.html#pd_user_idiom_conversion", null ],
     [ "MidiUSBConfig", "structMidiUSBConfig.html", [
       [ "bulk_in", "structMidiUSBConfig.html#af491dd47cc82b3ec77af8f9b00e5e939", null ],
       [ "bulk_out", "structMidiUSBConfig.html#a8b878c797ca1c216baf2ecf6626ed919", null ],
