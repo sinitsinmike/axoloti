@@ -47,7 +47,6 @@ import qcmds.QCmdProcessor;
 import qcmds.QCmdSerialTask;
 import qcmds.QCmdSerialTaskNull;
 import qcmds.QCmdShowDisconnect;
-import qcmds.QCmdStop;
 import qcmds.QCmdTransmitGetFWVersion;
 import qcmds.QCmdWriteMem;
 
@@ -57,7 +56,7 @@ import qcmds.QCmdWriteMem;
  */
 public class USBBulkConnection extends Connection {
 
-    private Patch patch;
+    private PatchController patchController;
     private boolean disconnectRequested;
     private boolean connected;
     private Thread transmitterThread;
@@ -74,7 +73,7 @@ public class USBBulkConnection extends Connection {
     protected USBBulkConnection() {
         this.sync = new Sync();
         this.readsync = new Sync();
-        this.patch = null;
+        this.patchController = null;
         disconnectRequested = false;
         connected = false;
         queueSerialTask = new ArrayBlockingQueue<QCmdSerialTask>(10);
@@ -86,8 +85,8 @@ public class USBBulkConnection extends Connection {
     }
 
     @Override
-    public void setPatch(Patch patch) {
-        this.patch = patch;
+    public void setPatchController(PatchController patchController) {
+        this.patchController = patchController;
     }
 
     public void Panic() {
@@ -138,7 +137,7 @@ public class USBBulkConnection extends Connection {
                     Logger.getLogger(USBBulkConnection.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            
+
             int result = LibUsb.releaseInterface(handle, interfaceNumber);
             if (result != LibUsb.SUCCESS) {
                 throw new LibUsbException("Unable to release interface", result);
@@ -880,11 +879,11 @@ public class USBBulkConnection extends Connection {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                if (patch != null) {
-                    if ((patch.GetIID() != PatchID) && patch.IsLocked()) {
-                        patch.Unlock();
+                if (patchController != null) {
+                    if ((getPatchModel().GetIID() != PatchID) && getPatchView().isLocked()) {
+                        getPatchView().Unlock();
                     } else {
-                        patch.SetDSPLoad(DSPLoad);
+                        getPatchView().SetDSPLoad(DSPLoad);
                     }
                 }
                 MainFrame.mainframe.showPatchIndex(patchIndex);
@@ -898,25 +897,25 @@ public class USBBulkConnection extends Connection {
             @Override
             public
                     void run() {
-                if (patch == null) {
+                if (patchController == null) {
                     //Logger.getLogger(USBBulkConnection.class.getName()).log(Level.INFO, "Rx paramchange patch null {0} {1}", new Object[]{index, value});
                     return;
                 }
-                if (!patch.IsLocked()) {
+                if (!getPatchView().isLocked()) {
                     return;
 
                 }
-                if (patch.GetIID() != patchID) {
-                    patch.Unlock();
+                if (getPatchModel().GetIID() != patchID) {
+                    getPatchView().Unlock();
                     return;
                 }
-                if (index >= patch.ParameterInstances.size()) {
+                if (index >= getPatchModel().ParameterInstances.size()) {
                     Logger.getLogger(USBBulkConnection.class
                             .getName()).log(Level.INFO, "Rx paramchange index out of range{0} {1}", new Object[]{index, value});
 
                     return;
                 }
-                ParameterInstance pi = patch.ParameterInstances.get(index);
+                ParameterInstance pi = getPatchModel().ParameterInstances.get(index);
 
                 if (pi == null) {
                     Logger.getLogger(USBBulkConnection.class
@@ -924,7 +923,7 @@ public class USBBulkConnection extends Connection {
                     return;
                 }
 
-                if (!pi.GetNeedsTransmit()) {
+                if (!pi.getNeedsTransmit()) {
                     pi.SetValueRaw(value);
                 }
 //                System.out.println("rcv ppc objname:" + pi.axoObj.getInstanceName() + " pname:"+ pi.name);
@@ -1018,13 +1017,13 @@ public class USBBulkConnection extends Connection {
     void DistributeToDisplays(final ByteBuffer dispData) {
 //        Logger.getLogger(SerialConnection.class.getName()).info("Distr1");
         try {
-            if (patch == null) {
+            if (patchController == null) {
                 return;
             }
-            if (!patch.IsLocked()) {
+            if (!getPatchView().isLocked()) {
                 return;
             }
-            if (patch.DisplayInstances == null) {
+            if (getPatchModel().DisplayInstances == null) {
                 return;
             }
             //        Logger.getLogger(SerialConnection.class.getName()).info("Distr2");
@@ -1032,7 +1031,7 @@ public class USBBulkConnection extends Connection {
                 @Override
                 public void run() {
                     dispData.rewind();
-                    for (DisplayInstance d : patch.DisplayInstances) {
+                    for (DisplayInstance d : getPatchModel().DisplayInstances) {
                         d.ProcessByteBuffer(dispData);
                     }
                 }
@@ -1257,7 +1256,7 @@ public class USBBulkConnection extends Connection {
                         fname = fname.substring(0, fname.length() - 1);
                     }
                     SDCardInfo.getInstance().AddFile(fname, size, timestamp);
-//                    Logger.getLogger(SerialConnection.class.getName()).info("fileinfo: " + cb.toString());                    
+//                    Logger.getLogger(SerialConnection.class.getName()).info("fileinfo: " + cb.toString());
                     GoIdleState();
                     if (fname.equals("/")) {
                         // end of index
@@ -1421,4 +1420,11 @@ public class USBBulkConnection extends Connection {
         return targetProfile;
     }
 
+    public PatchView getPatchView() {
+        return this.patchController.patchView;
+    }
+
+    public PatchModel getPatchModel() {
+        return this.patchController.patchModel;
+    }
 }
