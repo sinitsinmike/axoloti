@@ -1,0 +1,37 @@
+\hypertarget{developers_developers_abbreviations}{}\section{Abbreviations}\label{developers_developers_abbreviations}
+We are using two abbreviations\+: 
+\begin{DoxyItemize}
+\item P\+EX \+: parameter exchange. Parameters can be adjusted by the G\+UI, by M\+I\+DI, by recalling presets, and by \char`\"{}scripts\char`\"{}. P\+EX keeps it all in sync. 
+\item A\+XO \+: short for Axoloti... 
+\end{DoxyItemize}\hypertarget{developers_developers_search_order}{}\section{Object creation search order}\label{developers_developers_search_order}
+If the object name starts with \char`\"{}./\char`\"{} or \char`\"{}../\char`\"{} 
+\begin{DoxyItemize}
+\item the path relative to the current document path will be searched for a \char`\"{}.\+axo\char`\"{} file 
+\item the path relative to the current document path will be searched for a \char`\"{}.\+axs\char`\"{} file 
+\end{DoxyItemize}
+
+If the object name does not start with \char`\"{}./\char`\"{} or \char`\"{}../\char`\"{} 
+\begin{DoxyItemize}
+\item When opening a document, or pasting from the clipboard, the \char`\"{}\+U\+U\+I\+D\char`\"{} hash stored in the document will be matched against objects pre-\/loaded from the path. The \char`\"{}\+U\+U\+I\+D\char`\"{} of an object is unique to the name, and inlets, outlets, parameters, attributes (name+type) of the object. The loaded object may have a different name, or changed documentation, but since the functional implementation is the same, it is probably an update of naming or documentation of the object. 
+\item Objects in the search path by name 
+\item Patches in the search path by name 
+\end{DoxyItemize}\hypertarget{developers_developers_memory_map}{}\section{Memory map}\label{developers_developers_memory_map}
+After startup, S\+R\+A\+M1 is remapped to 0x00000000. This boosts the performance when executing from S\+R\+A\+M1. 
+\begin{DoxyItemize}
+\item 0x20000000-\/0x20001\+F\+FF \+: vector table 
+\item 0x20000200-\/0x2000\+B\+F\+FF \+: firmware reserved memory 
+\item 0x20011000-\/0x2001\+B\+F\+FF \+: patch memory (preferred area for execution) 
+\item 0x20011001 \+: patch init function entry point 
+\item 0x10000000-\/0x1000\+D\+F\+FF \+: patch memory (C\+CM R\+AM, can\textquotesingle{}t execute, can\textquotesingle{}t D\+MA) 
+\item 0x1000\+F000-\/0x1000\+F\+F\+FF \+: firmware reserved memory 
+\end{DoxyItemize}
+
+Important\+: C\+CM S\+R\+AM can\textquotesingle{}t be used for D\+MA. This does not give errors/warnings, just invalid data!\hypertarget{developers_developers_performance}{}\section{Future work}\label{developers_developers_performance}
+Improving performance! 
+\begin{DoxyItemize}
+\item For the B\+L\+IT oscillators, rearranging the B\+L\+IT table to successive polyphase samples, will enable use of the F\+L\+A\+SH memory data cache. 
+\item Biquad filter coefficient computation can be improved a lot! 
+\item The biquad filter itself also has room for improvement 
+\item making better use of subtypes\+: an int32pos outlet connected to an int32pos inlet does not require checking for negative values of the 2nd object. 
+\item eliminating redundant fractional number rightshift + leftshift (needs extra inlet/outlet metadata) 
+\end{DoxyItemize}

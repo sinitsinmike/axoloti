@@ -1,0 +1,135 @@
+\hypertarget{group__MIDI__USB}{}\section{M\+I\+D\+I\+\_\+\+U\+SB}
+\label{group__MIDI__USB}\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structMidiUSBConfig}{Midi\+U\+S\+B\+Config}
+\begin{DoxyCompactList}\small\item\em Bulk U\+SB Driver configuration structure. \end{DoxyCompactList}\item 
+struct \hyperlink{structMidiUSBDriverVMT}{Midi\+U\+S\+B\+Driver\+V\+MT}
+\begin{DoxyCompactList}\small\item\em {\ttfamily Bulk\+U\+S\+B\+Driver} virtual methods table. \end{DoxyCompactList}\item 
+struct \hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver}
+\begin{DoxyCompactList}\small\item\em Full duplex serial driver class. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{group__MIDI__USB_ga8cfb956039dff17bc67f80137c28bcbb}{\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data}
+\begin{DoxyCompactList}\small\item\em {\ttfamily \hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver}} specific data. \end{DoxyCompactList}\item 
+\#define \hyperlink{group__MIDI__USB_gaed42fc468f948c258e107f51e5f89a07}{\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+methods}~\+\_\+base\+\_\+asynchronous\+\_\+channel\+\_\+methods\hypertarget{group__MIDI__USB_gaed42fc468f948c258e107f51e5f89a07}{}\label{group__MIDI__USB_gaed42fc468f948c258e107f51e5f89a07}
+
+\begin{DoxyCompactList}\small\item\em {\ttfamily Bulk\+U\+S\+B\+Driver} specific methods. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef struct \hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver} \hyperlink{group__MIDI__USB_ga6f6e4a9a3715905f731618419195caeb}{Midi\+U\+S\+B\+Driver}\hypertarget{group__MIDI__USB_ga6f6e4a9a3715905f731618419195caeb}{}\label{group__MIDI__USB_ga6f6e4a9a3715905f731618419195caeb}
+
+\begin{DoxyCompactList}\small\item\em Structure representing a bulk U\+SB driver. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \hyperlink{group__MIDI__USB_gaf100a937cc2fe8a2a694884d6ec92485}{mdustate\+\_\+t} \{ \hyperlink{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485a872997df0e7465da70e4f1e37b3507ec}{M\+D\+U\+\_\+\+U\+N\+I\+N\+IT} = 0, 
+\hyperlink{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485accf69965e5109667e5593415ca70fe06}{M\+D\+U\+\_\+\+S\+T\+OP} = 1, 
+\hyperlink{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485a87df2c76063f4f72e57ec1a82d21a618}{M\+D\+U\+\_\+\+R\+E\+A\+DY} = 2
+ \}\begin{DoxyCompactList}\small\item\em Driver state machine possible states. \end{DoxyCompactList}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void {\bfseries mdu\+Init} (void)\hypertarget{group__MIDI__USB_ga2d2a2f633a8def1c74bdab6f053d38a8}{}\label{group__MIDI__USB_ga2d2a2f633a8def1c74bdab6f053d38a8}
+
+\item 
+void {\bfseries mdu\+Object\+Init} (\hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver} $\ast$sdp)\hypertarget{group__MIDI__USB_ga65566847054076d2fcf500d668029683}{}\label{group__MIDI__USB_ga65566847054076d2fcf500d668029683}
+
+\item 
+void {\bfseries mdu\+Start} (\hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver} $\ast$mdup, const \hyperlink{structMidiUSBConfig}{Midi\+U\+S\+B\+Config} $\ast$config)\hypertarget{group__MIDI__USB_gaff47fcb0d75142c2290d6a55efde437e}{}\label{group__MIDI__USB_gaff47fcb0d75142c2290d6a55efde437e}
+
+\item 
+void {\bfseries mdu\+Stop} (\hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver} $\ast$mdup)\hypertarget{group__MIDI__USB_ga1a80a98e000a7dbd2860dc4e2f2d39f2}{}\label{group__MIDI__USB_ga1a80a98e000a7dbd2860dc4e2f2d39f2}
+
+\item 
+void {\bfseries mdu\+Configure\+HookI} (\hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver} $\ast$bdup)\hypertarget{group__MIDI__USB_ga0b39a0b3d906ed906a1fbc97fc16a21d}{}\label{group__MIDI__USB_ga0b39a0b3d906ed906a1fbc97fc16a21d}
+
+\item 
+bool\+\_\+t {\bfseries mdu\+Requests\+Hook} (U\+S\+B\+Driver $\ast$usbp)\hypertarget{group__MIDI__USB_ga8140cbee3ca097b4f93fc6c3384108c0}{}\label{group__MIDI__USB_ga8140cbee3ca097b4f93fc6c3384108c0}
+
+\item 
+void {\bfseries mdu\+Data\+Transmitted} (U\+S\+B\+Driver $\ast$usbp, usbep\+\_\+t ep)\hypertarget{group__MIDI__USB_ga2b7f696cfb953daa1bcc15acdc7a14f2}{}\label{group__MIDI__USB_ga2b7f696cfb953daa1bcc15acdc7a14f2}
+
+\item 
+void {\bfseries mdu\+Data\+Received} (U\+S\+B\+Driver $\ast$usbp, usbep\+\_\+t ep)\hypertarget{group__MIDI__USB_ga19dcb7baef4d31697a70a0e84382484d}{}\label{group__MIDI__USB_ga19dcb7baef4d31697a70a0e84382484d}
+
+\item 
+void {\bfseries midi\+\_\+usb\+\_\+\+Midi\+Send1} (uint8\+\_\+t port, uint8\+\_\+t b0)\hypertarget{group__MIDI__USB_gaa1cfc993b446ef02ea5975b846f77179}{}\label{group__MIDI__USB_gaa1cfc993b446ef02ea5975b846f77179}
+
+\item 
+void {\bfseries midi\+\_\+usb\+\_\+\+Midi\+Send2} (uint8\+\_\+t port, uint8\+\_\+t b0, uint8\+\_\+t b1)\hypertarget{group__MIDI__USB_ga1e49d72492eab6ec69e52a708ab4c0b5}{}\label{group__MIDI__USB_ga1e49d72492eab6ec69e52a708ab4c0b5}
+
+\item 
+void {\bfseries midi\+\_\+usb\+\_\+\+Midi\+Send3} (uint8\+\_\+t port, uint8\+\_\+t b0, uint8\+\_\+t b1, uint8\+\_\+t b2)\hypertarget{group__MIDI__USB_gac7b9522bb4d62b9cd2a62e095a759ff5}{}\label{group__MIDI__USB_gac7b9522bb4d62b9cd2a62e095a759ff5}
+
+\end{DoxyCompactItemize}
+\subsection*{M\+I\+D\+I\+\_\+\+U\+SB configuration options}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{group__MIDI__USB_ga76b9bd9d7068efe165b409fad9c63fc5}{M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE}~64
+\begin{DoxyCompactList}\small\item\em Midi U\+SB buffers size. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+
+
+\subsection{Macro Definition Documentation}
+\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}!\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data@{\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data}}
+\index{\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data@{\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data}!M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}
+\subsubsection[{\texorpdfstring{\+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data}{_midi_usb_driver_data}}]{\setlength{\rightskip}{0pt plus 5cm}\#define \+\_\+midi\+\_\+usb\+\_\+driver\+\_\+data}\hypertarget{group__MIDI__USB_ga8cfb956039dff17bc67f80137c28bcbb}{}\label{group__MIDI__USB_ga8cfb956039dff17bc67f80137c28bcbb}
+{\bfseries Value\+:}
+\begin{DoxyCode}
+\_base\_asynchronous\_channel\_data                                           \(\backslash\)
+  \textcolor{comment}{/* Driver state.*/}                                                        \(\backslash\)
+  mdustate\_t                state;                                          \(\backslash\)
+  \textcolor{comment}{/* Input queue.*/}                                                         \(\backslash\)
+  InputQueue                iqueue;                                         \(\backslash\)
+  \textcolor{comment}{/* Output queue.*/}                                                        \(\backslash\)
+  OutputQueue               oqueue;                                         \(\backslash\)
+  \textcolor{comment}{/* Input buffer.*/}                                                        \(\backslash\)
+  uint8\_t                   ib[\hyperlink{group__MIDI__USB_ga76b9bd9d7068efe165b409fad9c63fc5}{MIDI\_USB\_BUFFERS\_SIZE}];                    \(\backslash\)
+  \textcolor{comment}{/* Output buffer.*/}                                                       \(\backslash\)
+  uint8\_t                   ob[\hyperlink{group__MIDI__USB_ga76b9bd9d7068efe165b409fad9c63fc5}{MIDI\_USB\_BUFFERS\_SIZE}];                    \(\backslash\)
+  \textcolor{comment}{/* End of the mandatory fields.*/}                                         \(\backslash\)
+  \textcolor{comment}{/* Current configuration data.*/}                                          \(\backslash\)
+  const \hyperlink{structMidiUSBConfig}{MidiUSBConfig}     *config;
+\end{DoxyCode}
+
+
+{\ttfamily \hyperlink{structMidiUSBDriver}{Midi\+U\+S\+B\+Driver}} specific data. 
+
+\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}!M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE@{M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE}}
+\index{M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE@{M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE}!M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}
+\subsubsection[{\texorpdfstring{M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE}{MIDI_USB_BUFFERS_SIZE}}]{\setlength{\rightskip}{0pt plus 5cm}\#define M\+I\+D\+I\+\_\+\+U\+S\+B\+\_\+\+B\+U\+F\+F\+E\+R\+S\+\_\+\+S\+I\+ZE~64}\hypertarget{group__MIDI__USB_ga76b9bd9d7068efe165b409fad9c63fc5}{}\label{group__MIDI__USB_ga76b9bd9d7068efe165b409fad9c63fc5}
+
+
+Midi U\+SB buffers size. 
+
+Configuration parameter, the buffer size must be a multiple of the U\+SB data endpoint maximum packet size. \begin{DoxyNote}{Note}
+The default is 64 bytes for both the transmission and receive buffers. 
+\end{DoxyNote}
+
+
+\subsection{Enumeration Type Documentation}
+\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}!mdustate\+\_\+t@{mdustate\+\_\+t}}
+\index{mdustate\+\_\+t@{mdustate\+\_\+t}!M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}
+\subsubsection[{\texorpdfstring{mdustate\+\_\+t}{mdustate_t}}]{\setlength{\rightskip}{0pt plus 5cm}enum {\bf mdustate\+\_\+t}}\hypertarget{group__MIDI__USB_gaf100a937cc2fe8a2a694884d6ec92485}{}\label{group__MIDI__USB_gaf100a937cc2fe8a2a694884d6ec92485}
+
+
+Driver state machine possible states. 
+
+\begin{Desc}
+\item[Enumerator]\par
+\begin{description}
+\index{M\+D\+U\+\_\+\+U\+N\+I\+N\+IT@{M\+D\+U\+\_\+\+U\+N\+I\+N\+IT}!M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}!M\+D\+U\+\_\+\+U\+N\+I\+N\+IT@{M\+D\+U\+\_\+\+U\+N\+I\+N\+IT}}\item[{\em 
+M\+D\+U\+\_\+\+U\+N\+I\+N\+IT\hypertarget{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485a872997df0e7465da70e4f1e37b3507ec}{}\label{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485a872997df0e7465da70e4f1e37b3507ec}
+}]Not initialized. \index{M\+D\+U\+\_\+\+S\+T\+OP@{M\+D\+U\+\_\+\+S\+T\+OP}!M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}!M\+D\+U\+\_\+\+S\+T\+OP@{M\+D\+U\+\_\+\+S\+T\+OP}}\item[{\em 
+M\+D\+U\+\_\+\+S\+T\+OP\hypertarget{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485accf69965e5109667e5593415ca70fe06}{}\label{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485accf69965e5109667e5593415ca70fe06}
+}]Stopped. \index{M\+D\+U\+\_\+\+R\+E\+A\+DY@{M\+D\+U\+\_\+\+R\+E\+A\+DY}!M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}}\index{M\+I\+D\+I\+\_\+\+U\+SB@{M\+I\+D\+I\+\_\+\+U\+SB}!M\+D\+U\+\_\+\+R\+E\+A\+DY@{M\+D\+U\+\_\+\+R\+E\+A\+DY}}\item[{\em 
+M\+D\+U\+\_\+\+R\+E\+A\+DY\hypertarget{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485a87df2c76063f4f72e57ec1a82d21a618}{}\label{group__MIDI__USB_ggaf100a937cc2fe8a2a694884d6ec92485a87df2c76063f4f72e57ec1a82d21a618}
+}]Ready. \end{description}
+\end{Desc}

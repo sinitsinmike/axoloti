@@ -1,0 +1,18 @@
+PROJECT_NAME           = "Axoloti"
+PROJECT_BRIEF          = "Axoloti documentation project."
+PROJECT_LOGO           = img/icon_128x128.png
+
+OUTPUT_DIRECTORY       = output
+INPUT                  = main_page.markdown \
+                         axoloti_gui_user_guide.markdown \
+                         compiling_from_source.markdown \
+                         for_developers.markdown \
+                         2015_05_11_java_logging_quick_reference.markdown
+INPUT                  += ../../firmware/midi_usb.h
+INPUT                  += ../../firmware/codec.h
+INPUT                  += ../../firmware/patch.h
+
+USE_MDFILE_AS_MAINPAGE = main_page.markdown
+DISABLE_INDEX          = YES
+GENERATE_TREEVIEW      = YES
+GENERATE_RTF           = NO

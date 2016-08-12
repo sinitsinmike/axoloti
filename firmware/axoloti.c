@@ -20,6 +20,13 @@
 #include "ui.h"
 #include "patch.h"
 
+/**
+ * @brief   init function .
+ *
+ * @param[in] void     no input parameters
+ *
+ * @api
+ */
 void axoloti_init(void) {
 
 }

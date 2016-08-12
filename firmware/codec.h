@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2013, 2014 Johannes Taelman
  *
  * This file is part of Axoloti.
@@ -15,7 +15,11 @@
  * You should have received a copy of the GNU General Public License along with
  * Axoloti. If not, see <http://www.gnu.org/licenses/>.
  */
-
+/**
+ * @file    codec.h
+ * @brief   Audio code high level interface functions.
+ *
+ */
 #ifndef __CODEC_H
 #define __CODEC_H
 #include <stdint.h>
@@ -27,11 +31,23 @@ extern int32_t buf2[BUFSIZE * 2];
 extern int32_t rbuf[BUFSIZE * 2];
 extern int32_t rbuf2[BUFSIZE * 2];
 
+/**
+	 @brief Init audio codec.
+*/
 extern void codec_init(void);
+/**
+	 @brief Stop audio codec.
+*/
 extern void codecStop(void);
-
+/**
+	@brief Compute audio buffers
+	@param[in] *inp Pointer to input buffer.
+	@param[out] *outp Pointer to output buffer.
+*/
 extern void computebufI(int32_t *inp, int32_t *outp);
-
+/**
+	 @brief Clear audio codec buffer.
+*/
 void codec_clearbuffer(void);
 
 #endif /* __CODEC_H */
