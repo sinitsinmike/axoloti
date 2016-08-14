@@ -111,7 +111,7 @@ public class DialComponent extends ACtrlComponent {
                     if (e.isShiftDown() || KeyUtils.isControlOrCommandDown(e)) {
                         t = t * 0.1;
                     }
-                    v = value + t * ((int) Math.round((MousePressedCoordY - e.getYOnScreen()) / getScale()));
+                    v = value + t * ((int) Math.round((MousePressedCoordY - e.getYOnScreen())));
                 }
                 setValue(v);
             }
@@ -144,6 +144,7 @@ public class DialComponent extends ACtrlComponent {
                 getRootPane().setCursor(Cursor.getDefaultCursor());
             }
         }
+        e.consume();
     }
 
     @Override
