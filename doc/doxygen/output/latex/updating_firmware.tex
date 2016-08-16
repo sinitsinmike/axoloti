@@ -1,9 +1,0 @@
-After downloading a new update, you need to recompile the firmware and flash the Axoloti Core.
-
-\subsection*{Compile the firmware}
-
-Go to the Axoloti main window, and in the \char`\"{}board\char`\"{} menu, select firmware-\/$>$compile. If all goes well, the message \char`\"{}compile successful!\char`\"{} appears in the log. \subsection*{Connect the board in D\+FU mode}
-
-Unplug the Axoloti board from the U\+SB port. Push and hold switch S1 while plugging in the U\+SB connection. You can release the switch after plugging. \subsection*{Flash the firmware}
-
-Go to the Axoloti main window, and in the \char`\"{}board\char`\"{} menu, select firmware-\/$>$flash with D\+FU. If this fails on Windows, use \href{http://zadig.akeo.ie/}{\tt zadig} to install the \char`\"{}libusb\+K\char`\"{} driver for the \char`\"{}\+S\+T\+M32 Bootloader\char`\"{} (vendor = 0x0483, product = 0xdf11). If this fails on Linux, this is likely caused by having insufficient permissions to the U\+SB device. The solution is to run \char`\"{}sudo ./platform\+\_\+linux/upload\+\_\+fw\+\_\+dfu.\+sh\char`\"{} from the main directory. 
