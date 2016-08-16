@@ -130,17 +130,15 @@ public class USBBulkConnection extends Connection {
                 sync.notifyAll();
             }
 
-            try {
-                if (receiverThread.isAlive()) {
+            if (receiverThread.isAlive()){
+                receiverThread.interrupt();
+                try {
                     receiverThread.join();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(USBBulkConnection.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                if (transmitterThread.isAlive()) {
-                    transmitterThread.join();
-                }
-            } catch (InterruptedException ex) {
-                Logger.getLogger(USBBulkConnection.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+            
             int result = LibUsb.releaseInterface(handle, interfaceNumber);
             if (result != LibUsb.SUCCESS) {
                 throw new LibUsbException("Unable to release interface", result);
@@ -250,8 +248,6 @@ public class USBBulkConnection extends Connection {
             }
 
             GoIdleState();
-            TransmitPing();
-            TransmitPing();
             //Logger.getLogger(USBBulkConnection.class.getName()).log(Level.INFO, "creating rx and tx thread...");
             transmitterThread = new Thread(new Transmitter());
             transmitterThread.setName("Transmitter");
@@ -283,9 +279,6 @@ public class USBBulkConnection extends Connection {
                 Logger.getLogger(USBBulkConnection.class.getName()).log(Level.SEVERE, null, ex);
             }
             QCmdProcessor qcmdp = MainFrame.mainframe.getQcmdprocessor();
-
-            qcmdp.AppendToQueue(new QCmdStop());
-            qcmdp.WaitQueueFinished();
 
             qcmdp.AppendToQueue(new QCmdTransmitGetFWVersion());
             try {
