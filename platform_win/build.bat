@@ -18,7 +18,7 @@ if not exist %PACMAN% (
   goto :end
 )
 
-%PACMAN% pacman -S --needed git gcc autoconf libtool make wget unzip diffutils patch pkg-config mingw-w64-i686-gcc
+%PACMAN% pacman -S --needed git gcc autoconf libtool make wget unzip diffutils patch pkg-config mingw-w64-i686-gcc doxygen
 
 set PATH=%PATH%;%MSYS32%\usr\bin
 set HOME=.
