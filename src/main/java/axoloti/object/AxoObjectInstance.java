@@ -45,6 +45,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,7 +53,9 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import org.simpleframework.xml.*;
+import org.simpleframework.xml.core.Persist;
 
 /**
  *
@@ -140,9 +143,8 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
         popupIcon.setPopupIconListener(new PopupIcon.PopupIconListener() {
             @Override
             public void ShowPopup() {
-                if (popup.getParent() == null) {
-                    popupIcon.add(popup);
-                }
+                JPopupMenu popup = CreatePopupMenu();
+                popupIcon.add(popup);
                 popup.show(popupIcon,
                         0, popupIcon.getHeight());
             }
@@ -168,76 +170,12 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             tooltiptxt += "<p>Path: " + getType().sPath;
         }
         Titlebar.setToolTipText(tooltiptxt);
-        JMenuItem popm_edit = new JMenuItem("edit object definition");
-        popm_edit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                OpenEditor();
-            }
-        });
-        popup.add(popm_edit);
-        JMenuItem popm_editInstanceName = new JMenuItem("edit instance name");
-        popm_editInstanceName.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                addInstanceNameEditor();
-            }
-        });
-        popup.add(popm_editInstanceName);
-        JMenuItem popm_substitute = new JMenuItem("replace");
-        popm_substitute.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                ((PatchGUI) patch).ShowClassSelector(AxoObjectInstance.this.getLocation(), AxoObjectInstance.this, null);
-            }
-        });
-        popup.add(popm_substitute);
-        if (getType().GetHelpPatchFile() != null) {
-            JMenuItem popm_help = new JMenuItem("help");
-            popm_help.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    PatchGUI.OpenPatch(getType().GetHelpPatchFile());
-                }
-            });
-            popup.add(popm_help);
-        }
-        if (MainFrame.prefs.getExpertMode()) {
-            JMenuItem popm_adapt = new JMenuItem("adapt homonym");
-            popm_adapt.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    PromoteToOverloadedObj();
-                }
-            });
-            popup.add(popm_adapt);
-        }
 
-        if (type instanceof AxoObjectFromPatch) {
-            JMenuItem popm_embed = new JMenuItem("embed as patch/patcher");
-            popm_embed.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    ConvertToPatchPatcher();
-                }
-            });
-            popup.add(popm_embed);
-        } else if (!(this instanceof AxoObjectInstancePatcherObject)) {
-            JMenuItem popm_embed = new JMenuItem("embed as patch/object");
-            popm_embed.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    ConvertToEmbeddedObj();
-                }
-            });
-            popup.add(popm_embed);
-        }
 
         /*
          h.add(Box.createHorizontalStrut(3));
          h.add(Box.createHorizontalGlue());
          h.add(new JSeparator(SwingConstants.VERTICAL));*/
-        
         ////IndexLabel not shown, maybe useful later...
         //IndexLabel.setSize(IndexLabel.getMinimumSize());
         //IndexLabel = new LabelComponent("");
@@ -259,12 +197,10 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
 
             @Override
             public void mousePressed(MouseEvent e) {
-                AxoObjectInstance.this.handleMousePressed(e);
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                AxoObjectInstance.this.handleMouseReleased(e);
             }
 
             @Override
@@ -275,7 +211,6 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             public void mouseExited(MouseEvent e) {
             }
         });
-        InstanceLabel.addMouseMotionListener(mml);
         add(InstanceLabel);
 
         JPanel p_iolets = new JPanel();
@@ -416,6 +351,76 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
         }
         setLocation(x, y);
         resizeToGrid();
+    }
+
+    @Override
+    JPopupMenu CreatePopupMenu() {
+        JPopupMenu popup = super.CreatePopupMenu();
+        JMenuItem popm_edit = new JMenuItem("edit object definition");
+        popm_edit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                OpenEditor();
+            }
+        });
+        popup.add(popm_edit);
+        JMenuItem popm_editInstanceName = new JMenuItem("edit instance name");
+        popm_editInstanceName.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                addInstanceNameEditor();
+            }
+        });
+        popup.add(popm_editInstanceName);
+        JMenuItem popm_substitute = new JMenuItem("replace");
+        popm_substitute.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                ((PatchGUI) patch).ShowClassSelector(AxoObjectInstance.this.getLocation(), AxoObjectInstance.this, null);
+            }
+        });
+        popup.add(popm_substitute);
+        if (getType().GetHelpPatchFile() != null) {
+            JMenuItem popm_help = new JMenuItem("help");
+            popm_help.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    PatchGUI.OpenPatch(getType().GetHelpPatchFile());
+                }
+            });
+            popup.add(popm_help);
+        }
+        if (MainFrame.prefs.getExpertMode()) {
+            JMenuItem popm_adapt = new JMenuItem("adapt homonym");
+            popm_adapt.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    PromoteToOverloadedObj();
+                }
+            });
+            popup.add(popm_adapt);
+        }
+
+        if (type instanceof AxoObjectFromPatch) {
+            JMenuItem popm_embed = new JMenuItem("embed as patch/patcher");
+            popm_embed.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    ConvertToPatchPatcher();
+                }
+            });
+            popup.add(popm_embed);
+        } else if (!(this instanceof AxoObjectInstancePatcherObject)) {
+            JMenuItem popm_embed = new JMenuItem("embed as patch/object");
+            popm_embed.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    ConvertToEmbeddedObj();
+                }
+            });
+            popup.add(popm_embed);
+        }
+        return popup;
     }
 
     public AxoObjectInstance() {
@@ -976,6 +981,17 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             getPatch().SetDirty();
         } catch (CloneNotSupportedException ex) {
             Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    @Persist
+    public void Persist() {
+        AxoObject o = getType();
+        if (o != null) {
+            if (o.uuid != null && !o.uuid.isEmpty()) {
+                typeUUID = o.uuid;
+                typeSHA = null;
+            }
         }
     }
 }
