@@ -97,7 +97,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
 
     @Override
     public void refreshIndex() {
-        if (patch != null) {
+        if (patch != null && IndexLabel != null) {
             IndexLabel.setText(" " + patch.objectinstances.indexOf(this));
         }
     }
@@ -237,14 +237,15 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
          h.add(Box.createHorizontalStrut(3));
          h.add(Box.createHorizontalGlue());
          h.add(new JSeparator(SwingConstants.VERTICAL));*/
-//        IndexLabel.setSize(IndexLabel.getMinimumSize());
-        IndexLabel = new LabelComponent("");
-        refreshIndex();
+        
+        ////IndexLabel not shown, maybe useful later...
+        //IndexLabel.setSize(IndexLabel.getMinimumSize());
+        //IndexLabel = new LabelComponent("");
+        //refreshIndex();
         //h.add(IndexLabel);
         //IndexLabel.setAlignmentX(RIGHT_ALIGNMENT);
         Titlebar.setAlignmentX(LEFT_ALIGNMENT);
         add(Titlebar);
-        Titlebar.doLayout();
         InstanceLabel = new LabelComponent(getInstanceName());
         InstanceLabel.setAlignmentX(LEFT_ALIGNMENT);
         InstanceLabel.addMouseListener(new MouseListener() {
@@ -381,7 +382,6 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             AttributeInstance attri = p.CreateInstance(this, attrp1);
             attri.setAlignmentX(LEFT_ALIGNMENT);
             add(attri);
-            attri.doLayout();
             attributeInstances.add(attri);
         }
 
@@ -394,14 +394,12 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             }
             pin.PostConstructor();
             pin.setAlignmentX(RIGHT_ALIGNMENT);
-            pin.doLayout();
             parameterInstances.add(pin);
         }
 
         for (Display p : getType().displays) {
             DisplayInstance pin = p.CreateInstance(this);
             pin.setAlignmentX(RIGHT_ALIGNMENT);
-            pin.doLayout();
             displayInstances.add(pin);
         }
 //        p_displays.add(Box.createHorizontalGlue());
@@ -413,6 +411,10 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
 
         getType().addObjectModifiedListener(this);
 
+        synchronized (getTreeLock()) {
+            validateTree();
+        }
+        setLocation(x, y);
         resizeToGrid();
     }
 
@@ -887,7 +889,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             patch.ChangeObjectInstanceType(this, selected);
             patch.cleanUpIntermediateChangeStates(4);
         } else {
-            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.INFO, "no promotion for {0}", typeName);
+//            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.INFO, "no promotion for {0}", typeName);
         }
     }
 

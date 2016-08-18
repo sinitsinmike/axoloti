@@ -23,6 +23,8 @@ import axoloti.iolet.IoletAbstract;
 import axoloti.object.AxoObjectAbstract;
 import axoloti.object.AxoObjectFromPatch;
 import axoloti.object.AxoObjectInstanceAbstract;
+import axoloti.object.AxoObjectInstanceZombie;
+import axoloti.object.AxoObjectZombie;
 import axoloti.object.AxoObjects;
 import axoloti.outlets.OutletInstance;
 import axoloti.utils.Constants;
@@ -67,9 +69,10 @@ import javax.swing.JFrame;
 import javax.swing.JLayer;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollBar;
 import javax.swing.KeyStroke;
 import javax.swing.TransferHandler;
+import static javax.swing.TransferHandler.COPY_OR_MOVE;
+import static javax.swing.TransferHandler.MOVE;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.Serializer;
 import org.simpleframework.xml.convert.AnnotationStrategy;
@@ -126,6 +129,7 @@ public class PatchGUI extends Patch {
             c.setSize(Constants.PATCH_SIZE, Constants.PATCH_SIZE);
             c.setLocation(0, 0);
             c.setOpaque(false);
+            c.validate();
         }
 
         Layers.add(objectLayer, new Integer(1));
@@ -154,7 +158,6 @@ public class PatchGUI extends Patch {
         Layers.setBackground(Theme.getCurrentTheme().Patch_Unlocked_Background);
         Layers.setOpaque(true);
         Layers.revalidate();
-//        Layers.doLayout();
 
         TransferHandler TH = new TransferHandler() {
             @Override
@@ -181,7 +184,6 @@ public class PatchGUI extends Patch {
                 }
                 if (action == MOVE) {
                     deleteSelectedAxoObjInstances();
-                    cleanUpObjectLayer();
                 }
             }
 
@@ -307,8 +309,6 @@ public class PatchGUI extends Patch {
                     }
                 } else if ((ke.getKeyCode() == KeyEvent.VK_DELETE) || (ke.getKeyCode() == KeyEvent.VK_BACK_SPACE)) {
                     deleteSelectedAxoObjInstances();
-                    cleanUpObjectLayer();
-                    Layers.revalidate();
 
                     ke.consume();
                 } else if (ke.getKeyCode() == KeyEvent.VK_UP) {
@@ -360,7 +360,9 @@ public class PatchGUI extends Patch {
             public void mousePressed(MouseEvent me) {
                 if (me.getButton() == MouseEvent.BUTTON1) {
                     selectionRectStart = me.getPoint();
-                    selectionrectangle.setVisible(false);
+                    selectionrectangle.setBounds(me.getX(), me.getY(), 1, 1);
+                    selectionrectangle.setVisible(true);
+
                     Layers.requestFocusInWindow();
                     me.consume();
                 } else {
@@ -430,7 +432,7 @@ public class PatchGUI extends Patch {
         Layers.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent ev) {
-                if (selectionrectangle.isVisible() | ev.getButton() == MouseEvent.BUTTON1) {
+                if (selectionrectangle.isVisible()) {
                     int x1 = selectionRectStart.x;
                     int y1 = selectionRectStart.y;
                     int x2 = ev.getX();
@@ -462,20 +464,30 @@ public class PatchGUI extends Patch {
         try {
             PatchGUI p = serializer.read(PatchGUI.class, v);
             HashMap<String, String> dict = new HashMap<String, String>();
-            for (AxoObjectInstanceAbstract o : p.objectinstances) {
+            ArrayList<AxoObjectInstanceAbstract> obj2 = (ArrayList<AxoObjectInstanceAbstract>) p.objectinstances.clone();
+            for (AxoObjectInstanceAbstract o : obj2) {
                 o.patch = this;
                 AxoObjectAbstract obj = o.resolveType();
-                Modulator[] m = obj.getModulators();
-                if (m != null) {
-                    if (Modulators == null) {
-                        Modulators = new ArrayList<Modulator>();
+                if (obj != null) {
+                    Modulator[] m = obj.getModulators();
+                    if (m != null) {
+                        if (Modulators == null) {
+                            Modulators = new ArrayList<Modulator>();
+                        }
+                        for (Modulator mm : m) {
+                            mm.objinst = o;
+                            Modulators.add(mm);
+                        }
                     }
-                    for (Modulator mm : m) {
-                        mm.objinst = o;
-                        Modulators.add(mm);
-                    }
+                } else {
+                    //o.patch = this;
+                    p.objectinstances.remove(o);
+                    AxoObjectInstanceZombie zombie = new AxoObjectInstanceZombie(new AxoObjectZombie(), this, o.getInstanceName(), new Point(o.getX(), o.getY()));
+                    zombie.patch = this;
+                    zombie.typeName = o.typeName;
+                    zombie.PostConstructor();
+                    p.objectinstances.add(zombie);
                 }
-
             }
             int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
             for (AxoObjectInstanceAbstract o : p.objectinstances) {
@@ -537,6 +549,7 @@ public class PatchGUI extends Patch {
                 o.setLocation(newposx, newposy);
                 o.SetSelected(true);
             }
+            objectLayerPanel.validate();
             for (Net n : p.nets) {
                 InletInstance connectedInlet = null;
                 OutletInstance connectedOutlet = null;
@@ -769,7 +782,7 @@ public class PatchGUI extends Patch {
 
         Layers.setPreferredSize(new Dimension(5000, 5000));
         AdjustSize();
-        Layers.revalidate();
+        Layers.validate();
 
         for (Net n : nets) {
             n.updateBounds();
@@ -787,6 +800,7 @@ public class PatchGUI extends Patch {
         Net n = super.AddConnection(il, ol);
         if (n != null) {
             netLayerPanel.add(n);
+            n.updateBounds();
         }
         return n;
     }
@@ -796,6 +810,7 @@ public class PatchGUI extends Patch {
         Net n = super.AddConnection(il, ol);
         if (n != null) {
             netLayerPanel.add(n);
+            n.updateBounds();
         }
         return n;
     }
@@ -824,6 +839,7 @@ public class PatchGUI extends Patch {
     public void delete(AxoObjectInstanceAbstract o) {
         super.delete(o);
         objectLayerPanel.remove(o);
+        objectLayerPanel.repaint(o.getBounds());
         objectLayerPanel.validate();
         AdjustSize();
     }
@@ -882,14 +898,10 @@ public class PatchGUI extends Patch {
     }
 
     @Override
-    void invalidate() {
-        super.invalidate();
-        Layers.invalidate();
-    }
-
-    @Override
     public void repaint() {
-        Layers.repaint();
+        if (Layers != null) {
+            Layers.repaint();
+        }
     }
 
     @Override
@@ -1050,16 +1062,5 @@ public class PatchGUI extends Patch {
         if ((settings != null) && (settings.editor != null)) {
             settings.editor.dispose();
         }
-    }
-
-    void cleanUpObjectLayer() {
-        if (!IsLocked()) {
-            for (Component c : this.objectLayerPanel.getComponents()) {
-                if (!objectinstances.contains(c)) {
-                    this.objectLayerPanel.remove(c);
-                }
-            }
-        }
-        repaint();
     }
 }
