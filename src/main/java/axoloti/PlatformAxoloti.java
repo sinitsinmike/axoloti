@@ -61,7 +61,7 @@ import qcmds.QCmdStop;
 import qcmds.QCmdUploadFile;
 import qcmds.QCmdUploadPatch;
 
-public class AxolotiPatch extends BasePatch implements IPatchTarget {
+public class PlatformAxoloti extends PlatformBase implements IPlatform {
 
 ////////////////////////////////////////////////////
 // IPatchTarget
@@ -95,11 +95,11 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
             f.write(c.getBytes());
             f.close();
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, ex.toString());
+            Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, ex.toString());
         } catch (IOException ex) {
-            Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, ex.toString());
+            Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, ex.toString());
         }
-        Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Generate code complete");
+        Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "Generate code complete");
     }
 
     @Override
@@ -109,21 +109,21 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
         for (SDFileReference fref : files) {
             File f = fref.localfile;
             if (!f.exists()) {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, "File reference unresolved: {0}", f.getName());
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "File reference unresolved: {0}", f.getName());
                 continue;
             }
             if (!f.canRead()) {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, "Can't read file {0}", f.getName());
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "Can't read file {0}", f.getName());
                 continue;
             }
             if (!SDCardInfo.getInstance().exists("/" + sdpath + "/" + fref.targetPath, f.lastModified(), f.length())) {
                 if (f.length() > 8 * 1024 * 1024) {
-                    Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "file {0} is larger than 8MB, skip uploading", f.getName());
+                    Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "file {0} is larger than 8MB, skip uploading", f.getName());
                     continue;
                 }
                 patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadFile(f, "/" + sdpath + "/" + fref.targetPath));
             } else {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "file {0} matches timestamp and size, skip uploading", f.getName());
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "file {0} matches timestamp and size, skip uploading", f.getName());
             }
         }
     }
@@ -223,9 +223,9 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
         try {
             serializer.write(aof, f1);
         } catch (Exception ex) {
-            Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, null, ex);
         }
-        Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Export obj complete");
+        Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "Export obj complete");
     }
 
     public File getBinFile() {
@@ -252,7 +252,7 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
         patch.setControllerInstance(null);
         String cobjstr = prefs.getControllerObject();
         if (prefs.isControllerEnabled() && cobjstr != null && !cobjstr.isEmpty()) {
-            Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Using controller object: {0}", cobjstr);
+            Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "Using controller object: {0}", cobjstr);
             AxoObjectAbstract x = null;
             ArrayList<AxoObjectAbstract> objs = MainFrame.axoObjects.GetAxoObjectFromName(cobjstr, patch.GetCurrentWorkingDirectory());
             if ((objs != null) && (!objs.isEmpty())) {
@@ -261,7 +261,7 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
             if (x != null) {
                 patch.setControllerInstance(x.CreateInstance(null, "ctrl0x123", new Point(0, 0)));
             } else {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Unable to created controller for : {0}", cobjstr);
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "Unable to created controller for : {0}", cobjstr);
             }
         }
 
@@ -460,7 +460,7 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
             } else if (o.typeName.equals("patch/outlet a")) {
                 ao.outlets.add(new OutletFrac32Buffer(o.getInstanceName(), o.getInstanceName()));
             } else if (o.typeName.equals("patch/outlet string")) {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, "string outlet impossible in poly subpatches!");
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "string outlet impossible in poly subpatches!");
                 // ao.outlets.add(new OutletCharPtr32(o.getInstanceName(), o.getInstanceName()));                
             }
             for (ParameterInstance p : o.getParameterInstances()) {
@@ -1174,7 +1174,7 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
             if (n.CType() != null) {
                 c += "    " + n.CType() + " " + n.CName() + ";\n";
             } else {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Net has no data type!");
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "Net has no data type!");
             }
         }
         c += "//--------- </nets> ----------//\n";
@@ -1202,7 +1202,7 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
                 if (n.GetDataType() != null) {
                     c += n.GetDataType().GenerateCopyCode(n.CName() + "Latch", n.CName());
                 } else {
-                    Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, "Only inlets connected on net!");
+                    Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "Only inlets connected on net!");
                 }
             }
         }
@@ -1242,7 +1242,7 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
                 c += i.GetDataType().GenerateSetDefaultValueCode();
             } else if (!n.isValidNet()) {
                 c += i.GetDataType().GenerateSetDefaultValueCode();
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, "Patch contains invalid net! {0}", i.objname + ":" + i.getInletname());
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "Patch contains invalid net! {0}", i.objname + ":" + i.getInletname());
             }
             needsComma = true;
         }

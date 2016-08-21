@@ -19,7 +19,7 @@
  */
 package axoloti;
 
-public class BasePatch {
+public class PlatformBase {
 
     public void SetPatch(Patch p) {
         patch = p;

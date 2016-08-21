@@ -25,7 +25,7 @@ import axoloti.object.AxoObject;
  *
  * @author Mark Harris
  */
-public interface IPatchTarget {
+public interface IPlatform {
 
     void SetPatch(Patch p);
 

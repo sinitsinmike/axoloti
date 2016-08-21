@@ -56,7 +56,6 @@ import org.simpleframework.xml.core.Validate;
 import org.simpleframework.xml.strategy.Strategy;
 import qcmds.QCmdProcessor;
 import qcmds.QCmdRecallPreset;
-import qcmds.QCmdUploadPatch;
 
 /**
  *
@@ -103,7 +102,7 @@ public class Patch {
     private List<String> previousStates = new ArrayList<String>();
     private int currentState = 0;
 
-    private IPatchTarget target;
+    private IPlatform platform;
 
     public ArrayList<DisplayInstance> getDisplayInstances() {
         return DisplayInstances;
@@ -265,23 +264,23 @@ public class Patch {
 
     // IPatchTarget - start
     void GoLive() {
-        target.GoLive();
+        platform.GoLive();
     }
 
     public void WriteCode() {
-        target.WriteCode();
+        platform.WriteCode();
     }
 
     public AxoObject GenerateAxoObj() {
-        return target.GenerateAxoObj();
+        return platform.GenerateAxoObj();
     }
 
     void UploadDependentFiles() {
-        target.UploadDependentFiles();
+        platform.UploadDependentFiles();
     }
 
     public void Compile() {
-        target.Compile();
+        platform.Compile();
     }
     
     // IPatchTarget - end
@@ -343,7 +342,7 @@ public class Patch {
 
     public Patch() {
         super();
-        target = MainFrame.prefs.getPlatform(this);
+        platform = MainFrame.prefs.getPlatform(this);
     }
 
     public void PostContructor() {
@@ -1081,7 +1080,7 @@ public class Patch {
     //final int NPRESETS = 8;
     //final int NPRESET_ENTRIES = 32;
     void Upload() {
-        target.Upload();
+        platform.Upload();
     }
 
     public void Lock() {
@@ -1251,11 +1250,11 @@ public class Patch {
     }
 
     public void UploadToSDCard() {
-        target.UploadToSDCard();
+        platform.UploadToSDCard();
     }
 
     public void UploadToSDCard(String sdfilename) {
-        target.UploadToSDCard(sdfilename);
+        platform.UploadToSDCard(sdfilename);
     }
 
     public String getSDCardPath() {

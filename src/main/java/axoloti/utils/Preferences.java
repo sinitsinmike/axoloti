@@ -18,8 +18,7 @@
 package axoloti.utils;
 
 import axoloti.Axoloti;
-import axoloti.AxolotiPatch;
-import axoloti.IPatchTarget;
+import axoloti.PlatformAxoloti;
 import axoloti.Patch;
 import axoloti.Version;
 import java.io.File;
@@ -31,6 +30,7 @@ import java.util.logging.Logger;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persist;
 import org.simpleframework.xml.core.Persister;
+import axoloti.IPlatform;
 
 /**
  *
@@ -208,8 +208,8 @@ public class Preferences {
         return CurrentFileDirectory;
     }
 
-    public IPatchTarget getPlatform(Patch p) {
-        IPatchTarget target = null;
+    public IPlatform getPlatform(Patch p) {
+        IPlatform target = null;
         if (Platform != null && !Platform.isEmpty()) {
             try {
                 Logger.getLogger(Preferences.class
@@ -217,8 +217,8 @@ public class Preferences {
                 ClassLoader cl = Axoloti.class.getClassLoader();
                 Class c = cl.loadClass(Platform);
                 Object o = c.newInstance();
-                if (o instanceof IPatchTarget) {
-                    target = (IPatchTarget) o;
+                if (o instanceof IPlatform) {
+                    target = (IPlatform) o;
                     Logger.getLogger(Preferences.class
                         .getName()).log(Level.INFO, "Using target platform : {0}", Platform);
                 } else {
@@ -233,7 +233,7 @@ public class Preferences {
             }
         }
         if (target == null) {
-            target = new AxolotiPatch();
+            target = new PlatformAxoloti();
         }
         target.SetPatch(p);
         return target;

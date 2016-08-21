@@ -36,44 +36,44 @@ import axoloti.parameters.ParameterInstance;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class NullPatch extends BasePatch implements IPatchTarget {
+public class PlatformNull extends PlatformBase implements IPlatform {
 
 ////////////////////////////////////////////////////
 // IPatchTarget
 ////////////////////////////////////////////////////
     @Override
     public void GoLive() {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, GoLive() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, GoLive() , do nothing");
     }
 
     @Override
     public void WriteCode() {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, WriteCode() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, WriteCode() , do nothing");
     }
 
     @Override
     public void UploadDependentFiles() {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, UploadDependentFiles() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, UploadDependentFiles() , do nothing");
     }
 
     @Override
     public void Compile() {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, Compile() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, Compile() , do nothing");
     }
 
     @Override
     public void UploadToSDCard() {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, UploadToSDCard() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, UploadToSDCard() , do nothing");
     }
 
     @Override
     public void Upload() {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, Upload() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, Upload() , do nothing");
     }
 
     @Override
     public void UploadToSDCard(String sdfilename) {
-        Logger.getLogger(NullPatch.class.getName()).log(Level.INFO, "NullPatch, UploadToSDCard() , do nothing");
+        Logger.getLogger(PlatformNull.class.getName()).log(Level.INFO, "NullPatch, UploadToSDCard() , do nothing");
     }
 
     @Override
@@ -217,7 +217,7 @@ public class NullPatch extends BasePatch implements IPatchTarget {
             } else if (o.typeName.equals("patch/outlet a")) {
                 ao.outlets.add(new OutletFrac32Buffer(o.getInstanceName(), o.getInstanceName()));
             } else if (o.typeName.equals("patch/outlet string")) {
-                Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, "string outlet impossible in poly subpatches!");
+                Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "string outlet impossible in poly subpatches!");
                 // ao.outlets.add(new OutletCharPtr32(o.getInstanceName(), o.getInstanceName()));                
             }
             for (ParameterInstance p : o.getParameterInstances()) {
