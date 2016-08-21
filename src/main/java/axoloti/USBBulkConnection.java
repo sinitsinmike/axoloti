@@ -910,13 +910,13 @@ public class USBBulkConnection extends Connection {
                     patch.Unlock();
                     return;
                 }
-                if (index >= patch.ParameterInstances.size()) {
+                if (index >= patch.getParameterInstances().size()) {
                     Logger.getLogger(USBBulkConnection.class
                             .getName()).log(Level.INFO, "Rx paramchange index out of range{0} {1}", new Object[]{index, value});
 
                     return;
                 }
-                ParameterInstance pi = patch.ParameterInstances.get(index);
+                ParameterInstance pi = patch.getParameterInstances().get(index);
 
                 if (pi == null) {
                     Logger.getLogger(USBBulkConnection.class
@@ -1021,7 +1021,7 @@ public class USBBulkConnection extends Connection {
             if (patch == null) {
                 return;
             }
-            if (patch.DisplayInstances == null) {
+            if (patch.getDisplayInstances() == null) {
                 return;
             }
             //        Logger.getLogger(SerialConnection.class.getName()).info("Distr2");
@@ -1029,7 +1029,7 @@ public class USBBulkConnection extends Connection {
                 @Override
                 public void run() {
                     dispData.rewind();
-                    for (DisplayInstance d : patch.DisplayInstances) {
+                    for (DisplayInstance d : patch.getDisplayInstances()) {
                         d.ProcessByteBuffer(dispData);
                     }
                 }

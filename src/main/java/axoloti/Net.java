@@ -77,13 +77,13 @@ public class Net extends JComponent {
             AxoObjectInstanceAbstract o = patch.GetObjectInstance(objname);
             if (o == null) {
                 Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net source obj : {0}::{1}", new Object[]{i.getObjname(), i.getOutletname()});
-                patch.nets.remove(this);
+                patch.getNets().remove(this);
                 return;
             }
             OutletInstance r = o.GetOutletInstance(outletname);
             if (r == null) {
                 Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net source outlet : {0}::{1}", new Object[]{i.getObjname(), i.getOutletname()});
-                patch.nets.remove(this);
+                patch.getNets().remove(this);
                 return;
             }
             source2.add(r);
@@ -95,13 +95,13 @@ public class Net extends JComponent {
             AxoObjectInstanceAbstract o = patch.GetObjectInstance(objname);
             if (o == null) {
                 Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net dest obj :{0}::{1}", new Object[]{i.getObjname(), i.getInletname()});
-                patch.nets.remove(this);
+                patch.getNets().remove(this);
                 return;
             }
             InletInstance r = o.GetInletInstance(inletname);
             if (r == null) {
                 Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net dest inlet :{0}::{1}", new Object[]{i.getObjname(), i.getInletname()});
-                patch.nets.remove(this);
+                patch.getNets().remove(this);
                 return;
             }
             dest2.add(r);
@@ -287,14 +287,14 @@ public class Net extends JComponent {
         // reads before last write on net
         int lastSource = 0;
         for (OutletInstance s : source) {
-            int i = patch.objectinstances.indexOf(s.GetObjectInstance());
+            int i = patch.getObjectInstances().indexOf(s.GetObjectInstance());
             if (i > lastSource) {
                 lastSource = i;
             }
         }
         int firstDest = java.lang.Integer.MAX_VALUE;
         for (InletInstance d : dest) {
-            int i = patch.objectinstances.indexOf(d.GetObjectInstance());
+            int i = patch.getObjectInstances().indexOf(d.GetObjectInstance());
             if (i < firstDest) {
                 firstDest = i;
             }
@@ -306,7 +306,7 @@ public class Net extends JComponent {
         if (source.size() == 1) {
             return true;
         }
-        for (AxoObjectInstanceAbstract o : patch.objectinstances) {
+        for (AxoObjectInstanceAbstract o : patch.getObjectInstances()) {
             for (OutletInstance i : o.GetOutletInstances()) {
                 if (source.contains(i)) {
                     // o is first objectinstance connected to this net
@@ -340,7 +340,7 @@ public class Net extends JComponent {
     }
 
     public String CName() {
-        int i = patch.nets.indexOf(this);
+        int i = patch.getNets().indexOf(this);
         return "net" + i;
     }
 }

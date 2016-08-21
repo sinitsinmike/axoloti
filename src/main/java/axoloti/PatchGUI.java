@@ -29,8 +29,6 @@ import axoloti.object.AxoObjects;
 import axoloti.outlets.OutletInstance;
 import axoloti.utils.Constants;
 import axoloti.utils.KeyUtils;
-import java.awt.Component;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -168,7 +166,7 @@ public class PatchGUI extends Patch {
             @Override
             public void exportToClipboard(JComponent comp, Clipboard clip, int action) throws IllegalStateException {
                 Patch p = GetSelectedObjects();
-                if (p.objectinstances.isEmpty()) {
+                if (p.getObjectInstances().isEmpty()) {
                     clip.setContents(new StringSelection(""), null);
                     return;
                 }
@@ -335,7 +333,7 @@ public class PatchGUI extends Patch {
             @Override
             public void mouseClicked(MouseEvent me) {
                 if (me.getButton() == MouseEvent.BUTTON1) {
-                    for (AxoObjectInstanceAbstract o : objectinstances) {
+                    for (AxoObjectInstanceAbstract o : getObjectInstances()) {
                         o.SetSelected(false);
                     }
                     if (me.getClickCount() == 2) {
@@ -373,7 +371,7 @@ public class PatchGUI extends Patch {
             public void mouseReleased(MouseEvent me) {
                 if (selectionrectangle.isVisible() | me.getButton() == MouseEvent.BUTTON1) {
                     Rectangle r = selectionrectangle.getBounds();
-                    for (AxoObjectInstanceAbstract o : objectinstances) {
+                    for (AxoObjectInstanceAbstract o : getObjectInstances()) {
                         o.SetSelected(o.getBounds().intersects(r));
                     }
                     selectionrectangle.setVisible(false);
@@ -464,33 +462,33 @@ public class PatchGUI extends Patch {
         try {
             PatchGUI p = serializer.read(PatchGUI.class, v);
             HashMap<String, String> dict = new HashMap<String, String>();
-            ArrayList<AxoObjectInstanceAbstract> obj2 = (ArrayList<AxoObjectInstanceAbstract>) p.objectinstances.clone();
+            ArrayList<AxoObjectInstanceAbstract> obj2 = (ArrayList<AxoObjectInstanceAbstract>) p.getObjectInstances().clone();
             for (AxoObjectInstanceAbstract o : obj2) {
                 o.patch = this;
                 AxoObjectAbstract obj = o.resolveType();
                 if (obj != null) {
                     Modulator[] m = obj.getModulators();
                     if (m != null) {
-                        if (Modulators == null) {
+                        if (getModulators() == null) {
                             Modulators = new ArrayList<Modulator>();
                         }
                         for (Modulator mm : m) {
                             mm.objinst = o;
-                            Modulators.add(mm);
+                            getModulators().add(mm);
                         }
                     }
                 } else {
                     //o.patch = this;
-                    p.objectinstances.remove(o);
+                    p.getObjectInstances().remove(o);
                     AxoObjectInstanceZombie zombie = new AxoObjectInstanceZombie(new AxoObjectZombie(), this, o.getInstanceName(), new Point(o.getX(), o.getY()));
                     zombie.patch = this;
                     zombie.typeName = o.typeName;
                     zombie.PostConstructor();
-                    p.objectinstances.add(zombie);
+                    p.getObjectInstances().add(zombie);
                 }
             }
             int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
-            for (AxoObjectInstanceAbstract o : p.objectinstances) {
+            for (AxoObjectInstanceAbstract o : p.getObjectInstances()) {
                 String original_name = o.getInstanceName();
                 if (original_name != null) {
                     String new_name = original_name;
@@ -531,7 +529,7 @@ public class PatchGUI extends Patch {
                     minY = o.getY();
                 }
                 o.patch = this;
-                objectinstances.add(o);
+                getObjectInstances().add(o);
                 objectLayerPanel.add(o, 0);
                 o.PostConstructor();
                 int newposx = o.getX();
@@ -550,7 +548,7 @@ public class PatchGUI extends Patch {
                 o.SetSelected(true);
             }
             objectLayerPanel.validate();
-            for (Net n : p.nets) {
+            for (Net n : p.getNets()) {
                 InletInstance connectedInlet = null;
                 OutletInstance connectedOutlet = null;
                 if (n.source != null) {
@@ -600,7 +598,7 @@ public class PatchGUI extends Patch {
                     if ((connectedInlet == null) && (connectedOutlet == null)) {
                         n.patch = this;
                         n.PostConstructor();
-                        nets.add(n);
+                        getNets().add(n);
                         netLayerPanel.add(n);
                     } else if (connectedInlet != null) {
                         for (InletInstance o : n.dest) {
@@ -635,7 +633,7 @@ public class PatchGUI extends Patch {
     }
 
     AxoObjectInstanceAbstract getObjectAtLocation(int x, int y) {
-        for (AxoObjectInstanceAbstract o : objectinstances) {
+        for (AxoObjectInstanceAbstract o : getObjectInstances()) {
             if ((o.getX() == x) && (o.getY() == y)) {
                 return o;
             }
@@ -655,13 +653,13 @@ public class PatchGUI extends Patch {
     }
 
     void SelectAll() {
-        for (AxoObjectInstanceAbstract o : objectinstances) {
+        for (AxoObjectInstanceAbstract o : getObjectInstances()) {
             o.SetSelected(true);
         }
     }
 
     public void SelectNone() {
-        for (AxoObjectInstanceAbstract o : objectinstances) {
+        for (AxoObjectInstanceAbstract o : getObjectInstances()) {
             o.SetSelected(false);
         }
     }
@@ -671,7 +669,7 @@ public class PatchGUI extends Patch {
         if (NotesFrame == null) {
             NotesFrame = new TextEditor(new StringRef(), getPatchframe());
             NotesFrame.setTitle("notes");
-            NotesFrame.SetText(notes);
+            NotesFrame.SetText(getNotes());
             NotesFrame.addFocusListener(new FocusListener() {
                 @Override
                 public void focusGained(FocusEvent e) {
@@ -694,13 +692,13 @@ public class PatchGUI extends Patch {
 
     Patch GetSelectedObjects() {
         Patch p = new Patch();
-        for (AxoObjectInstanceAbstract o : objectinstances) {
+        for (AxoObjectInstanceAbstract o : getObjectInstances()) {
             if (o.IsSelected()) {
-                p.objectinstances.add(o);
+                p.getObjectInstances().add(o);
             }
         }
         p.nets = new ArrayList<Net>();
-        for (Net n : nets) {
+        for (Net n : getNets()) {
             int sel = 0;
             for (InletInstance i : n.dest) {
                 if (i.GetObjectInstance().IsSelected()) {
@@ -713,7 +711,7 @@ public class PatchGUI extends Patch {
                 }
             }
             if (sel > 0) {
-                p.nets.add(n);
+                p.getNets().add(n);
             }
         }
         p.PreSerialize();
@@ -745,7 +743,7 @@ public class PatchGUI extends Patch {
                     break;
             }
             boolean isUpdate = false;
-            for (AxoObjectInstanceAbstract o : objectinstances) {
+            for (AxoObjectInstanceAbstract o : getObjectInstances()) {
                 if (o.IsSelected()) {
                     isUpdate = true;
                     Point p = o.getLocation();
@@ -771,10 +769,10 @@ public class PatchGUI extends Patch {
         super.PostContructor();
         objectLayerPanel.removeAll();
         netLayerPanel.removeAll();
-        for (AxoObjectInstanceAbstract o : objectinstances) {
+        for (AxoObjectInstanceAbstract o : getObjectInstances()) {
             objectLayerPanel.add(o);
         }
-        for (Net n : nets) {
+        for (Net n : getNets()) {
             netLayerPanel.add(n);
         }
         objectLayerPanel.validate();
@@ -784,7 +782,7 @@ public class PatchGUI extends Patch {
         AdjustSize();
         Layers.validate();
 
-        for (Net n : nets) {
+        for (Net n : getNets()) {
             n.updateBounds();
         }
     }
@@ -912,7 +910,7 @@ public class PatchGUI extends Patch {
     Dimension GetInitialSize() {
         int mx = 100; // min size
         int my = 100;
-        for (AxoObjectInstanceAbstract i : objectinstances) {
+        for (AxoObjectInstanceAbstract i : getObjectInstances()) {
 
             Dimension s = i.getPreferredSize();
 
@@ -1044,7 +1042,7 @@ public class PatchGUI extends Patch {
     }
 
     public void updateNetVisibility() {
-        for (Net n : this.nets) {
+        for (Net n : this.getNets()) {
             DataType d = n.GetDataType();
             if (d != null) {
                 n.setVisible(isCableTypeEnabled(d));
@@ -1059,8 +1057,8 @@ public class PatchGUI extends Patch {
         if (NotesFrame != null) {
             NotesFrame.dispose();
         }
-        if ((settings != null) && (settings.editor != null)) {
-            settings.editor.dispose();
+        if ((getSettings() != null) && (getSettings().editor != null)) {
+            getSettings().editor.dispose();
         }
     }
 }

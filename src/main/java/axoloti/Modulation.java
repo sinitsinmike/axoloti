@@ -63,7 +63,7 @@ public class Modulation {
             System.out.println("modulation source found " + source.getInstanceName());
         }
         Modulator m = null;
-        for (Modulator m1 : p.GetObjectInstance().patch.Modulators) {
+        for (Modulator m1 : p.GetObjectInstance().patch.getModulators()) {
             System.out.println("modulator match? " + m1.objinst.getInstanceName());
             if (m1.objinst == source) {
                 if ((m1.name != null) && (!m1.name.isEmpty())) {
