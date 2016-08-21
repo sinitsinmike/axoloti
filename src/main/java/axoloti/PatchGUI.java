@@ -551,9 +551,9 @@ public class PatchGUI extends Patch {
             for (Net n : p.getNets()) {
                 InletInstance connectedInlet = null;
                 OutletInstance connectedOutlet = null;
-                if (n.source != null) {
+                if (n.getSource() != null) {
                     ArrayList<OutletInstance> source2 = new ArrayList<OutletInstance>();
-                    for (OutletInstance o : n.source) {
+                    for (OutletInstance o : n.getSource()) {
                         String objname = o.getObjname();
                         String outletname = o.getOutletname();
                         if ((objname != null) && (outletname != null)) {
@@ -575,11 +575,11 @@ public class PatchGUI extends Patch {
                             }
                         }
                     }
-                    n.source = source2;
+                    n.setSource(source2);
                 }
-                if (n.dest != null) {
+                if (n.getDest() != null) {
                     ArrayList<InletInstance> dest2 = new ArrayList<InletInstance>();
-                    for (InletInstance o : n.dest) {
+                    for (InletInstance o : n.getDest()) {
                         String objname = o.getObjname();
                         String inletname = o.getInletname();
                         if ((objname != null) && (inletname != null)) {
@@ -592,29 +592,29 @@ public class PatchGUI extends Patch {
                             }
                         }
                     }
-                    n.dest = dest2;
+                    n.setDest(dest2);
                 }
-                if (n.source.size() + n.dest.size() > 1) {
+                if (n.getSource().size() + n.getDest().size() > 1) {
                     if ((connectedInlet == null) && (connectedOutlet == null)) {
                         n.patch = this;
                         n.PostConstructor();
                         getNets().add(n);
                         netLayerPanel.add(n);
                     } else if (connectedInlet != null) {
-                        for (InletInstance o : n.dest) {
+                        for (InletInstance o : n.getDest()) {
                             InletInstance o2 = getInletByReference(o.getObjname(), o.getInletname());
                             if ((o2 != null) && (o2 != connectedInlet)) {
                                 AddConnection(connectedInlet, o2);
                             }
                         }
-                        for (OutletInstance o : n.source) {
+                        for (OutletInstance o : n.getSource()) {
                             OutletInstance o2 = getOutletByReference(o.getObjname(), o.getOutletname());
                             if (o2 != null) {
                                 AddConnection(connectedInlet, o2);
                             }
                         }
                     } else if (connectedOutlet != null) {
-                        for (InletInstance o : n.dest) {
+                        for (InletInstance o : n.getDest()) {
                             InletInstance o2 = getInletByReference(o.getObjname(), o.getInletname());
                             if (o2 != null) {
                                 AddConnection(o2, connectedOutlet);
@@ -700,12 +700,12 @@ public class PatchGUI extends Patch {
         p.nets = new ArrayList<Net>();
         for (Net n : getNets()) {
             int sel = 0;
-            for (InletInstance i : n.dest) {
+            for (InletInstance i : n.getDest()) {
                 if (i.GetObjectInstance().IsSelected()) {
                     sel++;
                 }
             }
-            for (OutletInstance i : n.source) {
+            for (OutletInstance i : n.getSource()) {
                 if (i.GetObjectInstance().IsSelected()) {
                     sel++;
                 }
@@ -873,7 +873,7 @@ public class PatchGUI extends Patch {
     }
 
     @Override
-    void GoLive() {
+    public void GoLive() {
         Patch p = GetQCmdProcessor().getPatch();
         if (p != null) {
             p.Unlock();

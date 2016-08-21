@@ -81,7 +81,7 @@ public class NetDragging extends Net {
         }
         if (p0 != null) {
             Point from = SwingUtilities.convertPoint(getPatchGui().Layers, p0, this);
-            for (InletInstance i : dest) {
+            for (InletInstance i : getDest()) {
                 Point p1 = i.getJackLocInCanvas();
 
                 Point to = SwingUtilities.convertPoint(getPatchGui().Layers, p1, this);
@@ -90,7 +90,7 @@ public class NetDragging extends Net {
                 g2.setColor(c);
                 DrawWire(g2, from.x, from.y, to.x, to.y);
             }
-            for (OutletInstance i : source) {
+            for (OutletInstance i : getSource()) {
                 Point p1 = i.getJackLocInCanvas();
 
                 Point to = SwingUtilities.convertPoint(getPatchGui().Layers, p1, this);
@@ -117,14 +117,14 @@ public class NetDragging extends Net {
             max_y = p0.y;
         }
 
-        for (InletInstance i : dest) {
+        for (InletInstance i : getDest()) {
             Point p1 = i.getJackLocInCanvas();
             min_x = Math.min(min_x, p1.x);
             min_y = Math.min(min_y, p1.y);
             max_x = Math.max(max_x, p1.x);
             max_y = Math.max(max_y, p1.y);
         }
-        for (OutletInstance i : source) {
+        for (OutletInstance i : getSource()) {
             Point p1 = i.getJackLocInCanvas();
             min_x = Math.min(min_x, p1.x);
             min_y = Math.min(min_y, p1.y);

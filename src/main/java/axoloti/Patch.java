@@ -251,7 +251,7 @@ public class Patch {
         return MainFrame.mainframe;
     }
 
-    QCmdProcessor GetQCmdProcessor() {
+    public QCmdProcessor GetQCmdProcessor() {
         if (patchframe == null) {
             return null;
         }
@@ -263,7 +263,7 @@ public class Patch {
     }
 
     // IPatchTarget - start
-    void GoLive() {
+    public void GoLive() {
         platform.GoLive();
     }
 
@@ -275,7 +275,7 @@ public class Patch {
         return platform.GenerateAxoObj();
     }
 
-    void UploadDependentFiles() {
+    public void UploadDependentFiles() {
         platform.UploadDependentFiles();
     }
 
@@ -476,13 +476,13 @@ public class Patch {
 
     public Net GetNet(IoletAbstract io) {
         for (Net net : getNets()) {
-            for (InletInstance d : net.dest) {
+            for (InletInstance d : net.getDest()) {
                 if (d == io) {
                     return net;
                 }
             }
 
-            for (OutletInstance d : net.source) {
+            for (OutletInstance d : net.getSource()) {
                 if (d == io) {
                     return net;
                 }
@@ -523,7 +523,7 @@ public class Patch {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
                 return null;
             } else if ((n1 != null) && (n2 == null)) {
-                if (n1.source.isEmpty()) {
+                if (n1.getSource().isEmpty()) {
                     Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: adding outlet to inlet net");
                     n1.connectOutlet(ol);
                     SetDirty();
@@ -610,11 +610,11 @@ public class Patch {
             Net n = GetNet(io);
             if (n != null) {
                 if (io instanceof OutletInstance) {
-                    n.source.remove((OutletInstance) io);
+                    n.getSource().remove((OutletInstance) io);
                 } else if (io instanceof InletInstance) {
-                    n.dest.remove((InletInstance) io);
+                    n.getDest().remove((InletInstance) io);
                 }
-                if (n.source.size() + n.dest.size() <= 1) {
+                if (n.getSource().size() + n.getDest().size() <= 1) {
                     delete(n);
                 }
                 return n;
@@ -651,7 +651,7 @@ public class Patch {
             if (m1.objinst == o) {
                 getModulators().remove(m1);
                 for (Modulation mt : m1.Modulations) {
-                    mt.destination.removeModulation(mt);
+                    mt.getDestination().removeModulation(mt);
                 }
             }
         }
@@ -668,7 +668,7 @@ public class Patch {
         // find modulator
         Modulator m = null;
         for (Modulator m1 : getModulators()) {
-            if (m1.objinst == n.source) {
+            if (m1.objinst == n.getSource()) {
                 if ((m1.name == null) || (m1.name.isEmpty())) {
                     m = m1;
                     break;
@@ -862,7 +862,7 @@ public class Patch {
         return new Dimension(mx, my);
     }
 
-    void SortByPosition() {
+    public void SortByPosition() {
         Collections.sort(this.getObjectInstances());
         refreshIndexes();
     }
@@ -940,7 +940,7 @@ public class Patch {
         return IID;
     }
 
-    void CreateIID() {
+    public void CreateIID() {
         java.util.Random r = new java.util.Random();
         IID = r.nextInt();
     }

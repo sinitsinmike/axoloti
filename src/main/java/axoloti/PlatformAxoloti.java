@@ -107,7 +107,7 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
         String sdpath = patch.getSDCardPath();
         ArrayList<SDFileReference> files = patch.GetDependendSDFiles();
         for (SDFileReference fref : files) {
-            File f = fref.localfile;
+            File f = fref.getLocalfile();
             if (!f.exists()) {
                 Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "File reference unresolved: {0}", f.getName());
                 continue;
@@ -116,12 +116,12 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
                 Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.SEVERE, "Can't read file {0}", f.getName());
                 continue;
             }
-            if (!SDCardInfo.getInstance().exists("/" + sdpath + "/" + fref.targetPath, f.lastModified(), f.length())) {
+            if (!SDCardInfo.getInstance().exists("/" + sdpath + "/" + fref.getTargetPath(), f.lastModified(), f.length())) {
                 if (f.length() > 8 * 1024 * 1024) {
                     Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "file {0} is larger than 8MB, skip uploading", f.getName());
                     continue;
                 }
-                patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadFile(f, "/" + sdpath + "/" + fref.targetPath));
+                patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadFile(f, "/" + sdpath + "/" + fref.getTargetPath()));
             } else {
                 Logger.getLogger(PlatformAxoloti.class.getName()).log(Level.INFO, "file {0} matches timestamp and size, skip uploading", f.getName());
             }
@@ -1019,7 +1019,7 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
                 for (int j = 0; j < patch.getSettings().GetNModulationTargetsPerSource(); j++) {
                     if (j < m.Modulations.size()) {
                         Modulation n = m.Modulations.get(j);
-                        s += "{" + n.destination.indexName() + ", " + n.value.getRaw() + "}";
+                        s += "{" + n.getDestination().indexName() + ", " + n.getValue().getRaw() + "}";
                     } else {
                         s += "{-1,0}";
                     }
@@ -1227,13 +1227,13 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
             if ((n != null) && (n.isValidNet())) {
                 if (i.GetDataType().equals(n.GetDataType())) {
                     if (n.NeedsLatch()
-                            && (patch.getObjectInstances().indexOf(n.source.get(0).GetObjectInstance()) >= patch.getObjectInstances().indexOf(o))) {
+                            && (patch.getObjectInstances().indexOf(n.getSource().get(0).GetObjectInstance()) >= patch.getObjectInstances().indexOf(o))) {
                         c += n.CName() + "Latch";
                     } else {
                         c += n.CName();
                     }
                 } else if (n.NeedsLatch()
-                        && (patch.getObjectInstances().indexOf(n.source.get(0).GetObjectInstance()) >= patch.getObjectInstances().indexOf(o))) {
+                        && (patch.getObjectInstances().indexOf(n.getSource().get(0).GetObjectInstance()) >= patch.getObjectInstances().indexOf(o))) {
                     c += n.GetDataType().GenerateConversionToType(i.GetDataType(), n.CName() + "Latch");
                 } else {
                     c += n.GetDataType().GenerateConversionToType(i.GetDataType(), n.CName());

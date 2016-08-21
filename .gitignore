@@ -42,6 +42,11 @@ axoloti-factory
 #Version file
 src/main/java/axoloti/Version.java
 
+
+#not for release
+src/main/java/experimental
+
+
 #################
 ## Eagle
 #################

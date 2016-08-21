@@ -44,9 +44,9 @@ import org.simpleframework.xml.*;
 public class Net extends JComponent {
 
     @ElementList(inline = true, required = false)
-    ArrayList<OutletInstance> source;
+    private ArrayList<OutletInstance> source;
     @ElementList(inline = true, required = false)
-    ArrayList<InletInstance> dest = new ArrayList<InletInstance>();
+    private ArrayList<InletInstance> dest = new ArrayList<InletInstance>();
     Patch patch;
     boolean selected = false;
 
@@ -71,7 +71,7 @@ public class Net extends JComponent {
     public void PostConstructor() {
         // InletInstances and OutletInstances actually already exist, need to replace dummies with the real ones
         ArrayList<OutletInstance> source2 = new ArrayList<OutletInstance>();
-        for (OutletInstance i : source) {
+        for (OutletInstance i : getSource()) {
             String objname = i.getObjname();
             String outletname = i.getOutletname();
             AxoObjectInstanceAbstract o = patch.GetObjectInstance(objname);
@@ -89,7 +89,7 @@ public class Net extends JComponent {
             source2.add(r);
         }
         ArrayList<InletInstance> dest2 = new ArrayList<InletInstance>();
-        for (InletInstance i : dest) {
+        for (InletInstance i : getDest()) {
             String objname = i.getObjname();
             String inletname = i.getInletname();
             AxoObjectInstanceAbstract o = patch.GetObjectInstance(objname);
@@ -106,8 +106,8 @@ public class Net extends JComponent {
             }
             dest2.add(r);
         }
-        source = source2;
-        dest = dest2;
+        setSource(source2);
+        setDest(dest2);
         updateBounds();
     }
 
@@ -120,10 +120,10 @@ public class Net extends JComponent {
             return;
         }
         this.selected = selected;
-        for (OutletInstance i : source) {
+        for (OutletInstance i : getSource()) {
             i.setHighlighted(selected);
         }
-        for (InletInstance i : dest) {
+        for (InletInstance i : getDest()) {
             i.setHighlighted(selected);
         }
         repaint();
@@ -137,28 +137,28 @@ public class Net extends JComponent {
         if (inlet.GetObjectInstance().patch != patch) {
             return;
         }
-        dest.add(inlet);
+        getDest().add(inlet);
         updateBounds();
     }
 
     public void connectOutlet(OutletInstance outlet) {
         if (outlet.GetObjectInstance().patch == patch) {
-            source.add(outlet);
+            getSource().add(outlet);
         }
         updateBounds();
     }
 
     public boolean isValidNet() {
-        if (source.isEmpty()) {
+        if (getSource().isEmpty()) {
             return false;
         }
-        if (source.size() > 1) {
+        if (getSource().size() > 1) {
             return false;
         }
-        if (dest.isEmpty()) {
+        if (getDest().isEmpty()) {
             return false;
         }
-        for (InletInstance s : dest) {
+        for (InletInstance s : getDest()) {
             if (!GetDataType().IsConvertableToType(s.GetDataType())) {
                 return false;
             }
@@ -195,14 +195,14 @@ public class Net extends JComponent {
         int max_y = Integer.MIN_VALUE;
         int max_x = Integer.MIN_VALUE;
 
-        for (InletInstance i : dest) {
+        for (InletInstance i : getDest()) {
             Point p1 = i.getJackLocInCanvas();
             min_x = Math.min(min_x, p1.x);
             min_y = Math.min(min_y, p1.y);
             max_x = Math.max(max_x, p1.x);
             max_y = Math.max(max_y, p1.y);
         }
-        for (OutletInstance i : source) {
+        for (OutletInstance i : getSource()) {
             Point p1 = i.getJackLocInCanvas();
             min_x = Math.min(min_x, p1.x);
             min_y = Math.min(min_y, p1.y);
@@ -234,7 +234,7 @@ public class Net extends JComponent {
             }
 
             c = GetDataType().GetColor();
-            p0 = source.get(0).getJackLocInCanvas();
+            p0 = getSource().get(0).getJackLocInCanvas();
         } else {
             if (selected) {
                 g2.setStroke(strokeBrokenSelected);
@@ -249,16 +249,16 @@ public class Net extends JComponent {
             }
 
             if (!source.isEmpty()) {
-                p0 = source.get(0).getJackLocInCanvas();
+                p0 = getSource().get(0).getJackLocInCanvas();
             } else if (!dest.isEmpty()) {
-                p0 = dest.get(0).getJackLocInCanvas();
+                p0 = getDest().get(0).getJackLocInCanvas();
             } else {
                 throw new Error("empty nets should not exist");
             }
         }
 
         Point from = SwingUtilities.convertPoint(getPatchGui().Layers, p0, this);
-        for (InletInstance i : dest) {
+        for (InletInstance i : getDest()) {
             Point p1 = i.getJackLocInCanvas();
 
             Point to = SwingUtilities.convertPoint(getPatchGui().Layers, p1, this);
@@ -267,7 +267,7 @@ public class Net extends JComponent {
             g2.setColor(c);
             DrawWire(g2, from.x, from.y, to.x, to.y);
         }
-        for (OutletInstance i : source) {
+        for (OutletInstance i : getSource()) {
             Point p1 = i.getJackLocInCanvas();
 
             Point to = SwingUtilities.convertPoint(getPatchGui().Layers, p1, this);
@@ -286,14 +286,14 @@ public class Net extends JComponent {
     public boolean NeedsLatch() {
         // reads before last write on net
         int lastSource = 0;
-        for (OutletInstance s : source) {
+        for (OutletInstance s : getSource()) {
             int i = patch.getObjectInstances().indexOf(s.GetObjectInstance());
             if (i > lastSource) {
                 lastSource = i;
             }
         }
         int firstDest = java.lang.Integer.MAX_VALUE;
-        for (InletInstance d : dest) {
+        for (InletInstance d : getDest()) {
             int i = patch.getObjectInstances().indexOf(d.GetObjectInstance());
             if (i < firstDest) {
                 firstDest = i;
@@ -303,12 +303,12 @@ public class Net extends JComponent {
     }
 
     public boolean IsFirstOutlet(OutletInstance oi) {
-        if (source.size() == 1) {
+        if (getSource().size() == 1) {
             return true;
         }
         for (AxoObjectInstanceAbstract o : patch.getObjectInstances()) {
             for (OutletInstance i : o.GetOutletInstances()) {
-                if (source.contains(i)) {
+                if (getSource().contains(i)) {
                     // o is first objectinstance connected to this net
                     return oi == i;
                 }
@@ -319,14 +319,14 @@ public class Net extends JComponent {
     }
 
     public DataType GetDataType() {
-        if (source.isEmpty()) {
+        if (getSource().isEmpty()) {
             return null;
         }
-        if (source.size() == 1) {
-            return source.get(0).GetDataType();
+        if (getSource().size() == 1) {
+            return getSource().get(0).GetDataType();
         }
-        java.util.Collections.sort(source);
-        DataType t = source.get(0).GetDataType();
+        java.util.Collections.sort(getSource());
+        DataType t = getSource().get(0).GetDataType();
         return t;
     }
 
@@ -342,5 +342,21 @@ public class Net extends JComponent {
     public String CName() {
         int i = patch.getNets().indexOf(this);
         return "net" + i;
+    }
+
+    public ArrayList<OutletInstance> getSource() {
+        return source;
+    }
+
+    public ArrayList<InletInstance> getDest() {
+        return dest;
+    }
+
+    public void setSource(ArrayList<OutletInstance> source) {
+        this.source = source;
+    }
+
+    public void setDest(ArrayList<InletInstance> dest) {
+        this.dest = dest;
     }
 }

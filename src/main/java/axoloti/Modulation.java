@@ -37,10 +37,10 @@ public class Modulation {
 
     @Attribute(name = "value", required = false)
     public double getValuex() {
-        return value.getDouble();
+        return getValue().getDouble();
     }
 
-    final ValueFrac32 value = new ValueFrac32();
+    private ValueFrac32 value = new ValueFrac32();
 
     public Modulation(@Attribute(name = "value") double v) {
         value.setDouble(v);
@@ -55,17 +55,17 @@ public class Modulation {
 
     public void PostConstructor(ParameterInstanceFrac32 p) {
         System.out.println("Modulation postconstructor");
-        destination = p;
-        source = p.GetObjectInstance().patch.GetObjectInstance(sourceName);
-        if (source == null) {
+        setDestination(p);
+        setSource(p.GetObjectInstance().patch.GetObjectInstance(sourceName));
+        if (getSource() == null) {
             System.out.println("modulation source missing!");
         } else {
-            System.out.println("modulation source found " + source.getInstanceName());
+            System.out.println("modulation source found " + getSource().getInstanceName());
         }
         Modulator m = null;
         for (Modulator m1 : p.GetObjectInstance().patch.getModulators()) {
             System.out.println("modulator match? " + m1.objinst.getInstanceName());
-            if (m1.objinst == source) {
+            if (m1.objinst == getSource()) {
                 if ((m1.name != null) && (!m1.name.isEmpty())) {
                     if (m1.name.equals(modName)) {
                         m = m1;
@@ -86,6 +86,26 @@ public class Modulation {
             }
         }
     }
-    public AxoObjectInstanceAbstract source;
-    public ParameterInstanceFrac32 destination;
+    private AxoObjectInstanceAbstract source;
+    private ParameterInstanceFrac32 destination;
+
+    public AxoObjectInstanceAbstract getSource() {
+        return source;
+    }
+
+    public ParameterInstanceFrac32 getDestination() {
+        return destination;
+    }
+
+    public void setValue(ValueFrac32 value) {
+        this.value = value;
+    }
+
+    public void setSource(AxoObjectInstanceAbstract source) {
+        this.source = source;
+    }
+
+    public void setDestination(ParameterInstanceFrac32 destination) {
+        this.destination = destination;
+    }
 }

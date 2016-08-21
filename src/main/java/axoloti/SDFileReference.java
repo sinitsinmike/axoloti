@@ -24,12 +24,20 @@ import java.io.File;
  * @author jtaelman
  */
 public class SDFileReference {
-    File localfile;
-    String targetPath;
+    private File localfile;
+    private String targetPath;
 
     public SDFileReference(File localfile, String targetPath) {
         this.localfile = localfile;
         this.targetPath = targetPath;
+    }
+
+    public File getLocalfile() {
+        return localfile;
+    }
+
+    public String getTargetPath() {
+        return targetPath;
     }
     
 }
