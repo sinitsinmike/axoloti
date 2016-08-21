@@ -137,28 +137,10 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
     public void UploadToSDCard() {
         UploadToSDCard("/" + patch.getSDCardPath() + "/patch.bin");
     }
-    
+
     @Override
     public void Upload() {
         patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadPatch());
-    }
-
-    // UNUSED?
-    void ExportAxoObj(File f1) {
-        String fnNoExtension = f1.getName().substring(0, f1.getName().lastIndexOf(".axo"));
-        AxoObject ao = GenerateAxoObj();
-        ao.sDescription = patch.getFileNamePath();
-        ao.id = fnNoExtension;
-
-        AxoObjectFile aof = new AxoObjectFile();
-        aof.objs.add(ao);
-        Serializer serializer = new Persister();
-        try {
-            serializer.write(aof, f1);
-        } catch (Exception ex) {
-            Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Export obj complete");
     }
 
     @Override
@@ -192,9 +174,60 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
         qcmdprocessor.AppendToQueue(new qcmds.QCmdUploadFile(getBinFile(), sdfilename, cal));
     }
 
+    @Override
+    public AxoObject GenerateAxoObj() {
+        AxoObject ao;
+        if (patch.getSettings() == null) {
+            ao = GenerateAxoObjNormal();
+        } else {
+            switch (patch.getSettings().subpatchmode) {
+                case no:
+                case normal:
+                    ao = GenerateAxoObjNormal();
+                    break;
+                case polyphonic:
+                    ao = GenerateAxoObjPoly();
+                    break;
+                case polychannel:
+                    ao = GenerateAxoObjPolyChannel();
+                    break;
+                case polyexpression:
+                    ao = GenerateAxoObjPolyExpression();
+                    break;
+                default:
+                    return null;
+            }
+        }
+        if (patch.getSettings() != null) {
+            ao.sAuthor = patch.getSettings().getAuthor();
+            ao.sLicense = patch.getSettings().getLicense();
+            ao.sDescription = patch.getNotes();
+            ao.helpPatch = patch.getHelpPatch();
+        }
+        return ao;
+    }
+
 ////////////////////////////////////////////////////
 // Implementation
 ////////////////////////////////////////////////////
+    // UNUSED?
+    void ExportAxoObj(File f1) {
+        String fnNoExtension = f1.getName().substring(0, f1.getName().lastIndexOf(".axo"));
+        AxoObject ao = GenerateAxoObj();
+        ao.sDescription = patch.getFileNamePath();
+        ao.id = fnNoExtension;
+
+        AxoObjectFile aof = new AxoObjectFile();
+        aof.objs.add(ao);
+        Serializer serializer = new Persister();
+        try {
+            serializer.write(aof, f1);
+        } catch (Exception ex) {
+            Logger.getLogger(AxolotiPatch.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        Logger.getLogger(AxolotiPatch.class.getName()).log(Level.INFO, "Export obj complete");
+    }
+
     public File getBinFile() {
         String buildDir = System.getProperty(Axoloti.HOME_DIR) + "/build";;
         return new File(buildDir + "/xpatch.bin");
@@ -377,38 +410,6 @@ public class AxolotiPatch extends BasePatch implements IPatchTarget {
             String cport[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"};
             String uport[] = {"omni", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"};
             ao.attributes.add(new AxoAttributeComboBox("midiport", uport, cport));
-        }
-        return ao;
-    }
-
-    public AxoObject GenerateAxoObj() {
-        AxoObject ao;
-        if (patch.getSettings() == null) {
-            ao = GenerateAxoObjNormal();
-        } else {
-            switch (patch.getSettings().subpatchmode) {
-                case no:
-                case normal:
-                    ao = GenerateAxoObjNormal();
-                    break;
-                case polyphonic:
-                    ao = GenerateAxoObjPoly();
-                    break;
-                case polychannel:
-                    ao = GenerateAxoObjPolyChannel();
-                    break;
-                case polyexpression:
-                    ao = GenerateAxoObjPolyExpression();
-                    break;
-                default:
-                    return null;
-            }
-        }
-        if (patch.getSettings() != null) {
-            ao.sAuthor = patch.getSettings().getAuthor();
-            ao.sLicense = patch.getSettings().getLicense();
-            ao.sDescription = patch.getNotes();
-            ao.helpPatch = patch.getHelpPatch();
         }
         return ao;
     }

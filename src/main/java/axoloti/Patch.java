@@ -343,8 +343,7 @@ public class Patch {
 
     public Patch() {
         super();
-        target = new AxolotiPatch();
-        target.SetPatch(this);
+        target = MainFrame.prefs.getPlatform(this);
     }
 
     public void PostContructor() {
