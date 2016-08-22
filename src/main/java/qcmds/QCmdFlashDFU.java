@@ -49,7 +49,7 @@ public class QCmdFlashDFU extends QCmdShellTask {
     
     
     @Override
-    String GetExec() {
+    protected String GetExec() {
         if (OSDetect.getOS() == OSDetect.OS.WIN) {
             return RuntimeDir() + "/platform_win/upload_fw_dfu.bat";
         } else if (OSDetect.getOS() == OSDetect.OS.MAC) {
@@ -63,7 +63,7 @@ public class QCmdFlashDFU extends QCmdShellTask {
     }
 
     @Override
-    QCmd err() {
+    protected QCmd err() {
         return null;
     }
 }

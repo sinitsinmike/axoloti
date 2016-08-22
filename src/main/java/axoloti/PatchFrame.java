@@ -852,11 +852,7 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
     }//GEN-LAST:event_jMenuCompileCodeActionPerformed
 
     private void jMenuUploadCodeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuUploadCodeActionPerformed
-        patch.GetQCmdProcessor().SetPatch(null);
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdStop());
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadPatch());
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdStart(patch));
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdLock(patch));
+        patch.Upload();
     }//GEN-LAST:event_jMenuUploadCodeActionPerformed
 
     private void jMenuItemLockActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemLockActionPerformed

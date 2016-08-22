@@ -42,7 +42,7 @@ public class QCmdCompilePatch extends QCmdShellTask {
 
     @Override
     public String GetDoneMessage() {
-        if (success) {
+        if (success()) {
             return "Done compiling patch";
         } else {
             return "Compiling patch failed ( " + p.getFileNamePath() + " ) ";
@@ -55,7 +55,7 @@ public class QCmdCompilePatch extends QCmdShellTask {
     }
     
     @Override
-    String GetExec() {
+    protected String GetExec() {
         if (OSDetect.getOS() == OSDetect.OS.WIN) {
             return FirmwareDir() + "/compile_patch_win.bat";
         } else if (OSDetect.getOS() == OSDetect.OS.MAC) {
@@ -69,7 +69,7 @@ public class QCmdCompilePatch extends QCmdShellTask {
     }
 
     @Override
-    QCmd err() {
+    protected QCmd err() {
         return new QCmdShowCompileFail(p);
     }
 }

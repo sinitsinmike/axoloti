@@ -140,7 +140,11 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
 
     @Override
     public void Upload() {
+        patch.GetQCmdProcessor().SetPatch(null);
+        patch.GetQCmdProcessor().AppendToQueue(new QCmdStop());
         patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadPatch());
+        patch.GetQCmdProcessor().AppendToQueue(new QCmdStart(patch));
+        patch.GetQCmdProcessor().AppendToQueue(new QCmdLock(patch));
     }
 
     @Override
