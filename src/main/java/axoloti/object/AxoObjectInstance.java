@@ -895,7 +895,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             return;
         }
         if (selected != getType()) {
-            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.INFO, "promoting " + this + " to " + selected);
+            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.FINE, "promoting " + this + " to " + selected);
             patch.ChangeObjectInstanceType(this, selected);
             patch.cleanUpIntermediateChangeStates(4);
         } else {
@@ -975,7 +975,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             String iname = getInstanceName();
             AxoObjectInstancePatcherObject oi = (AxoObjectInstancePatcherObject) getPatch().ChangeObjectInstanceType1(this, o);
             AxoObject ao = getType();
-            oi.ao = new AxoObject(ao.id, ao.sDescription);
+            oi.ao = new AxoObjectPatcherObject(ao.id, ao.sDescription);
             oi.ao.copy(ao);
             oi.ao.sPath = "";
             oi.ao.upgradeSha = null;
@@ -997,6 +997,14 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
                 typeUUID = o.uuid;
                 typeSHA = null;
             }
+        }
+    }
+
+    @Override
+    public void Close() {
+        super.Close();
+        for (AttributeInstance a : attributeInstances) {
+            a.Close();
         }
     }
 }

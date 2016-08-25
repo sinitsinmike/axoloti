@@ -36,6 +36,8 @@ import axoloti.object.AxoObjectInstanceHyperlink;
 import axoloti.object.AxoObjectInstancePatcher;
 import axoloti.object.AxoObjectInstancePatcherObject;
 import axoloti.object.AxoObjectInstanceZombie;
+import axoloti.object.AxoObjectPatcher;
+import axoloti.object.AxoObjectPatcherObject;
 import axoloti.object.AxoObjectZombie;
 import axoloti.object.AxoObjects;
 import axoloti.outlets.OutletBool32;
@@ -340,7 +342,7 @@ public class Patch {
             if ((t != null) && (!t.providesModulationSource())) {
                 o.patch = this;
                 o.PostConstructor();
-                System.out.println("Obj added " + o.getInstanceName());
+                //System.out.println("Obj added " + o.getInstanceName());
             } else if (t == null) {
                 //o.patch = this;
                 objectinstances.remove(o);
@@ -487,17 +489,15 @@ public class Patch {
                 nets.add(n);
                 n.connectInlet(il);
                 n.connectOutlet(ol);
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: new net added");
-                SetDirty();
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: new net added");
                 return n;
             } else if (n1 == n2) {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
                 return null;
             } else if ((n1 != null) && (n2 == null)) {
                 if (n1.source.isEmpty()) {
-                    Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: adding outlet to inlet net");
+                    Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: adding outlet to inlet net");
                     n1.connectOutlet(ol);
-                    SetDirty();
                     return n1;
                 } else {
                     disconnect(il);
@@ -505,22 +505,19 @@ public class Patch {
                     nets.add(n);
                     n.connectInlet(il);
                     n.connectOutlet(ol);
-                    SetDirty();
-                    Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: replace inlet with new net");
+                    Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: replace inlet with new net");
                     return n;
                 }
             } else if ((n1 == null) && (n2 != null)) {
                 n2.connectInlet(il);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: add additional outlet");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: add additional outlet");
                 return n2;
             } else if ((n1 != null) && (n2 != null)) {
                 // inlet already has connect, and outlet has another
                 // replace 
                 disconnect(il);
                 n2.connectInlet(il);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: replace inlet with existing net");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: replace inlet with existing net");
                 return n2;
             }
         } else {
@@ -551,20 +548,17 @@ public class Patch {
                 nets.add(n);
                 n.connectInlet(il);
                 n.connectInlet(ol);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: new net added");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: new net added");
                 return n;
             } else if (n1 == n2) {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
             } else if ((n1 != null) && (n2 == null)) {
                 n1.connectInlet(ol);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: inlet added");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: inlet added");
                 return n1;
             } else if ((n1 == null) && (n2 != null)) {
                 n2.connectInlet(il);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: inlet added");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: inlet added");
                 return n2;
             } else if ((n1 != null) && (n2 != null)) {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: both inlets included in net");
@@ -659,7 +653,7 @@ public class Patch {
     }
 
     void deleteSelectedAxoObjInstances() {
-        Logger.getLogger(Patch.class.getName()).log(Level.INFO, "deleteSelectedAxoObjInstances()");
+        Logger.getLogger(Patch.class.getName()).log(Level.FINE, "deleteSelectedAxoObjInstances()");
         if (!IsLocked()) {
             boolean cont = true;
             while (cont) {
@@ -724,6 +718,8 @@ public class Patch {
         ByteArrayInputStream b = new ByteArrayInputStream(previousStates.get(currentState).getBytes());
         try {
             Patch p = serializer.read(Patch.class, b);
+            // prevent detached sub-windows
+            Close();
             this.objectinstances = p.objectinstances;
             this.nets = p.nets;
             this.cleanDanglingStates = false;
@@ -1556,9 +1552,9 @@ public class Patch {
         return c;
     }
 
-    public AxoObject GenerateAxoObjNormal() {
+    public AxoObject GenerateAxoObjNormal(AxoObject template) {
         SortByPosition();
-        AxoObject ao = new AxoObject();
+        AxoObject ao = template;
         for (AxoObjectInstanceAbstract o : objectinstances) {
             if (o.typeName.equals("patch/inlet f")) {
                 ao.inlets.add(new InletFrac32(o.getInstanceName(), o.getInstanceName()));
@@ -1647,24 +1643,24 @@ public class Patch {
         return ao;
     }
 
-    public AxoObject GenerateAxoObj() {
+    public AxoObject GenerateAxoObj(AxoObject template) {
         AxoObject ao;
         if (settings == null) {
-            ao = GenerateAxoObjNormal();
+            ao = GenerateAxoObjNormal(template);
         } else {
             switch (settings.subpatchmode) {
                 case no:
                 case normal:
-                    ao = GenerateAxoObjNormal();
+                    ao = GenerateAxoObjNormal(template);
                     break;
                 case polyphonic:
-                    ao = GenerateAxoObjPoly();
+                    ao = GenerateAxoObjPoly(template);
                     break;
                 case polychannel:
-                    ao = GenerateAxoObjPolyChannel();
+                    ao = GenerateAxoObjPolyChannel(template);
                     break;
                 case polyexpression:
-                    ao = GenerateAxoObjPolyExpression();
+                    ao = GenerateAxoObjPolyExpression(template);
                     break;
                 default:
                     return null;
@@ -1681,7 +1677,7 @@ public class Patch {
 
     void ExportAxoObj(File f1) {
         String fnNoExtension = f1.getName().substring(0, f1.getName().lastIndexOf(".axo"));
-        AxoObject ao = GenerateAxoObj();
+        AxoObject ao = GenerateAxoObj(new AxoObject());
         ao.sDescription = FileNamePath;
         ao.id = fnNoExtension;
 
@@ -1700,9 +1696,11 @@ public class Patch {
 //        String fnNoExtension = f1.getName().substring(0, f1.getName().lastIndexOf(".axo"));
 //    }
     // Poly voices from one (or omni) midi channel
-    AxoObject GenerateAxoObjPoly() {
+    AxoObject GenerateAxoObjPoly(AxoObject template) {
         SortByPosition();
-        AxoObject ao = new AxoObject("unnamedobject", FileNamePath);
+        AxoObject ao = template;
+        ao.id = "unnamedobject";
+        ao.sDescription = FileNamePath;
         ao.includes = getIncludes();
         ao.depends = getDepends();
         if ((notes != null) && (!notes.isEmpty())) {
@@ -1933,8 +1931,8 @@ public class Patch {
 
     // Poly (Multi) Channel supports per Channel CC/Touch
     // all channels are independent
-    AxoObject GenerateAxoObjPolyChannel() {
-        AxoObject o = GenerateAxoObjPoly();
+    AxoObject GenerateAxoObjPolyChannel(AxoObject template) {
+        AxoObject o = GenerateAxoObjPoly(template);
         o.sLocalData
                 += "int8_t voiceChannel[attr_poly];\n";
         o.sInitCode
@@ -2014,8 +2012,8 @@ public class Patch {
     // Poly Expression supports the Midi Polyphonic Expression (MPE) Spec
     // Can be used with (or without) the MPE objects
     // the midi channel of the patch is the 'main/global channel'
-    AxoObject GenerateAxoObjPolyExpression() {
-        AxoObject o = GenerateAxoObjPoly();
+    AxoObject GenerateAxoObjPolyExpression(AxoObject template) {
+        AxoObject o = GenerateAxoObjPoly(template);
         o.sLocalData
                 += "int8_t voiceChannel[attr_poly];\n"
                 + "int8_t pitchbendRange;\n"
@@ -2363,7 +2361,11 @@ public class Patch {
     }
 
     public AxoObjectInstanceAbstract ChangeObjectInstanceType1(AxoObjectInstanceAbstract obj, AxoObjectAbstract objType) {
-        if (obj instanceof AxoObjectInstance) {
+        if ((obj instanceof AxoObjectInstancePatcher) && (objType instanceof AxoObjectPatcher)) {
+            return obj;
+        } else if ((obj instanceof AxoObjectInstancePatcherObject) && (objType instanceof AxoObjectPatcherObject)) {
+            return obj;
+        } else if (obj instanceof AxoObjectInstance) {
             String n = obj.getInstanceName();
             obj.setInstanceName(n + "____tmp");
             AxoObjectInstanceAbstract obj1 = AddObjectInstance(objType, obj.getLocation());
