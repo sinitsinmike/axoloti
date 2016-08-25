@@ -44,5 +44,5 @@ public interface IPlatform {
     //these 'raise' questions
     void WriteCode();
 
-    AxoObject GenerateAxoObj();
+    AxoObject GenerateAxoObj(AxoObject template);
 }

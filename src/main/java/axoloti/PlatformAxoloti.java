@@ -179,24 +179,24 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
     }
 
     @Override
-    public AxoObject GenerateAxoObj() {
+    public AxoObject GenerateAxoObj(AxoObject template) {
         AxoObject ao;
         if (patch.getSettings() == null) {
-            ao = GenerateAxoObjNormal();
+            ao = GenerateAxoObjNormal(template);
         } else {
             switch (patch.getSettings().subpatchmode) {
                 case no:
                 case normal:
-                    ao = GenerateAxoObjNormal();
+                    ao = GenerateAxoObjNormal(template);
                     break;
                 case polyphonic:
-                    ao = GenerateAxoObjPoly();
+                    ao = GenerateAxoObjPoly(template);
                     break;
                 case polychannel:
-                    ao = GenerateAxoObjPolyChannel();
+                    ao = GenerateAxoObjPolyChannel(template);
                     break;
                 case polyexpression:
-                    ao = GenerateAxoObjPolyExpression();
+                    ao = GenerateAxoObjPolyExpression(template);
                     break;
                 default:
                     return null;
@@ -217,7 +217,7 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
     // UNUSED?
     void ExportAxoObj(File f1) {
         String fnNoExtension = f1.getName().substring(0, f1.getName().lastIndexOf(".axo"));
-        AxoObject ao = GenerateAxoObj();
+        AxoObject ao = GenerateAxoObj(new AxoObject());
         ao.sDescription = patch.getFileNamePath();
         ao.id = fnNoExtension;
 
@@ -326,9 +326,9 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
         return c;
     }
 
-    public AxoObject GenerateAxoObjNormal() {
+    public AxoObject GenerateAxoObjNormal(AxoObject template) {
         patch.SortByPosition();
-        AxoObject ao = new AxoObject();
+        AxoObject ao = template;
         for (AxoObjectInstanceAbstract o : patch.getObjectInstances()) {
             if (o.typeName.equals("patch/inlet f")) {
                 ao.inlets.add(new InletFrac32(o.getInstanceName(), o.getInstanceName()));
@@ -419,9 +419,11 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
     }
 
     // Poly voices from one (or omni) midi channel
-    AxoObject GenerateAxoObjPoly() {
+    AxoObject GenerateAxoObjPoly(AxoObject template) {
         patch.SortByPosition();
-        AxoObject ao = new AxoObject("unnamedobject", patch.getFileNamePath());
+        AxoObject ao = template;
+        ao.id = "unnamedobject";
+        ao.sDescription = patch.getFileNamePath();
         ao.includes = patch.getIncludes();
         ao.depends = patch.getDepends();
         if ((patch.getNotes() != null) && (!patch.getNotes().isEmpty())) {
@@ -652,8 +654,8 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
 
     // Poly (Multi) Channel supports per Channel CC/Touch
     // all channels are independent
-    AxoObject GenerateAxoObjPolyChannel() {
-        AxoObject o = GenerateAxoObjPoly();
+    AxoObject GenerateAxoObjPolyChannel(AxoObject template) {
+        AxoObject o = GenerateAxoObjPoly(template);
         o.sLocalData
                 += "int8_t voiceChannel[attr_poly];\n";
         o.sInitCode
@@ -733,8 +735,8 @@ public class PlatformAxoloti extends PlatformBase implements IPlatform {
     // Poly Expression supports the Midi Polyphonic Expression (MPE) Spec
     // Can be used with (or without) the MPE objects
     // the midi channel of the patch is the 'main/global channel'
-    AxoObject GenerateAxoObjPolyExpression() {
-        AxoObject o = GenerateAxoObjPoly();
+    AxoObject GenerateAxoObjPolyExpression(AxoObject template) {
+        AxoObject o = GenerateAxoObjPoly(template);
         o.sLocalData
                 += "int8_t voiceChannel[attr_poly];\n"
                 + "int8_t pitchbendRange;\n"

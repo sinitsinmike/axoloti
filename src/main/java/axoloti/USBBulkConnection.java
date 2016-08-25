@@ -1016,15 +1016,16 @@ public class USBBulkConnection extends Connection {
     }
 
     void DistributeToDisplays(final ByteBuffer dispData) {
-//        Logger.getLogger(SerialConnection.class.getName()).info("Distr1");
         try {
             if (patch == null) {
+                return;
+            }
+            if (!patch.IsLocked()) {
                 return;
             }
             if (patch.getDisplayInstances() == null) {
                 return;
             }
-            //        Logger.getLogger(SerialConnection.class.getName()).info("Distr2");
             SwingUtilities.invokeAndWait(new Runnable() {
                 @Override
                 public void run() {

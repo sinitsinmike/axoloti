@@ -29,6 +29,8 @@ import axoloti.object.AxoObjectInstanceHyperlink;
 import axoloti.object.AxoObjectInstancePatcher;
 import axoloti.object.AxoObjectInstancePatcherObject;
 import axoloti.object.AxoObjectInstanceZombie;
+import axoloti.object.AxoObjectPatcher;
+import axoloti.object.AxoObjectPatcherObject;
 import axoloti.object.AxoObjectZombie;
 import axoloti.object.AxoObjects;
 import axoloti.outlets.OutletInstance;
@@ -271,8 +273,8 @@ public class Patch {
         platform.WriteCode();
     }
 
-    public AxoObject GenerateAxoObj() {
-        return platform.GenerateAxoObj();
+    public AxoObject GenerateAxoObj(AxoObject template) {
+        return platform.GenerateAxoObj(template);
     }
 
     public void UploadDependentFiles() {
@@ -282,9 +284,8 @@ public class Patch {
     public void Compile() {
         platform.Compile();
     }
-    
-    // IPatchTarget - end
 
+    // IPatchTarget - end
     public int[] DistillPreset(int i) {
         int[] pdata;
         pdata = new int[getSettings().GetNPresetEntries() * 2];
@@ -369,7 +370,7 @@ public class Patch {
             if ((t != null) && (!t.providesModulationSource())) {
                 o.patch = this;
                 o.PostConstructor();
-                System.out.println("Obj added " + o.getInstanceName());
+                //System.out.println("Obj added " + o.getInstanceName());
             } else if (t == null) {
                 //o.patch = this;
                 getObjectInstances().remove(o);
@@ -516,17 +517,15 @@ public class Patch {
                 getNets().add(n);
                 n.connectInlet(il);
                 n.connectOutlet(ol);
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: new net added");
-                SetDirty();
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: new net added");
                 return n;
             } else if (n1 == n2) {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
                 return null;
             } else if ((n1 != null) && (n2 == null)) {
                 if (n1.getSource().isEmpty()) {
-                    Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: adding outlet to inlet net");
+                    Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: adding outlet to inlet net");
                     n1.connectOutlet(ol);
-                    SetDirty();
                     return n1;
                 } else {
                     disconnect(il);
@@ -534,22 +533,19 @@ public class Patch {
                     getNets().add(n);
                     n.connectInlet(il);
                     n.connectOutlet(ol);
-                    SetDirty();
-                    Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: replace inlet with new net");
+                    Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: replace inlet with new net");
                     return n;
                 }
             } else if ((n1 == null) && (n2 != null)) {
                 n2.connectInlet(il);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: add additional outlet");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: add additional outlet");
                 return n2;
             } else if ((n1 != null) && (n2 != null)) {
                 // inlet already has connect, and outlet has another
                 // replace 
                 disconnect(il);
                 n2.connectInlet(il);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: replace inlet with existing net");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: replace inlet with existing net");
                 return n2;
             }
         } else {
@@ -580,20 +576,17 @@ public class Patch {
                 getNets().add(n);
                 n.connectInlet(il);
                 n.connectInlet(ol);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: new net added");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: new net added");
                 return n;
             } else if (n1 == n2) {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
             } else if ((n1 != null) && (n2 == null)) {
                 n1.connectInlet(ol);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: inlet added");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: inlet added");
                 return n1;
             } else if ((n1 == null) && (n2 != null)) {
                 n2.connectInlet(il);
-                SetDirty();
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "connect: inlet added");
+                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: inlet added");
                 return n2;
             } else if ((n1 != null) && (n2 != null)) {
                 Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: both inlets included in net");
@@ -688,7 +681,7 @@ public class Patch {
     }
 
     void deleteSelectedAxoObjInstances() {
-        Logger.getLogger(Patch.class.getName()).log(Level.INFO, "deleteSelectedAxoObjInstances()");
+        Logger.getLogger(Patch.class.getName()).log(Level.FINE, "deleteSelectedAxoObjInstances()");
         if (!IsLocked()) {
             boolean cont = true;
             while (cont) {
@@ -753,8 +746,10 @@ public class Patch {
         ByteArrayInputStream b = new ByteArrayInputStream(previousStates.get(currentState).getBytes());
         try {
             Patch p = serializer.read(Patch.class, b);
+            // prevent detached sub-windows
+            Close();
             this.objectinstances = p.getObjectInstances();
-            this.nets = p.getNets();
+            this.nets = p.nets;
             this.cleanDanglingStates = false;
             this.PostContructor();
         } catch (Exception ex) {
@@ -945,9 +940,6 @@ public class Patch {
         IID = r.nextInt();
     }
 
-//    void ExportAxoObjPoly2(File f1) {
-//        String fnNoExtension = f1.getName().substring(0, f1.getName().lastIndexOf(".axo"));
-//    }
     public void ShowPreset(int i) {
         presetNo = i;
 
@@ -1103,7 +1095,11 @@ public class Patch {
     }
 
     public AxoObjectInstanceAbstract ChangeObjectInstanceType1(AxoObjectInstanceAbstract obj, AxoObjectAbstract objType) {
-        if (obj instanceof AxoObjectInstance) {
+        if ((obj instanceof AxoObjectInstancePatcher) && (objType instanceof AxoObjectPatcher)) {
+            return obj;
+        } else if ((obj instanceof AxoObjectInstancePatcherObject) && (objType instanceof AxoObjectPatcherObject)) {
+            return obj;
+        } else if (obj instanceof AxoObjectInstance) {
             String n = obj.getInstanceName();
             obj.setInstanceName(n + "____tmp");
             AxoObjectInstanceAbstract obj1 = AddObjectInstance(objType, obj.getLocation());
