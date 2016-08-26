@@ -722,8 +722,10 @@ public class Patch {
             Close();
             this.objectinstances = p.objectinstances;
             this.nets = p.nets;
+            this.Modulators = p.Modulators;
             this.cleanDanglingStates = false;
             this.PostContructor();
+            AdjustSize();
         } catch (Exception ex) {
             Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, null, ex);
         }
