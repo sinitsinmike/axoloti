@@ -24,7 +24,8 @@ import static axoloti.FileUtils.axpFileFilter;
 import axoloti.MainFrame;
 import static axoloti.MainFrame.prefs;
 import axoloti.PatchFrame;
-import axoloti.PatchGUI;
+import axoloti.PatchModel;
+import axoloti.PatchView;
 import axoloti.SDCardInfo;
 import axoloti.SDFileInfo;
 import axoloti.USBBulkConnection;
@@ -749,7 +750,7 @@ public class PatchBank extends javax.swing.JFrame implements DocumentWindow, Con
         if (row >= 0) {
             File f = files.get(jTable1.getSelectedRow());
             if (f.isFile() && f.canRead()) {
-                PatchGUI.OpenPatch(f);
+                PatchView.OpenPatch(f);
             }
         }
     }//GEN-LAST:event_jButtonOpenActionPerformed
@@ -758,13 +759,13 @@ public class PatchBank extends javax.swing.JFrame implements DocumentWindow, Con
         if (!f.isFile() || !f.canRead()) {
             return;
         }
-        PatchFrame pf = PatchGUI.OpenPatchInvisible(f);
+        PatchFrame pf = PatchView.OpenPatchInvisible(f);
         if (pf != null) {
             boolean isVisible = pf.isVisible();
-            PatchGUI p = pf.getPatch();
-            p.WriteCode();
-            p.Compile();
-            p.UploadToSDCard();
+            PatchModel patchModel = pf.getPatchModel();
+            patchModel.WriteCode();
+            pf.getPatchController().Compile();
+            pf.getPatchController().UploadToSDCard();
             if (!isVisible) {
                 pf.Close();
             }
