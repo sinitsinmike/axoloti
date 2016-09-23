@@ -179,7 +179,6 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
             jMenuUploadCode.setVisible(false);
             jMenuItemLock.setVisible(false);
             jMenuItemUnlock.setVisible(false);
-            jMenuItemDumpMod.setVisible(false);
         }
         jMenuPreset.setVisible(false);
         jMenuItemAdjScroll.setVisible(false);
@@ -340,7 +339,6 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
         jMenuUploadCode = new javax.swing.JMenuItem();
         jMenuItemLock = new javax.swing.JMenuItem();
         jMenuItemUnlock = new javax.swing.JMenuItem();
-        jMenuItemDumpMod = new javax.swing.JMenuItem();
         jMenuPreset = new javax.swing.JMenu();
         jMenuItemClearPreset = new javax.swing.JMenuItem();
         jMenuItemPresetCurrentToInit = new javax.swing.JMenuItem();
@@ -349,17 +347,19 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
         helpMenu1 = new axoloti.menus.HelpMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
-        addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                formFocusLost(evt);
-            }
-        });
         addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentHidden(java.awt.event.ComponentEvent evt) {
                 formComponentHidden(evt);
             }
             public void componentShown(java.awt.event.ComponentEvent evt) {
                 formComponentShown(evt);
+            }
+        });
+        addWindowFocusListener(new java.awt.event.WindowFocusListener() {
+            public void windowGainedFocus(java.awt.event.WindowEvent evt) {
+            }
+            public void windowLostFocus(java.awt.event.WindowEvent evt) {
+                formWindowLostFocus(evt);
             }
         });
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -465,12 +465,12 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
 
         undoItem.setText("Undo");
         undoItem.addAncestorListener(new javax.swing.event.AncestorListener() {
-            public void ancestorMoved(javax.swing.event.AncestorEvent evt) {
-            }
             public void ancestorAdded(javax.swing.event.AncestorEvent evt) {
                 undoItemAncestorAdded(evt);
             }
             public void ancestorRemoved(javax.swing.event.AncestorEvent evt) {
+            }
+            public void ancestorMoved(javax.swing.event.AncestorEvent evt) {
             }
         });
         undoItem.addActionListener(new java.awt.event.ActionListener() {
@@ -482,12 +482,12 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
 
         redoItem.setText("Redo");
         redoItem.addAncestorListener(new javax.swing.event.AncestorListener() {
-            public void ancestorMoved(javax.swing.event.AncestorEvent evt) {
-            }
             public void ancestorAdded(javax.swing.event.AncestorEvent evt) {
                 redoItemAncestorAdded(evt);
             }
             public void ancestorRemoved(javax.swing.event.AncestorEvent evt) {
+            }
+            public void ancestorMoved(javax.swing.event.AncestorEvent evt) {
             }
         });
         redoItem.addActionListener(new java.awt.event.ActionListener() {
@@ -653,14 +653,6 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
             }
         });
         jMenuPatch.add(jMenuItemUnlock);
-
-        jMenuItemDumpMod.setText("Dump modulation matrix");
-        jMenuItemDumpMod.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jMenuItemDumpModActionPerformed(evt);
-            }
-        });
-        jMenuPatch.add(jMenuItemDumpMod);
 
         jMenuBar1.add(jMenuPatch);
 
@@ -964,15 +956,6 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
         AskClose();
     }//GEN-LAST:event_jMenuCloseActionPerformed
 
-    private void formFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_formFocusLost
-        setCursor(Cursor.getDefaultCursor());
-    }//GEN-LAST:event_formFocusLost
-
-    private void jMenuItemDumpModActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemDumpModActionPerformed
-        String s = patch.GenerateModulationCode3();
-        Logger.getLogger(PatchFrame.class.getName()).log(Level.INFO, "modmatrix \n{0}", s);
-    }//GEN-LAST:event_jMenuItemDumpModActionPerformed
-
     private void formComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentShown
         DocumentWindowList.RegisterWindow(this);
     }//GEN-LAST:event_formComponentShown
@@ -1011,6 +994,10 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
     private void redoItemAncestorAdded(javax.swing.event.AncestorEvent evt) {//GEN-FIRST:event_redoItemAncestorAdded
         redoItem.setEnabled(patch.canRedo());
     }//GEN-LAST:event_redoItemAncestorAdded
+
+    private void formWindowLostFocus(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowLostFocus
+        getRootPane().setCursor(Cursor.getDefaultCursor());
+    }//GEN-LAST:event_formWindowLostFocus
 
     private boolean GoLive() {
         if (patch.getFileNamePath().endsWith(".axs") || patch.container() != null) {
@@ -1058,7 +1045,6 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
     private javax.swing.JMenuItem jMenuItemClearPreset;
     private javax.swing.JMenuItem jMenuItemDelete;
     private javax.swing.JMenuItem jMenuItemDifferenceToPreset;
-    private javax.swing.JMenuItem jMenuItemDumpMod;
     private javax.swing.JMenuItem jMenuItemLock;
     private javax.swing.JMenuItem jMenuItemNotes;
     private javax.swing.JMenuItem jMenuItemPresetCurrentToInit;

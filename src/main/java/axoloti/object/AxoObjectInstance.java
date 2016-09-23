@@ -52,6 +52,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persist;
 
@@ -112,10 +113,12 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
     public ArrayList<AttributeInstance> getAttributeInstances() {
         return attributeInstances;
     }
-    public JPanel p_params;
-    public JPanel p_displays;
-    public JPanel p_inlets;
-    public JPanel p_outlets;
+
+    public final JPanel p_params = new JPanel();
+    public final JPanel p_displays = new JPanel();
+    public final JPanel p_iolets = new JPanel();
+    public final JPanel p_inlets = new JPanel();
+    public final JPanel p_outlets = new JPanel();
 
     void updateObj1() {
         getType().addObjectModifiedListener(this);
@@ -136,23 +139,21 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
         outletInstances = new ArrayList<OutletInstance>();
 
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-
         final PopupIcon popupIcon = new PopupIcon();
         popupIcon.setPopupIconListener(new PopupIcon.PopupIconListener() {
             @Override
             public void ShowPopup() {
-                if (popup.getParent() == null) {
-                    popupIcon.add(popup);
-                }
+                JPopupMenu popup = CreatePopupMenu();
+                popupIcon.add(popup);
                 popup.show(popupIcon,
                         0, popupIcon.getHeight());
             }
         });
+        popupIcon.setAlignmentX(LEFT_ALIGNMENT);
         Titlebar.add(popupIcon);
-
         LabelComponent idlbl = new LabelComponent(typeName);
-        idlbl.setAlignmentX(LEFT_ALIGNMENT);
         idlbl.setForeground(Theme.getCurrentTheme().Object_TitleBar_Foreground);
+        idlbl.setAlignmentX(LEFT_ALIGNMENT);
         Titlebar.add(idlbl);
 
         String tooltiptxt = "<html>";
@@ -169,70 +170,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             tooltiptxt += "<p>Path: " + getType().sPath;
         }
         Titlebar.setToolTipText(tooltiptxt);
-        JMenuItem popm_edit = new JMenuItem("edit object definition");
-        popm_edit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                OpenEditor();
-            }
-        });
-        popup.add(popm_edit);
-        JMenuItem popm_editInstanceName = new JMenuItem("edit instance name");
-        popm_editInstanceName.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                addInstanceNameEditor();
-            }
-        });
-        popup.add(popm_editInstanceName);
-        JMenuItem popm_substitute = new JMenuItem("replace");
-        popm_substitute.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                ((PatchGUI) patch).ShowClassSelector(AxoObjectInstance.this.getLocation(), AxoObjectInstance.this, null);
-            }
-        });
-        popup.add(popm_substitute);
-        if (getType().GetHelpPatchFile() != null) {
-            JMenuItem popm_help = new JMenuItem("help");
-            popm_help.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    PatchGUI.OpenPatch(getType().GetHelpPatchFile());
-                }
-            });
-            popup.add(popm_help);
-        }
-        if (MainFrame.prefs.getExpertMode()) {
-            JMenuItem popm_adapt = new JMenuItem("adapt homonym");
-            popm_adapt.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    PromoteToOverloadedObj();
-                }
-            });
-            popup.add(popm_adapt);
-        }
 
-        if (type instanceof AxoObjectFromPatch) {
-            JMenuItem popm_embed = new JMenuItem("embed as patch/patcher");
-            popm_embed.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    ConvertToPatchPatcher();
-                }
-            });
-            popup.add(popm_embed);
-        } else if (!(this instanceof AxoObjectInstancePatcherObject)) {
-            JMenuItem popm_embed = new JMenuItem("embed as patch/object");
-            popm_embed.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    ConvertToEmbeddedObj();
-                }
-            });
-            popup.add(popm_embed);
-        }
 
         /*
          h.add(Box.createHorizontalStrut(3));
@@ -275,33 +213,18 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
         });
         add(InstanceLabel);
 
-        JPanel p_iolets = new JPanel();
-        p_iolets.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        p_iolets.removeAll();
+        p_inlets.removeAll();
+        p_outlets.removeAll();
+        p_params.removeAll();
 
-        p_iolets.setLayout(new BoxLayout(p_iolets, BoxLayout.LINE_AXIS));
-        p_iolets.setAlignmentX(LEFT_ALIGNMENT);
-        p_iolets.setAlignmentY(TOP_ALIGNMENT);
-        p_inlets = new JPanel();
-        p_inlets.setBackground(Theme.getCurrentTheme().Object_Default_Background);
-
-        p_inlets.setLayout(new BoxLayout(p_inlets, BoxLayout.PAGE_AXIS));
-        p_inlets.setAlignmentX(LEFT_ALIGNMENT);
-        p_inlets.setAlignmentY(TOP_ALIGNMENT);
-        p_outlets = new JPanel();
-        p_outlets.setBackground(Theme.getCurrentTheme().Object_Default_Background);
-
-        p_outlets.setLayout(new BoxLayout(p_outlets, BoxLayout.PAGE_AXIS));
-        p_outlets.setAlignmentX(RIGHT_ALIGNMENT);
-        p_outlets.setAlignmentY(TOP_ALIGNMENT);
-        p_params = new JPanel();
-        p_params.setBackground(Theme.getCurrentTheme().Object_Default_Background);
         if (getType().getRotatedParams()) {
             p_params.setLayout(new BoxLayout(p_params, BoxLayout.LINE_AXIS));
         } else {
             p_params.setLayout(new BoxLayout(p_params, BoxLayout.PAGE_AXIS));
         }
-        p_displays = new JPanel();
-        p_displays.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+
+        p_displays.removeAll();
 
         if (getType().getRotatedParams()) {
             p_displays.setLayout(new BoxLayout(p_displays, BoxLayout.LINE_AXIS));
@@ -403,8 +326,6 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
 //        p_params.add(Box.createHorizontalGlue());
         add(p_params);
         add(p_displays);
-        p_params.setAlignmentX(LEFT_ALIGNMENT);
-        p_displays.setAlignmentX(LEFT_ALIGNMENT);
 
         getType().addObjectModifiedListener(this);
 
@@ -415,21 +336,113 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
         resizeToGrid();
     }
 
-    public AxoObjectInstance() {
+    @Override
+    JPopupMenu CreatePopupMenu() {
+        JPopupMenu popup = super.CreatePopupMenu();
+        JMenuItem popm_edit = new JMenuItem("edit object definition");
+        popm_edit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                OpenEditor();
+            }
+        });
+        popup.add(popm_edit);
+        JMenuItem popm_editInstanceName = new JMenuItem("edit instance name");
+        popm_editInstanceName.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                addInstanceNameEditor();
+            }
+        });
+        popup.add(popm_editInstanceName);
+        JMenuItem popm_substitute = new JMenuItem("replace");
+        popm_substitute.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                ((PatchGUI) patch).ShowClassSelector(AxoObjectInstance.this.getLocation(), AxoObjectInstance.this, null);
+            }
+        });
+        popup.add(popm_substitute);
+        if (getType().GetHelpPatchFile() != null) {
+            JMenuItem popm_help = new JMenuItem("help");
+            popm_help.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    PatchGUI.OpenPatch(getType().GetHelpPatchFile());
+                }
+            });
+            popup.add(popm_help);
+        }
+        if (MainFrame.prefs.getExpertMode()) {
+            JMenuItem popm_adapt = new JMenuItem("adapt homonym");
+            popm_adapt.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    PromoteToOverloadedObj();
+                }
+            });
+            popup.add(popm_adapt);
+        }
+
+        if (type instanceof AxoObjectFromPatch) {
+            JMenuItem popm_embed = new JMenuItem("embed as patch/patcher");
+            popm_embed.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    ConvertToPatchPatcher();
+                }
+            });
+            popup.add(popm_embed);
+        } else if (!(this instanceof AxoObjectInstancePatcherObject)) {
+            JMenuItem popm_embed = new JMenuItem("embed as patch/object");
+            popm_embed.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    ConvertToEmbeddedObj();
+                }
+            });
+            popup.add(popm_embed);
+        }
+        return popup;
+    }
+
+    final void init1() {
         inletInstances = new ArrayList<InletInstance>();
         outletInstances = new ArrayList<OutletInstance>();
         displayInstances = new ArrayList<DisplayInstance>();
         parameterInstances = new ArrayList<ParameterInstance>();
         attributeInstances = new ArrayList<AttributeInstance>();
+
+        p_iolets.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        p_iolets.setLayout(new BoxLayout(p_iolets, BoxLayout.LINE_AXIS));
+        p_iolets.setAlignmentX(LEFT_ALIGNMENT);
+        p_iolets.setAlignmentY(TOP_ALIGNMENT);
+
+        p_inlets.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        p_inlets.setLayout(new BoxLayout(p_inlets, BoxLayout.PAGE_AXIS));
+        p_inlets.setAlignmentX(LEFT_ALIGNMENT);
+        p_inlets.setAlignmentY(TOP_ALIGNMENT);
+
+        p_outlets.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        p_outlets.setLayout(new BoxLayout(p_outlets, BoxLayout.PAGE_AXIS));
+        p_outlets.setAlignmentX(RIGHT_ALIGNMENT);
+        p_outlets.setAlignmentY(TOP_ALIGNMENT);
+
+        p_params.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        p_params.setAlignmentX(LEFT_ALIGNMENT);
+
+        p_displays.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        p_displays.setAlignmentX(LEFT_ALIGNMENT);
+    }
+
+    public AxoObjectInstance() {
+        super();
+        init1();
     }
 
     public AxoObjectInstance(AxoObject type, Patch patch1, String InstanceName1, Point location) {
         super(type, patch1, InstanceName1, location);
-        inletInstances = new ArrayList<InletInstance>();
-        outletInstances = new ArrayList<OutletInstance>();
-        displayInstances = new ArrayList<DisplayInstance>();
-        parameterInstances = new ArrayList<ParameterInstance>();
-        attributeInstances = new ArrayList<AttributeInstance>();
+        init1();
     }
 
     public void OpenEditor() {
@@ -882,7 +895,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             return;
         }
         if (selected != getType()) {
-            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.INFO, "promoting " + this + " to " + selected);
+            Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.FINE, "promoting " + this + " to " + selected);
             patch.ChangeObjectInstanceType(this, selected);
             patch.cleanUpIntermediateChangeStates(4);
         } else {
@@ -962,7 +975,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
             String iname = getInstanceName();
             AxoObjectInstancePatcherObject oi = (AxoObjectInstancePatcherObject) getPatch().ChangeObjectInstanceType1(this, o);
             AxoObject ao = getType();
-            oi.ao = new AxoObject(ao.id, ao.sDescription);
+            oi.ao = new AxoObjectPatcherObject(ao.id, ao.sDescription);
             oi.ao.copy(ao);
             oi.ao.sPath = "";
             oi.ao.upgradeSha = null;
@@ -984,6 +997,14 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
                 typeUUID = o.uuid;
                 typeSHA = null;
             }
+        }
+    }
+
+    @Override
+    public void Close() {
+        super.Close();
+        for (AttributeInstance a : attributeInstances) {
+            a.Close();
         }
     }
 }

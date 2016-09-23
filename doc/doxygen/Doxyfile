@@ -1,21 +1,22 @@
 PROJECT_NAME           = "Axoloti"
-PROJECT_BRIEF          = "Axoloti documentation project."
-PROJECT_LOGO           = img/icon_128x128.png
+PROJECT_BRIEF          = "Axoloti documentation project"
+PROJECT_LOGO           = ./doc/doxygen/img/icon_128x128.png
 
-OUTPUT_DIRECTORY       = output
-INPUT                  = main_page.markdown \
-                         axoloti_gui_user_guide.markdown \
-                         compiling_from_source.markdown \
-                         for_developers.markdown \
-                         getting_started.markdown \
-						 updating_firmware.markdown \
-						 directory_structure.markdown \
-						 pd_user.markdown 
-INPUT                  += ../../firmware/midi_usb.h
-INPUT                  += ../../firmware/codec.h
-INPUT                  += ../../firmware/patch.h
+OUTPUT_DIRECTORY       = ./doc/doxygen/output
+INPUT                  = ./doc/doxygen/main_page.md \
+                         ./doc/doxygen/axoloti_gui_user_guide.md \
+                         ./doc/doxygen/compiling_from_source.md \
+                         ./doc/doxygen/for_developers.md \
+                         ./doc/doxygen/getting_started.md \
+						 ./doc/doxygen/updating_firmware.md \
+						 ./doc/doxygen/directory_structure.md \
+						./doc/doxygen/pd_user.md 
+INPUT                  += ./firmware/midi_usb.h
+INPUT                  += ./firmware/codec.h
+INPUT                  += ./firmware/patch.h
 
-USE_MDFILE_AS_MAINPAGE = main_page.markdown
+USE_MDFILE_AS_MAINPAGE = main_page.md
 DISABLE_INDEX          = NO
 GENERATE_TREEVIEW      = YES
 GENERATE_RTF           = NO
+GENERATE_LATEX		   = NO
