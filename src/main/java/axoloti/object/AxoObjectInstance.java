@@ -100,7 +100,7 @@ public class AxoObjectInstance extends AxoObjectInstanceAbstract implements Obje
     @Override
     public void refreshIndex() {
         if (patch != null && IndexLabel != null) {
-            IndexLabel.setText(" " + patch.objectinstances.indexOf(this));
+            IndexLabel.setText(" " + patch.getObjectInstances().indexOf(this));
         }
     }
 

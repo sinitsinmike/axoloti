@@ -14,30 +14,35 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Axoloti. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Mark Harris
  */
 package axoloti;
 
-import java.io.File;
+import axoloti.object.AxoObject;
 
 /**
  *
- * @author jtaelman
+ * @author Mark Harris
  */
-public class SDFileReference {
-    private File localfile;
-    private String targetPath;
+public interface IPlatform {
 
-    public SDFileReference(File localfile, String targetPath) {
-        this.localfile = localfile;
-        this.targetPath = targetPath;
-    }
+    void SetPatch(Patch p);
 
-    public File getLocalfile() {
-        return localfile;
-    }
+    void GoLive();
 
-    public String getTargetPath() {
-        return targetPath;
-    }
-    
+    void UploadDependentFiles();
+
+    void Compile();
+
+    void UploadToSDCard();
+
+    void UploadToSDCard(String sdfilename);
+
+    void Upload();
+     
+    //these 'raise' questions
+    void WriteCode();
+
+    AxoObject GenerateAxoObj(AxoObject template);
 }

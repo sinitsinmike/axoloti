@@ -18,6 +18,8 @@
 package axoloti.utils;
 
 import axoloti.Axoloti;
+import axoloti.PlatformAxoloti;
+import axoloti.Patch;
 import axoloti.Version;
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +30,7 @@ import java.util.logging.Logger;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persist;
 import org.simpleframework.xml.core.Persister;
+import axoloti.IPlatform;
 
 /**
  *
@@ -74,6 +77,9 @@ public class Preferences {
     Boolean ControllerEnabled;
     @Element(required = false)
     String themePath;
+
+    @Element(required = false)
+    String Platform;
 
     @ElementMap(required = false, entry = "Boards", key = "cpuid", attribute = true, inline = true)
     HashMap<String, String> BoardNames;
@@ -144,7 +150,9 @@ public class Preferences {
     }
 
     public AxolotiLibrary getLibrary(String id) {
-        if(libraries == null) return null;
+        if (libraries == null) {
+            return null;
+        }
         for (AxolotiLibrary lib : libraries) {
             if (lib.getId().equals(id)) {
                 return lib;
@@ -200,6 +208,37 @@ public class Preferences {
         return CurrentFileDirectory;
     }
 
+    public IPlatform getPlatform(Patch p) {
+        IPlatform target = null;
+        if (Platform != null && !Platform.isEmpty()) {
+            try {
+                Logger.getLogger(Preferences.class
+                        .getName()).log(Level.INFO, "Attempting to load target {0}", Platform);
+                ClassLoader cl = Axoloti.class.getClassLoader();
+                Class c = cl.loadClass(Platform);
+                Object o = c.newInstance();
+                if (o instanceof IPlatform) {
+                    target = (IPlatform) o;
+                    Logger.getLogger(Preferences.class
+                        .getName()).log(Level.INFO, "Using target platform : {0}", Platform);
+                } else {
+                    Logger.getLogger(Preferences.class.getName()).log(Level.WARNING, "Invalid target,  {0} is not an instance of IPatchTarget, will use Axoloti ", Platform);
+                }
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InstantiationException ex) {
+                Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IllegalAccessException ex) {
+                Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (target == null) {
+            target = new PlatformAxoloti();
+        }
+        target.SetPatch(p);
+        return target;
+    }
+
     public int getPollInterval() {
         if (PollInterval > minimumPollInterval) {
             return PollInterval;
@@ -243,13 +282,13 @@ public class Preferences {
                         Logger.getLogger(Preferences.class
                                 .getName()).log(Level.SEVERE, null, ex);
                         Logger.getLogger(Preferences.class
-                                .getName()).log(Level.INFO,"Attempt to load preferenced in relaxed mode");
-                        prefs = serializer.read(Preferences.class, p,false);
+                                .getName()).log(Level.INFO, "Attempt to load preferenced in relaxed mode");
+                        prefs = serializer.read(Preferences.class, p, false);
                     } catch (Exception ex1) {
                         Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex1);
                     }
                 }
-                if (prefs == null){
+                if (prefs == null) {
                     prefs = new Preferences();
                 }
                 singleton = prefs;
@@ -429,7 +468,7 @@ public class Preferences {
                     "https://github.com/axoloti/axoloti-contrib.git",
                     false
             ));
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(Preferences.class.getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -459,11 +498,11 @@ public class Preferences {
         }
         ObjectPath = objPath.toArray(new String[0]);
     }
-    
+
     public String getThemePath() {
         return themePath;
     }
-    
+
     public void setThemePath(String themePath) {
         this.themePath = themePath;
         SavePrefs();

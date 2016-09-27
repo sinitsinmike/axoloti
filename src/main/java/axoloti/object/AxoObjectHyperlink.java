@@ -38,7 +38,7 @@ public class AxoObjectHyperlink extends AxoObjectAbstract {
     public AxoObjectInstanceHyperlink CreateInstance(Patch patch, String InstanceName1, Point location) {
         AxoObjectInstanceHyperlink o = new AxoObjectInstanceHyperlink(this, patch, InstanceName1, location);
         if (patch != null) {
-            patch.objectinstances.add(o);
+            patch.getObjectInstances().add(o);
         }
         o.PostConstructor();
         return o;

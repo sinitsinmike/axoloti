@@ -50,7 +50,7 @@ public class AxoObjectPatcher extends AxoObject {
 
         AxoObjectInstancePatcher o = new AxoObjectInstancePatcher(this, patch, InstanceName1, location);
         if (patch != null) {
-            patch.objectinstances.add(o);
+            patch.getObjectInstances().add(o);
         }
         o.PostConstructor();
         return o;

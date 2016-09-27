@@ -47,7 +47,7 @@ public class QCmdCompileFirmware extends QCmdShellTask {
     }
     
     @Override
-    String GetExec() {
+    protected String GetExec() {
         if (OSDetect.getOS() == OSDetect.OS.WIN) {
             return FirmwareDir()+"/compile_firmware_win.bat";
         } else if (OSDetect.getOS() == OSDetect.OS.MAC) {
@@ -61,7 +61,7 @@ public class QCmdCompileFirmware extends QCmdShellTask {
     }
 
     @Override
-    QCmd err() {
+    protected QCmd err() {
         return null;
     }
 }

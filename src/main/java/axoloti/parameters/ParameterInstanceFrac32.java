@@ -122,11 +122,11 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
             if (modulators == null) {
                 modulators = new ArrayList<Modulation>();
             }
-            Modulator modulator = axoObj.patch.Modulators.get(index);
+            Modulator modulator = axoObj.patch.getModulators().get(index);
             //System.out.println("updatemodulation2:" + modulator.name);
             Modulation n = null;
             for (Modulation m : modulators) {
-                if (m.source == modulator.objinst) {
+                if (m.getSource() == modulator.objinst) {
                     if ((modulator.name == null) || (modulator.name.isEmpty())) {
                         n = m;
                         break;
@@ -143,27 +143,27 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
                 //System.out.println("updatemodulation3:" + n.sourceName);
                 modulators.add(n);
             }
-            n.source = modulator.objinst;
+            n.setSource(modulator.objinst);
             n.sourceName = modulator.objinst.getInstanceName();
             n.modName = modulator.name;
             n.getValue().setDouble(amount);
-            n.destination = this;
+            n.setDestination(this);
             axoObj.patch.updateModulation(n);
         } else {
             // remove modulation target if exists
-            Modulator modulator = axoObj.patch.Modulators.get(index);
+            Modulator modulator = axoObj.patch.getModulators().get(index);
             if (modulator == null) {
                 return;
             }
             for (int i = 0; i < modulator.Modulations.size(); i++) {
                 Modulation n = modulator.Modulations.get(index);
-                if (n.destination == this) {
+                if (n.getDestination() == this) {
                     modulator.Modulations.remove(n);
                 }
             }
             for (int i = 0; i < modulators.size(); i++) {
                 Modulation n = modulators.get(i);
-                if (n.destination == this) {
+                if (n.getDestination() == this) {
                     modulators.remove(n);
                 }
                 axoObj.patch.updateModulation(n);

@@ -52,7 +52,7 @@ public class AxoObjectZombie extends AxoObjectAbstract {
     public AxoObjectInstanceAbstract CreateInstance(Patch patch, String InstanceName1, Point location) {
         AxoObjectInstanceZombie o = new AxoObjectInstanceZombie(this, patch, InstanceName1, location);
         if (patch != null) {
-            patch.objectinstances.add(o);
+            patch.getObjectInstances().add(o);
         }
         o.PostConstructor();
         return o;

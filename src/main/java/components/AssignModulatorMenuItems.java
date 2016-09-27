@@ -46,7 +46,7 @@ public class AssignModulatorMenuItems {
         //this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         hsls.clear();
 
-        for (Modulator m : param.GetObjectInstance().patch.Modulators) {
+        for (Modulator m : param.GetObjectInstance().patch.getModulators()) {
             JPanel p = new JPanel();
             p.setLayout(new BoxLayout(p, BoxLayout.LINE_AXIS));
             String modlabel;
@@ -91,7 +91,7 @@ public class AssignModulatorMenuItems {
             p.add(hsl);
             parent.add(p);
         }
-        if (param.GetObjectInstance().patch.Modulators.isEmpty()) {
+        if (param.GetObjectInstance().patch.getModulators().isEmpty()) {
             JMenuItem d = new JMenuItem("no modulation sources in patch");
             d.setEnabled(false);
             parent.add(d);

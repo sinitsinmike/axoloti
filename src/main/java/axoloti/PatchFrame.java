@@ -100,7 +100,7 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
             @Override
             public void actionPerformed(ActionEvent e) {
                 Patch p = patch.GetSelectedObjects();
-                if (p.objectinstances.isEmpty()) {
+                if (p.getObjectInstances().isEmpty()) {
                     getToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
                     return;
                 }
@@ -127,7 +127,7 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
             @Override
             public void actionPerformed(ActionEvent e) {
                 Patch p = patch.GetSelectedObjects();
-                if (p.objectinstances.isEmpty()) {
+                if (p.getObjectInstances().isEmpty()) {
                     getToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
                     return;
                 }
@@ -842,11 +842,7 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
     }//GEN-LAST:event_jMenuCompileCodeActionPerformed
 
     private void jMenuUploadCodeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuUploadCodeActionPerformed
-        patch.GetQCmdProcessor().SetPatch(null);
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdStop());
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdUploadPatch());
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdStart(patch));
-        patch.GetQCmdProcessor().AppendToQueue(new QCmdLock(patch));
+        patch.Upload();
     }//GEN-LAST:event_jMenuUploadCodeActionPerformed
 
     private void jMenuItemLockActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemLockActionPerformed
@@ -887,7 +883,7 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
 
     private void jMenuItemSettingsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemSettingsActionPerformed
         AxoObjectInstanceAbstract selObj = null;
-        ArrayList<AxoObjectInstanceAbstract> oi = patch.objectinstances;
+        ArrayList<AxoObjectInstanceAbstract> oi = patch.getObjectInstances();
         if(oi != null) {
             for(AxoObjectInstanceAbstract i : oi) {
                 if(i.IsSelected() && i instanceof AxoObjectInstance) {
@@ -899,10 +895,10 @@ public class PatchFrame extends javax.swing.JFrame implements DocumentWindow, Co
         if(selObj!=null) {
             ((AxoObjectInstance) selObj).OpenEditor();
         } else {
-            if (patch.settings == null) {
-                patch.settings = new PatchSettings();
+            if (patch.getSettings() == null) {
+                patch.setSettings(new PatchSettings());
             }
-            patch.settings.showEditor(patch);
+            patch.getSettings().showEditor(patch);
         }
     }//GEN-LAST:event_jMenuItemSettingsActionPerformed
 

@@ -320,7 +320,7 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
                 draggingObjects.add(this);
                 dragLocation = getLocation();
                 if (IsSelected()) {
-                    for (AxoObjectInstanceAbstract o : patch.objectinstances) {
+                    for (AxoObjectInstanceAbstract o : patch.getObjectInstances()) {
                         if (o.IsSelected()) {
                             moveToDraggedLayer(o);
                             draggingObjects.add(o);
@@ -566,7 +566,7 @@ public abstract class AxoObjectInstanceAbstract extends JPanel implements Compar
         y = y1;
 
         if (patch != null) {
-            for (Net n : patch.nets) {
+            for (Net n : patch.getNets()) {
                 n.updateBounds();
             }
         }

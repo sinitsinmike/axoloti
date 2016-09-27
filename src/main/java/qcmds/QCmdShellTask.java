@@ -33,7 +33,7 @@ import java.util.logging.Logger;
  */
 public abstract class QCmdShellTask implements QCmd {
 
-    abstract String GetExec();
+    protected abstract String GetExec();
     boolean success;
 
     class StreamHandlerThread implements Runnable {
@@ -135,5 +135,5 @@ public abstract class QCmdShellTask implements QCmd {
         return null;
     }
 
-    abstract QCmd err();
+    protected abstract QCmd err();
 }
