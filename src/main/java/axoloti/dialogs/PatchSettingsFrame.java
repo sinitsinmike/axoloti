@@ -90,6 +90,7 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
         }
         jCheckBoxHasChannelAttrib.setSelected(settings.GetMidiSelector());
         jCheckBoxSaturate.setSelected(settings.getSaturate());
+        jCheckBoxGraphedExec.setSelected(settings.getGraphedExec());
     }
 
     /**
@@ -122,6 +123,7 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
         jCheckBoxSaturate = new javax.swing.JCheckBox();
         jLabel10 = new javax.swing.JLabel();
         jTextFieldAttributions = new javax.swing.JTextField();
+        jCheckBoxGraphedExec = new javax.swing.JCheckBox();
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentHidden(java.awt.event.ComponentEvent evt) {
@@ -230,6 +232,13 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
             }
         });
 
+        jCheckBoxGraphedExec.setText("Use graphed execution order (EXPERIMENTAL)");
+        jCheckBoxGraphedExec.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jCheckBoxGraphedExecActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -285,6 +294,9 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
                                         .addComponent(jSpinnerModulationTargets, javax.swing.GroupLayout.PREFERRED_SIZE, 107, javax.swing.GroupLayout.PREFERRED_SIZE)))))
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addGap(14, 14, 14))
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jCheckBoxGraphedExec, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -301,7 +313,7 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jTextFieldAttributions, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel10))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 13, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jSpinnerMidiChannel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel1))
@@ -330,7 +342,10 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBoxHasChannelAttrib)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jCheckBoxSaturate))
+                .addComponent(jCheckBoxSaturate)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jCheckBoxGraphedExec)
+                .addContainerGap())
         );
 
         pack();
@@ -426,7 +441,12 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
         patch.getPatchframe().GetChildDocuments().add(this);
     }//GEN-LAST:event_formComponentShown
 
+    private void jCheckBoxGraphedExecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCheckBoxGraphedExecActionPerformed
+        settings.setGraphedExec(jCheckBoxGraphedExec.isSelected());
+    }//GEN-LAST:event_jCheckBoxGraphedExecActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBox jCheckBoxGraphedExec;
     private javax.swing.JCheckBox jCheckBoxHasChannelAttrib;
     private javax.swing.JCheckBox jCheckBoxSaturate;
     private javax.swing.JComboBox jComboBoxLicense;
