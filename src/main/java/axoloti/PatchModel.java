@@ -17,6 +17,7 @@
  */
 package axoloti;
 
+import axoloti.attribute.AttributeInstance;
 import axoloti.attributedefinition.AxoAttributeComboBox;
 import axoloti.displays.DisplayInstance;
 import axoloti.inlets.InletBool32;
@@ -25,7 +26,6 @@ import axoloti.inlets.InletFrac32;
 import axoloti.inlets.InletFrac32Buffer;
 import axoloti.inlets.InletInstance;
 import axoloti.inlets.InletInt32;
-import axoloti.iolet.IoletAbstract;
 import axoloti.object.AxoObject;
 import axoloti.object.AxoObjectAbstract;
 import axoloti.object.AxoObjectFile;
@@ -47,8 +47,8 @@ import axoloti.outlets.OutletFrac32Buffer;
 import axoloti.outlets.OutletInstance;
 import axoloti.outlets.OutletInt32;
 import axoloti.parameters.ParameterInstance;
+import axoloti.utils.Constants;
 import axoloti.utils.Preferences;
-import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.ByteArrayInputStream;
@@ -58,12 +58,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,23 +74,13 @@ import org.simpleframework.xml.core.Persist;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.core.Validate;
 import org.simpleframework.xml.strategy.Strategy;
-import qcmds.QCmdChangeWorkingDirectory;
-import qcmds.QCmdCompilePatch;
-import qcmds.QCmdCreateDirectory;
-import qcmds.QCmdLock;
-import qcmds.QCmdProcessor;
-import qcmds.QCmdRecallPreset;
-import qcmds.QCmdStart;
-import qcmds.QCmdStop;
-import qcmds.QCmdUploadFile;
-import qcmds.QCmdUploadPatch;
 
 /**
  *
  * @author Johannes Taelman
  */
 @Root
-public class Patch {
+public class PatchModel {
 
     @Attribute(required = false)
     String appVersion;
@@ -111,24 +101,27 @@ public class Patch {
     @Element(required = false)
     Rectangle windowPos;
     private String FileNamePath;
-    PatchFrame patchframe;
     ArrayList<ParameterInstance> ParameterInstances = new ArrayList<ParameterInstance>();
     ArrayList<DisplayInstance> DisplayInstances = new ArrayList<DisplayInstance>();
-    public ArrayList<Modulator> Modulators = new ArrayList<Modulator>();
-    public int presetNo = 0;
-    boolean locked = false;
+    private ArrayList<Modulator> Modulators = new ArrayList<Modulator>();
     private boolean dirty = false;
     @Element(required = false)
     private String helpPatch;
 
+    private ArrayList<ModelChangedListener> modelChangedListeners = new ArrayList<ModelChangedListener>();
+
+    private boolean loadingUndoState = false;
+
     // patch this patch is contained in
-    private Patch container = null;
+    private PatchModel container = null;
     private AxoObjectInstanceAbstract controllerinstance;
 
     public boolean presetUpdatePending = false;
 
-    private List<String> previousStates = new ArrayList<String>();
-    private int currentState = 0;
+    boolean locked = false;
+
+    private List<String> undoStates = new ArrayList<String>();
+    public int currentState = 0;
 
     static public class PatchVersionException
             extends RuntimeException {
@@ -233,117 +226,8 @@ public class Patch {
         appVersion = Version.AXOLOTI_SHORT_VERSION;
     }
 
-    MainFrame GetMainFrame() {
-        return MainFrame.mainframe;
-    }
-
-    QCmdProcessor GetQCmdProcessor() {
-        if (patchframe == null) {
-            return null;
-        }
-        return patchframe.qcmdprocessor;
-    }
-
     public PatchSettings getSettings() {
         return settings;
-    }
-
-    void UploadDependentFiles(String sdpath) {
-        ArrayList<SDFileReference> files = GetDependendSDFiles();
-        for (SDFileReference fref : files) {
-            File f = fref.localfile;
-            if (f == null) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "File not resolved: {0}", fref.targetPath);
-                continue;
-            }
-            if (!f.exists()) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "File does not exist: {0}", f.getName());
-                continue;
-            }
-            if (!f.canRead()) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "Can't read file {0}", f.getName());
-                continue;
-            }
-            String targetfn = fref.targetPath;
-            if (targetfn.isEmpty()) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "Target filename empty {0}", f.getName());
-                continue;
-            }
-            if (targetfn.charAt(0) != '/') {
-                targetfn = sdpath + "/" + fref.targetPath;
-            }
-            if (!SDCardInfo.getInstance().exists(targetfn, f.lastModified(), f.length())) {
-                GetQCmdProcessor().AppendToQueue(new qcmds.QCmdGetFileInfo(targetfn));
-                GetQCmdProcessor().WaitQueueFinished();
-                GetQCmdProcessor().AppendToQueue(new qcmds.QCmdPing());
-                GetQCmdProcessor().WaitQueueFinished();
-                if (!SDCardInfo.getInstance().exists(targetfn, f.lastModified(), f.length())) {
-                    if (f.length() > 8 * 1024 * 1024) {
-                        Logger.getLogger(Patch.class.getName()).log(Level.INFO, "file {0} is larger than 8MB, skip uploading", f.getName());
-                        continue;
-                    }
-                    for (int i = 1; i < targetfn.length(); i++) {
-                        if (targetfn.charAt(i) == '/') {
-                            GetQCmdProcessor().AppendToQueue(new qcmds.QCmdCreateDirectory(targetfn.substring(0, i)));
-                            GetQCmdProcessor().WaitQueueFinished();
-                        }
-                    }
-                    GetQCmdProcessor().AppendToQueue(new QCmdUploadFile(f, targetfn));
-                } else {
-                    Logger.getLogger(Patch.class.getName()).log(Level.INFO, "file {0} matches timestamp and size, skip uploading", f.getName());
-                }
-            } else {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "file {0} matches timestamp and size, skip uploading", f.getName());
-            }
-        }
-    }
-
-    void GoLive() {
-        GetQCmdProcessor().AppendToQueue(new QCmdStop());
-        if (USBBulkConnection.GetConnection().GetSDCardPresent()) {
-            String f = "/" + getSDCardPath();
-            //System.out.println("pathf" + f);
-            if (SDCardInfo.getInstance().find(f) == null) {
-                GetQCmdProcessor().AppendToQueue(new QCmdCreateDirectory(f));
-            }
-            GetQCmdProcessor().AppendToQueue(new QCmdChangeWorkingDirectory(f));
-            UploadDependentFiles("/" + getSDCardPath());
-        } else {
-            // issue warning when there are dependent files
-            ArrayList<SDFileReference> files = GetDependendSDFiles();
-            if (files.size() > 0) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "Patch requires file {0} on SDCard, but no SDCard mounted", files.get(0).targetPath);
-            }
-        }
-        ShowPreset(0);
-        presetUpdatePending = false;
-        for (AxoObjectInstanceAbstract o : objectinstances) {
-            for (ParameterInstance pi : o.getParameterInstances()) {
-                pi.ClearNeedsTransmit();
-            }
-        }
-        WriteCode();
-        GetQCmdProcessor().SetPatch(null);
-        GetQCmdProcessor().AppendToQueue(new QCmdCompilePatch(this));
-        GetQCmdProcessor().AppendToQueue(new QCmdUploadPatch());
-        GetQCmdProcessor().AppendToQueue(new QCmdStart(this));
-        GetQCmdProcessor().AppendToQueue(new QCmdLock(this));
-    }
-
-    public void ShowCompileFail() {
-        Unlock();
-    }
-
-    void ShowDisconnect() {
-        if (patchframe != null) {
-            patchframe.ShowDisconnect();
-        }
-    }
-
-    void ShowConnect() {
-        if (patchframe != null) {
-            patchframe.ShowConnect();
-        }
     }
 
     public void setFileNamePath(String FileNamePath) {
@@ -354,16 +238,15 @@ public class Patch {
         return FileNamePath;
     }
 
-    public Patch() {
+    public PatchModel() {
         super();
     }
 
     public void PostContructor() {
         for (AxoObjectInstanceAbstract o : objectinstances) {
-            o.patch = this;
+            o.patchModel = this;
             AxoObjectAbstract t = o.resolveType();
             if ((t != null) && (t.providesModulationSource())) {
-                o.PostConstructor();
 
                 Modulator[] m = t.getModulators();
                 if (Modulators == null) {
@@ -380,31 +263,24 @@ public class Patch {
         for (AxoObjectInstanceAbstract o : obj2) {
             AxoObjectAbstract t = o.getType();
             if ((t != null) && (!t.providesModulationSource())) {
-                o.patch = this;
-                o.PostConstructor();
+                o.patchModel = this;
                 //System.out.println("Obj added " + o.getInstanceName());
             } else if (t == null) {
-                //o.patch = this;
                 objectinstances.remove(o);
                 AxoObjectInstanceZombie zombie = new AxoObjectInstanceZombie(new AxoObjectZombie(), this, o.getInstanceName(), new Point(o.getX(), o.getY()));
-                zombie.patch = this;
+                zombie.patchModel = this;
                 zombie.typeName = o.typeName;
-                zombie.PostConstructor();
                 objectinstances.add(zombie);
             }
         }
         ArrayList<Net> nets2 = (ArrayList<Net>) nets.clone();
         for (Net n : nets2) {
-            n.patch = this;
-            n.PostConstructor();
+            n.patchModel = this;
         }
-        PromoteOverloading(true);
-        ShowPreset(0);
         if (settings == null) {
             settings = new PatchSettings();
         }
         ClearDirty();
-        saveState();
     }
 
     public ArrayList<ParameterInstance> getParameterInstances() {
@@ -424,22 +300,12 @@ public class Patch {
         dirty = false;
     }
 
-    public void SetDirty() {
-        SetDirty(true);
-    }
-
-    public void SetDirty(boolean shouldSaveState) {
+    public void setDirty() {
+        notifyModelChangedListeners();
         dirty = true;
 
         if (container != null) {
-            container.SetDirty(shouldSaveState);
-        }
-        if (shouldSaveState) {
-            currentState += 1;
-            saveState();
-        }
-        if (patchframe != null) {
-            patchframe.updateUndoRedoEnabled();
+            container.setDirty();
         }
     }
 
@@ -447,54 +313,54 @@ public class Patch {
         return dirty;
     }
 
-    public Patch container() {
+    public PatchModel container() {
         return container;
     }
 
-    public void container(Patch c) {
+    public void setContainer(PatchModel c) {
         container = c;
     }
 
     public AxoObjectInstanceAbstract AddObjectInstance(AxoObjectAbstract obj, Point loc) {
-        if (!IsLocked()) {
-            if (obj == null) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "AddObjectInstance NULL");
-                return null;
-            }
-            int i = 1;
-            String n = obj.getDefaultInstanceName() + "_";
-            while (GetObjectInstance(n + i) != null) {
-                i++;
-            }
-            AxoObjectInstanceAbstract objinst = obj.CreateInstance(this, n + i, loc);
-            SetDirty();
-
-            Modulator[] m = obj.getModulators();
-            if (m != null) {
-                if (Modulators == null) {
-                    Modulators = new ArrayList<Modulator>();
-                }
-                for (Modulator mm : m) {
-                    mm.objinst = objinst;
-                    Modulators.add(mm);
-                }
-            }
-
-            return objinst;
-        } else {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Can't add instance: locked!");
+        if (obj == null) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, "AddObjectInstance NULL");
+            return null;
         }
-        return null;
+        int i = 1;
+        String n = obj.getDefaultInstanceName() + "_";
+        while (GetObjectInstance(n + i) != null) {
+            i++;
+        }
+        AxoObjectInstanceAbstract objinst = obj.CreateInstance(this, n + i, loc);
+        setDirty();
+
+        Modulator[] m = obj.getModulators();
+        if (m != null) {
+            if (Modulators == null) {
+                Modulators = new ArrayList<Modulator>();
+            }
+            for (Modulator mm : m) {
+                mm.objinst = objinst;
+                Modulators.add(mm);
+            }
+        }
+
+        return objinst;
     }
 
-    public Net GetNet(IoletAbstract io) {
+    public Net GetNet(InletInstance io) {
         for (Net net : nets) {
             for (InletInstance d : net.dest) {
                 if (d == io) {
                     return net;
                 }
             }
+        }
+        return null;
+    }
 
+    public Net GetNet(OutletInstance io) {
+        for (Net net : nets) {
             for (OutletInstance d : net.source) {
                 if (d == io) {
                     return net;
@@ -512,142 +378,135 @@ public class Patch {
      return false;
      }*/
     public Net AddConnection(InletInstance il, OutletInstance ol) {
-        if (!IsLocked()) {
-            if (il.GetObjectInstance().patch != this) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: different patch");
-                return null;
-            }
-            if (ol.GetObjectInstance().patch != this) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: different patch");
-                return null;
-            }
-            Net n1, n2;
-            n1 = GetNet(il);
-            n2 = GetNet(ol);
-            if ((n1 == null) && (n2 == null)) {
+        if (il.getObjectInstance().getPatchModel() != this) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: different patch");
+            return null;
+        }
+        if (ol.getObjectInstance().getPatchModel() != this) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: different patch");
+            return null;
+        }
+        Net n1, n2;
+        n1 = GetNet(il);
+        n2 = GetNet(ol);
+        if ((n1 == null) && (n2 == null)) {
+            Net n = new Net(this);
+            nets.add(n);
+            n.connectInlet(il);
+            n.connectOutlet(ol);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: new net added");
+            return n;
+        } else if (n1 == n2) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: already connected");
+            return null;
+        } else if ((n1 != null) && (n2 == null)) {
+            if (n1.source.isEmpty()) {
+                Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: adding outlet to inlet net");
+                n1.connectOutlet(ol);
+                return n1;
+            } else {
+                disconnect(il);
                 Net n = new Net(this);
                 nets.add(n);
                 n.connectInlet(il);
                 n.connectOutlet(ol);
-                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: new net added");
+                Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: new net added");
                 return n;
-            } else if (n1 == n2) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
-                return null;
-            } else if ((n1 != null) && (n2 == null)) {
-                if (n1.source.isEmpty()) {
-                    Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: adding outlet to inlet net");
-                    n1.connectOutlet(ol);
-                    return n1;
-                } else {
-                    disconnect(il);
-                    Net n = new Net(this);
-                    nets.add(n);
-                    n.connectInlet(il);
-                    n.connectOutlet(ol);
-                    Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: replace inlet with new net");
-                    return n;
-                }
-            } else if ((n1 == null) && (n2 != null)) {
-                n2.connectInlet(il);
-                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: add additional outlet");
-                return n2;
-            } else if ((n1 != null) && (n2 != null)) {
-                // inlet already has connect, and outlet has another
-                // replace 
-                disconnect(il);
-                n2.connectInlet(il);
-                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: replace inlet with existing net");
-                return n2;
             }
-        } else {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't add connection: locked");
+        } else if ((n1 == null) && (n2 != null)) {
+            n2.connectInlet(il);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: add additional outlet");
+            return n2;
+        } else if ((n1 != null) && (n2 != null)) {
+            // inlet already has connect, and outlet has another
+            // replace
+            disconnect(il);
+            n2.connectInlet(il);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: replace inlet with existing net");
+            return n2;
         }
         return null;
     }
 
     public Net AddConnection(InletInstance il, InletInstance ol) {
-        if (!IsLocked()) {
-            if (il == ol) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: same inlet");
-                return null;
-            }
-            if (il.GetObjectInstance().patch != this) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: different patch");
-                return null;
-            }
-            if (ol.GetObjectInstance().patch != this) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: different patch");
-                return null;
-            }
-            Net n1, n2;
-            n1 = GetNet(il);
-            n2 = GetNet(ol);
-            if ((n1 == null) && (n2 == null)) {
-                Net n = new Net(this);
-                nets.add(n);
-                n.connectInlet(il);
-                n.connectInlet(ol);
-                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: new net added");
-                return n;
-            } else if (n1 == n2) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: already connected");
-            } else if ((n1 != null) && (n2 == null)) {
-                n1.connectInlet(ol);
-                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: inlet added");
-                return n1;
-            } else if ((n1 == null) && (n2 != null)) {
-                n2.connectInlet(il);
-                Logger.getLogger(Patch.class.getName()).log(Level.FINE, "connect: inlet added");
-                return n2;
-            } else if ((n1 != null) && (n2 != null)) {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't connect: both inlets included in net");
-                return null;
-            }
-        } else {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "can't add connection: locked!");
+        if (il == ol) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: same inlet");
+            return null;
+        }
+        if (il.getObjectInstance().patchModel != this) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: different patch");
+            return null;
+        }
+        if (ol.getObjectInstance().patchModel != this) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: different patch");
+            return null;
+        }
+        Net n1, n2;
+        n1 = GetNet(il);
+        n2 = GetNet(ol);
+        if ((n1 == null) && (n2 == null)) {
+            Net n = new Net(this);
+            nets.add(n);
+            n.connectInlet(il);
+            n.connectInlet(ol);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: new net added");
+            return n;
+        } else if (n1 == n2) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: already connected");
+        } else if ((n1 != null) && (n2 == null)) {
+            n1.connectInlet(ol);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: inlet added");
+            return n1;
+        } else if ((n1 == null) && (n2 != null)) {
+            n2.connectInlet(il);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.FINE, "connect: inlet added");
+            return n2;
+        } else if ((n1 != null) && (n2 != null)) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "can't connect: both inlets included in net");
+            return null;
         }
         return null;
     }
 
-    public Net disconnect(IoletAbstract io) {
-        if (!IsLocked()) {
-            Net n = GetNet(io);
-            if (n != null) {
-                if (io instanceof OutletInstance) {
-                    n.source.remove((OutletInstance) io);
-                } else if (io instanceof InletInstance) {
-                    n.dest.remove((InletInstance) io);
-                }
-                if (n.source.size() + n.dest.size() <= 1) {
-                    delete(n);
-                }
-                return n;
+    public Net disconnect(InletInstance io) {
+        Net n = GetNet(io);
+        if (n != null) {
+            n.dest.remove(io);
+            if (n.source.size() + n.dest.size() <= 1) {
+                delete(n);
             }
-        } else {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Can''t disconnect: locked!");
+            return n;
+        }
+
+        return null;
+    }
+
+    public Net disconnect(OutletInstance io) {
+        Net n = GetNet(io);
+        if (n != null) {
+            n.source.remove((OutletInstance) io);
+            if (n.source.size() + n.dest.size() <= 1) {
+                delete(n);
+            }
+            return n;
         }
         return null;
     }
 
     public Net delete(Net n) {
-        if (!IsLocked()) {
-            nets.remove(n);
-            return n;
-        } else {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Can''t disconnect: locked!");
-        }
-        return null;
+        nets.remove(n);
+        return n;
     }
 
-    public void delete(AxoObjectInstanceAbstract o) {
+    public boolean delete(AxoObjectInstanceAbstract o) {
+        boolean deletionSucceeded = false;
         if (o == null) {
-            return;
+            return deletionSucceeded;
         }
-        for (InletInstance ii : o.GetInletInstances()) {
+        for (InletInstance ii : o.getInletInstances()) {
             disconnect(ii);
         }
-        for (OutletInstance oi : o.GetOutletInstances()) {
+        for (OutletInstance oi : o.getOutletInstances()) {
             disconnect(oi);
         }
         int i;
@@ -660,13 +519,13 @@ public class Patch {
                 }
             }
         }
-        objectinstances.remove(o);
+        deletionSucceeded = objectinstances.remove(o);
         AxoObjectAbstract t = o.getType();
         if (o != null) {
-            o.Close();
+            //            o.Close();
             t.DeleteInstance(o);
-            t.removeObjectModifiedListener(o);
         }
+        return deletionSucceeded;
     }
 
     public void updateModulation(Modulation n) {
@@ -692,80 +551,71 @@ public class Patch {
         }
     }
 
-    void deleteSelectedAxoObjInstances() {
-        Logger.getLogger(Patch.class.getName()).log(Level.FINE, "deleteSelectedAxoObjInstances()");
-        if (!IsLocked()) {
-            boolean cont = true;
-            while (cont) {
-                cont = false;
-                for (AxoObjectInstanceAbstract o : objectinstances) {
-                    if (o.IsSelected()) {
-                        this.delete(o);
-                        cont = true;
-                        break;
-                    }
-                }
-            }
-            SetDirty();
-        } else {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Can't delete: locked!");
-        }
+    public void pushUndoState() {
+        pushUndoState(true);
     }
 
-    void PreSerialize() {
+    public void pushUndoState(boolean advanceCurrentState) {
+        if (advanceCurrentState) {
+            currentState += 1;
+        }
+        saveState();
+        cleanUpDanglingUndoStates();
+    }
+
+    public void popUndoState() {
+        currentState -= 1;
+    }
+
+    public void cleanUpDanglingUndoStates() {
+        try {
+            undoStates.subList(currentState + 1, undoStates.size()).clear();
+        } catch (IndexOutOfBoundsException e) {
+            // ignore
+        }
     }
 
     void saveState() {
         SortByPosition();
-        PreSerialize();
         Serializer serializer = new Persister();
         ByteArrayOutputStream b = new ByteArrayOutputStream();
         try {
             serializer.write(this, b);
             try {
-                previousStates.set(currentState, b.toString());
-                if (cleanDanglingStates) {
-                    try {
-                        // if we've saved a new edit
-                        // after some undoing,
-                        // cleanup dangling states
-                        previousStates.subList(currentState + 1, previousStates.size()).clear();
-                    } catch (IndexOutOfBoundsException e) {
-                    }
-                }
-                this.cleanDanglingStates = true;
+                undoStates.set(currentState, b.toString());
             } catch (IndexOutOfBoundsException e) {
-                previousStates.add(b.toString());
+                undoStates.add(b.toString());
             }
         } catch (Exception ex) {
             Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    public void cleanUpIntermediateChangeStates(int n) {
-        int length = previousStates.size();
-        if (length >= n) {
-            previousStates.subList(length - n, length).clear();
-            this.currentState -= n - 1;
-            saveState();
-        }
+    public boolean isLoadingUndoState() {
+        return loadingUndoState;
     }
 
-    private boolean cleanDanglingStates = true;
+    public void setLoadingUndoState(boolean loadingUndoState) {
+        this.loadingUndoState = loadingUndoState;
+    }
 
     void loadState() {
         Serializer serializer = new Persister();
-        ByteArrayInputStream b = new ByteArrayInputStream(previousStates.get(currentState).getBytes());
+        ByteArrayInputStream b = new ByteArrayInputStream(undoStates.get(currentState).getBytes());
         try {
-            Patch p = serializer.read(Patch.class, b);
-            // prevent detached sub-windows
-            Close();
-            this.objectinstances = p.objectinstances;
-            this.nets = p.nets;
-            this.Modulators = p.Modulators;
-            this.cleanDanglingStates = false;
-            this.PostContructor();
-            AdjustSize();
+            PatchModel p = serializer.read(PatchModel.class, b);
+            objectinstances = p.objectinstances;
+            for (AxoObjectInstanceAbstract o : objectinstances) {
+                o.setPatchModel(this);
+            }
+            nets = p.nets;
+            Modulators = p.Modulators;
+            for (Net n : nets) {
+                n.setPatchModel(this);
+            }
+            PostContructor();
+            setLoadingUndoState(true);
+            notifyModelChangedListeners();
         } catch (Exception ex) {
             Logger.getLogger(AxoObjects.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -773,7 +623,6 @@ public class Patch {
 
     boolean save(File f) {
         SortByPosition();
-        PreSerialize();
         Strategy strategy = new AnnotationStrategy();
         Serializer serializer = new Persister(strategy);
         try {
@@ -824,7 +673,7 @@ public class Patch {
 
         DisplayInstances = new ArrayList<DisplayInstance>();
         for (AxoObjectInstanceAbstract o : objectinstances) {
-            for (DisplayInstance p : o.GetDisplayInstances()) {
+            for (DisplayInstance p : o.getDisplayInstances()) {
                 p.setOffset(offset + 3);
                 int l = p.getLength();
                 offset += l;
@@ -834,59 +683,21 @@ public class Patch {
         displayDataLength = offset;
     }
 
-    Dimension GetSize() {
-        int nx = 0;
-        int ny = 0;
-        // negative coordinates?
-        for (AxoObjectInstanceAbstract o : objectinstances) {
-            Point p = o.getLocation();
-            if (p.x < nx) {
-                nx = p.x;
-            }
-            if (p.y < ny) {
-                ny = p.y;
-            }
-        }
-        if ((nx < 0) || (ny < 0)) { // move all to positive coordinates
-            for (AxoObjectInstanceAbstract o : objectinstances) {
-                Point p = o.getLocation();
-                o.SetLocation(p.x - nx, p.y - ny);
-            }
-        }
-
-        int mx = 0;
-        int my = 0;
-        for (AxoObjectInstanceAbstract o : objectinstances) {
-            Point p = o.getLocation();
-            Dimension s = o.getSize();
-            int px = p.x + s.width;
-            int py = p.y + s.height;
-            if (px > mx) {
-                mx = px;
-            }
-            if (py > my) {
-                my = py;
-            }
-        }
-        return new Dimension(mx, my);
-    }
-
     void SortByPosition() {
         Collections.sort(this.objectinstances);
         refreshIndexes();
     }
-    
-    void SortParentsByExecution(AxoObjectInstanceAbstract o, LinkedList<AxoObjectInstanceAbstract> result)
-    {
+
+    void SortParentsByExecution(AxoObjectInstanceAbstract o, LinkedList<AxoObjectInstanceAbstract> result) {
         LinkedList<AxoObjectInstanceAbstract> before = new LinkedList<AxoObjectInstanceAbstract>(result);
         LinkedList<AxoObjectInstanceAbstract> parents = new LinkedList<AxoObjectInstanceAbstract>();
         // get the parents
-        for (InletInstance il : o.GetInletInstances()) {
+        for (InletInstance il : o.getInletInstances()) {
             Net n = GetNet(il);
             if (n != null) {
-                for (OutletInstance ol: n.GetSource()) {
-                    AxoObjectInstanceAbstract i = ol.GetObjectInstance();
-                    if (!parents.contains(i)) {    
+                for (OutletInstance ol : n.GetSource()) {
+                    AxoObjectInstanceAbstract i = ol.getObjectInstance();
+                    if (!parents.contains(i)) {
                         parents.add(i);
                     }
                 }
@@ -895,14 +706,16 @@ public class Patch {
         // sort the parents
         Collections.sort(parents);
         // prepend any we haven't seen before
-        for (AxoObjectInstanceAbstract c: parents) {
-            if (!result.contains(c))
+        for (AxoObjectInstanceAbstract c : parents) {
+            if (!result.contains(c)) {
                 result.addFirst(c);
+            }
         }
-        // prepend their parents 
-        for (AxoObjectInstanceAbstract c: parents) {
-            if (!before.contains(c))
+        // prepend their parents
+        for (AxoObjectInstanceAbstract c : parents) {
+            if (!before.contains(c)) {
                 SortParentsByExecution(c, result);
+            }
         }
     }
 
@@ -911,16 +724,18 @@ public class Patch {
         LinkedList<AxoObjectInstanceAbstract> result = new LinkedList<AxoObjectInstanceAbstract>();
         // start with all objects without outlets (end points)
         for (AxoObjectInstanceAbstract o : objectinstances) {
-            if (o.GetOutletInstances().isEmpty()) {
+            if (o.getOutletInstances().isEmpty()) {
                 endpoints.add(o);
             } else {
                 int count = 0;
-                for (OutletInstance ol : o.GetOutletInstances()) {
-                    if (GetNet(ol) != null)
+                for (OutletInstance ol : o.getOutletInstances()) {
+                    if (GetNet(ol) != null) {
                         count++;
+                    }
                 }
-                if (count == 0)
+                if (count == 0) {
                     endpoints.add(o);
+                }
             }
         }
         // sort them by position
@@ -969,9 +784,6 @@ public class Patch {
             }
         }
         return aos;
-    }
-
-    public void AdjustSize() {
     }
 
     public HashSet<String> getIncludes() {
@@ -1049,7 +861,7 @@ public class Patch {
             c += "/* parameter instance indices */\n";
             int k = 0;
             for (ParameterInstance p : ParameterInstances) {
-                c += "static const int PARAM_INDEX_" + p.GetObjectInstance().getLegalName() + "_" + p.getLegalName() + " = " + k + ";\n";
+                c += "static const int PARAM_INDEX_" + p.getObjectInstance().getLegalName() + "_" + p.getLegalName() + " = " + k + ";\n";
                 k++;
             }
         }
@@ -1214,7 +1026,7 @@ public class Patch {
             String s = controllerinstance.getCInstanceName();
             if (!s.isEmpty()) {
                 c += "   " + s + "_i.Init(" + parentReference;
-                for (DisplayInstance i : controllerinstance.GetDisplayInstances()) {
+                for (DisplayInstance i : controllerinstance.getDisplayInstances()) {
                     if (i.display.getLength() > 0) {
                         c += ", ";
                         c += i.valueName("");
@@ -1228,7 +1040,7 @@ public class Patch {
             String s = o.getCInstanceName();
             if (!s.isEmpty()) {
                 c += "   " + o.getCInstanceName() + "_i.Init(" + parentReference;
-                for (DisplayInstance i : o.GetDisplayInstances()) {
+                for (DisplayInstance i : o.getDisplayInstances()) {
                     if (i.display.getLength() > 0) {
                         c += ", ";
                         c += i.valueName("");
@@ -1318,7 +1130,7 @@ public class Patch {
             if (n.CType() != null) {
                 c += "    " + n.CType() + " " + n.CName() + ";\n";
             } else {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Net has no data type!");
+                Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "Net has no data type!");
             }
         }
         c += "//--------- </nets> ----------//\n";
@@ -1343,10 +1155,10 @@ public class Patch {
         for (Net n : nets) {
             // check if net has multiple sources
             if (n.NeedsLatch()) {
-                if (n.GetDataType() != null) {
-                    c += n.GetDataType().GenerateCopyCode(n.CName() + "Latch", n.CName());
+                if (n.getDataType() != null) {
+                    c += n.getDataType().GenerateCopyCode(n.CName() + "Latch", n.CName());
                 } else {
-                    Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "Only inlets connected on net!");
+                    Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, "Only inlets connected on net!");
                 }
             }
         }
@@ -1363,34 +1175,34 @@ public class Patch {
         c += "  " + o.getCInstanceName() + "_i.dsp(";
 //            c += "  " + o.GenerateDoFunctionName() + "(this";
         boolean needsComma = false;
-        for (InletInstance i : o.GetInletInstances()) {
+        for (InletInstance i : o.getInletInstances()) {
             if (needsComma) {
                 c += ", ";
             }
             Net n = GetNet(i);
             if ((n != null) && (n.isValidNet())) {
-                if (i.GetDataType().equals(n.GetDataType())) {
+                if (i.getDataType().equals(n.getDataType())) {
                     if (n.NeedsLatch()
-                            && (objectinstances.indexOf(n.source.get(0).GetObjectInstance()) >= objectinstances.indexOf(o))) {
+                            && (objectinstances.indexOf(n.source.get(0).getObjectInstance()) >= objectinstances.indexOf(o))) {
                         c += n.CName() + "Latch";
                     } else {
                         c += n.CName();
                     }
                 } else if (n.NeedsLatch()
-                        && (objectinstances.indexOf(n.source.get(0).GetObjectInstance()) >= objectinstances.indexOf(o))) {
-                    c += n.GetDataType().GenerateConversionToType(i.GetDataType(), n.CName() + "Latch");
+                        && (objectinstances.indexOf(n.source.get(0).getObjectInstance()) >= objectinstances.indexOf(o))) {
+                    c += n.getDataType().GenerateConversionToType(i.getDataType(), n.CName() + "Latch");
                 } else {
-                    c += n.GetDataType().GenerateConversionToType(i.GetDataType(), n.CName());
+                    c += n.getDataType().GenerateConversionToType(i.getDataType(), n.CName());
                 }
             } else if (n == null) { // unconnected input
-                c += i.GetDataType().GenerateSetDefaultValueCode();
+                c += i.getDataType().GenerateSetDefaultValueCode();
             } else if (!n.isValidNet()) {
-                c += i.GetDataType().GenerateSetDefaultValueCode();
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "Patch contains invalid net! {0}", i.objname + ":" + i.getInletname());
+                c += i.getDataType().GenerateSetDefaultValueCode();
+                Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, "Patch contains invalid net! {0}", i.getObjectInstance().getInstanceName() + ":" + i.getInletname());
             }
             needsComma = true;
         }
-        for (OutletInstance i : o.GetOutletInstances()) {
+        for (OutletInstance i : o.getOutletInstances()) {
             if (needsComma) {
                 c += ", ";
             }
@@ -1402,7 +1214,7 @@ public class Patch {
                     c += n.CName() + "+";
                 }
             } else {
-                c += i.GetDataType().UnconnectedSink();
+                c += i.getDataType().UnconnectedSink();
             }
             needsComma = true;
         }
@@ -1415,7 +1227,7 @@ public class Patch {
                 needsComma = true;
             }
         }
-        for (DisplayInstance i : o.GetDisplayInstances()) {
+        for (DisplayInstance i : o.getDisplayInstances()) {
             if (i.display.getLength() > 0) {
                 if (needsComma) {
                     c += ", ";
@@ -1587,7 +1399,7 @@ public class Patch {
         controllerinstance = null;
         String cobjstr = prefs.getControllerObject();
         if (prefs.isControllerEnabled() && cobjstr != null && !cobjstr.isEmpty()) {
-            Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Using controller object: {0}", cobjstr);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "Using controller object: {0}", cobjstr);
             AxoObjectAbstract x = null;
             ArrayList<AxoObjectAbstract> objs = MainFrame.axoObjects.GetAxoObjectFromName(cobjstr, GetCurrentWorkingDirectory());
             if ((objs != null) && (!objs.isEmpty())) {
@@ -1596,7 +1408,7 @@ public class Patch {
             if (x != null) {
                 controllerinstance = x.CreateInstance(null, "ctrl0x123", new Point(0, 0));
             } else {
-                Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Unable to created controller for : {0}", cobjstr);
+                Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "Unable to created controller for : {0}", cobjstr);
             }
         }
 
@@ -1791,9 +1603,9 @@ public class Patch {
         try {
             serializer.write(aof, f1);
         } catch (Exception ex) {
-            Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, null, ex);
         }
-        Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Export obj complete");
+        Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "Export obj complete");
     }
 
 //    void ExportAxoObjPoly2(File f1) {
@@ -1847,8 +1659,8 @@ public class Patch {
             } else if (o.typeName.equals("patch/outlet a")) {
                 ao.outlets.add(new OutletFrac32Buffer(o.getInstanceName(), o.getInstanceName()));
             } else if (o.typeName.equals("patch/outlet string")) {
-                Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "string outlet impossible in poly subpatches!");
-                // ao.outlets.add(new OutletCharPtr32(o.getInstanceName(), o.getInstanceName()));                
+                Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, "string outlet impossible in poly subpatches!");
+                // ao.outlets.add(new OutletCharPtr32(o.getInstanceName(), o.getInstanceName()));
             }
             for (ParameterInstance p : o.getParameterInstances()) {
                 if (p.isOnParent()) {
@@ -1862,7 +1674,7 @@ public class Patch {
         ao.sLocalData += "/* parameter instance indices */\n";
         int k = 0;
         for (ParameterInstance p : ParameterInstances) {
-            ao.sLocalData += "static const int PARAM_INDEX_" + p.GetObjectInstance().getLegalName() + "_" + p.getLegalName() + " = " + k + ";\n";
+            ao.sLocalData += "static const int PARAM_INDEX_" + p.getObjectInstance().getLegalName() + "_" + p.getLegalName() + " = " + k + ";\n";
             k++;
         }
 
@@ -2268,27 +2080,11 @@ public class Patch {
             f.write(c.getBytes());
             f.close();
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, ex.toString());
+            Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, ex.toString());
         } catch (IOException ex) {
-            Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, ex.toString());
+            Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, ex.toString());
         }
-        Logger.getLogger(Patch.class.getName()).log(Level.INFO, "Generate code complete");
-    }
-
-    public void Compile() {
-        GetQCmdProcessor().AppendToQueue(new QCmdCompilePatch(this));
-    }
-
-    public void ShowPreset(int i) {
-        presetNo = i;
-
-        Collection<AxoObjectInstanceAbstract> c = (Collection<AxoObjectInstanceAbstract>) objectinstances.clone();
-        for (AxoObjectInstanceAbstract o : c) {
-            for (ParameterInstance p : o.getParameterInstances()) {
-                p.ShowPreset(i);
-            }
-        }
-        repaint();
+        Logger.getLogger(PatchModel.class.getName()).log(Level.INFO, "Generate code complete");
     }
 
     /*
@@ -2334,7 +2130,7 @@ public class Patch {
      a.SetPresetState(false);
      a.ppc = null;
      }
-     }            
+     }
      }
      }
      */
@@ -2386,7 +2182,7 @@ public class Patch {
      if (presetNo>0)
      presets.get(presetNo-1).ExcludeParameter(param);
      }
-    
+
      void SaveToInitPreset(){
      for(AxoObjectInstance o:objectinstances){
      for(ParameterInstance param:o.parameterInstances){
@@ -2400,12 +2196,12 @@ public class Patch {
      if (ppc == null) {
      ppc = new PresetParameterChange();
      ppc.paramName = param.getName();
-     ppc.ref = param;                    
+     ppc.ref = param;
      initPreset.paramchanges.add(ppc);
      }
      ppc.newValue = param.GetValueRaw();
      }
-     }        
+     }
      }
      */
     //final int NPRESETS = 8;
@@ -2426,7 +2222,7 @@ public class Patch {
                     pdata[index * 2 + 1] = p.value.getRaw();
                     index++;
                     if (index == settings.GetNPresetEntries()) {
-                        Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "more than {0}entries in preset, skipping...", settings.GetNPresetEntries());
+                        Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, "more than {0}entries in preset, skipping...", settings.GetNPresetEntries());
                         return pdata;
                     }
                 }
@@ -2441,81 +2237,116 @@ public class Patch {
         return pdata;
     }
 
-    public void Lock() {
-        locked = true;
-        for (AxoObjectInstanceAbstract o : objectinstances) {
-            o.Lock();
-        }
+    public void transferObjectConnections(AxoObjectInstanceZombie oldObject, AxoObjectInstance newObject) {
+        transferObjectConnections(oldObject.getInletInstances(),
+                oldObject.getOutletInstances(),
+                newObject);
     }
 
-    public void Unlock() {
-        locked = false;
-        ArrayList<AxoObjectInstanceAbstract> objInstsClone = (ArrayList<AxoObjectInstanceAbstract>) objectinstances.clone();
-        for (AxoObjectInstanceAbstract o : objInstsClone) {
-            o.Unlock();
-        }
+    public void transferObjectConnections(AxoObjectInstance oldObject, AxoObjectInstance newObject) {
+        transferObjectConnections(oldObject.inletInstances,
+                oldObject.outletInstances,
+                newObject);
     }
 
-    public boolean IsLocked() {
-        return locked;
-    }
+    public void transferObjectConnections(ArrayList<InletInstance> inletInstances,
+            ArrayList<OutletInstance> outletInstances,
+            AxoObjectInstance newObject) {
+        for (int i = 0; i < outletInstances.size(); i++) {
+            OutletInstance oldOutletInstance = outletInstances.get(i);
+            try {
+                OutletInstance newOutletInstance = newObject.outletInstances.get(i);
+                Net net = GetNet(oldOutletInstance);
 
-    public AxoObjectInstanceAbstract ChangeObjectInstanceType1(AxoObjectInstanceAbstract obj, AxoObjectAbstract objType) {
-        if ((obj instanceof AxoObjectInstancePatcher) && (objType instanceof AxoObjectPatcher)) {
-            return obj;
-        } else if ((obj instanceof AxoObjectInstancePatcherObject) && (objType instanceof AxoObjectPatcherObject)) {
-            return obj;
-        } else if (obj instanceof AxoObjectInstance) {
-            String n = obj.getInstanceName();
-            obj.setInstanceName(n + "____tmp");
-            AxoObjectInstanceAbstract obj1 = AddObjectInstance(objType, obj.getLocation());
-            if ((obj1 instanceof AxoObjectInstance)) {
-                AxoObjectInstance new_obj = (AxoObjectInstance) obj1;
-                AxoObjectInstance old_obj = (AxoObjectInstance) obj;
-                new_obj.outletInstances = old_obj.outletInstances;
-                new_obj.inletInstances = old_obj.inletInstances;
-                new_obj.parameterInstances = old_obj.parameterInstances;
-                new_obj.attributeInstances = old_obj.attributeInstances;
+                if (net != null) {
+                    ArrayList<InletInstance> dest = (ArrayList< InletInstance>) net.dest.clone();
+                    disconnect(oldOutletInstance);
+                    for (InletInstance ii : dest) {
+                        AddConnection(ii, newOutletInstance);
+                    }
+                }
+            } catch (IndexOutOfBoundsException e) {
+                break;
             }
-            obj1.setName(n);
-            return obj1;
-        } else if (obj instanceof AxoObjectInstanceZombie) {
-            String n = obj.getInstanceName();
-            obj.setInstanceName(n + "____tmp");
-            AxoObjectInstanceAbstract obj1 = AddObjectInstance(objType, obj.getLocation());
-            if ((obj1 instanceof AxoObjectInstance)) {
-                AxoObjectInstance new_obj = (AxoObjectInstance) obj1;
-                AxoObjectInstanceZombie old_obj = (AxoObjectInstanceZombie) obj;
-                new_obj.outletInstances = old_obj.outletInstances;
-                new_obj.inletInstances = old_obj.inletInstances;
+        }
+
+        for (int i = 0; i < inletInstances.size(); i++) {
+            InletInstance oldInletInstance = inletInstances.get(i);
+            try {
+                InletInstance newInletInstance = newObject.inletInstances.get(i);
+                Net net = GetNet(oldInletInstance);
+                if (net != null) {
+                    ArrayList<OutletInstance> source = (ArrayList< OutletInstance>) net.source.clone();
+                    disconnect(oldInletInstance);
+                    for (OutletInstance oi : source) {
+                        AddConnection(newInletInstance, oi);
+                    }
+                }
+            } catch (IndexOutOfBoundsException e) {
+                break;
             }
-            obj1.setName(n);
-            return obj1;
         }
-        return obj;
     }
 
-    public AxoObjectInstanceAbstract ChangeObjectInstanceType(AxoObjectInstanceAbstract obj, AxoObjectAbstract objType) {
-        AxoObjectInstanceAbstract obj1 = ChangeObjectInstanceType1(obj, objType);
-        if (obj1 != obj) {
-            obj1.PostConstructor();
-            delete(obj);
-            SetDirty();
+    public void transferInputValues(AxoObjectInstance oldObject, AxoObjectInstance newObject) {
+        for (int i = 0; i < oldObject.getParameterInstances().size(); i++) {
+            ParameterInstance oldParameterInstance = oldObject.getParameterInstances().get(i);
+            try {
+                ParameterInstance newParameterInstance = newObject.getParameterInstances().get(i);
+                newParameterInstance.CopyValueFrom(oldParameterInstance);
+                newObject.setDirty(true);
+            } catch (IndexOutOfBoundsException e) {
+                break;
+            }
         }
-        return obj1;
+        for (int i = 0; i < oldObject.getAttributeInstances().size(); i++) {
+            AttributeInstance oldAttributeInstance = oldObject.getAttributeInstances().get(i);
+            try {
+                AttributeInstance newAttributeInstance = newObject.getAttributeInstances().get(i);
+                newAttributeInstance.CopyValueFrom(oldAttributeInstance);
+                newObject.setDirty(true);
+            } catch (IndexOutOfBoundsException e) {
+                break;
+            }
+        }
     }
 
-    void invalidate() {
+    public void transferState(AxoObjectInstance oldObject, AxoObjectInstance newObject) {
+        transferObjectConnections(oldObject, newObject);
+        transferInputValues(oldObject, newObject);
     }
 
-    void SetDSPLoad(int pct) {
+    public AxoObjectInstanceAbstract ChangeObjectInstanceType1(AxoObjectInstanceAbstract oldObject, AxoObjectAbstract newObjectType) {
+        if ((oldObject instanceof AxoObjectInstancePatcher) && (newObjectType instanceof AxoObjectPatcher)) {
+            return oldObject;
+        } else if ((oldObject instanceof AxoObjectInstancePatcherObject) && (newObjectType instanceof AxoObjectPatcherObject)) {
+            return oldObject;
+        } else if (oldObject instanceof AxoObjectInstance) {
+            String n = oldObject.getInstanceName();
+            oldObject.setInstanceName(n + Constants.TEMP_OBJECT_SUFFIX);
+            AxoObjectInstanceAbstract newObject = AddObjectInstance(newObjectType, new Point(oldObject.getX(), oldObject.getY()));
+
+            if (newObject instanceof AxoObjectInstance) {
+                transferState((AxoObjectInstance) oldObject, (AxoObjectInstance) newObject);
+            }
+            return newObject;
+        } else if (oldObject instanceof AxoObjectInstanceZombie) {
+            AxoObjectInstanceAbstract newObject = AddObjectInstance(newObjectType, new Point(oldObject.getX(), oldObject.getY()));
+            if ((newObject instanceof AxoObjectInstance)) {
+                transferObjectConnections((AxoObjectInstanceZombie) oldObject, (AxoObjectInstance) newObject);
+            }
+            return newObject;
+        }
+        return oldObject;
     }
 
-    public void repaint() {
-    }
-
-    public void RecallPreset(int i) {
-        GetQCmdProcessor().AppendToQueue(new QCmdRecallPreset(i));
+    public AxoObjectInstanceAbstract ChangeObjectInstanceType(AxoObjectInstanceAbstract oldObject, AxoObjectAbstract newObjectType) {
+        AxoObjectInstanceAbstract newObject = ChangeObjectInstanceType1(oldObject, newObjectType);
+        if (newObject != oldObject) {
+            delete(oldObject);
+            setDirty();
+        }
+        return newObject;
     }
 
     /**
@@ -2523,17 +2354,18 @@ public class Patch {
      * @param initial If true, only objects restored from object name reference
      * (not UUID) will promote to a variant with the same name.
      */
-    public void PromoteOverloading(boolean initial) {
+    public boolean PromoteOverloading(boolean initial) {
         refreshIndexes();
         Set<String> ProcessedInstances = new HashSet<String>();
         boolean p = true;
+        boolean promotionOccured = false;
         while (p && !(ProcessedInstances.size() == objectinstances.size())) {
             p = false;
             for (AxoObjectInstanceAbstract o : objectinstances) {
                 if (!ProcessedInstances.contains(o.getInstanceName())) {
                     ProcessedInstances.add(o.getInstanceName());
                     if (!initial || o.isTypeWasAmbiguous()) {
-                        o.PromoteToOverloadedObj();
+                        promotionOccured |= o.PromoteToOverloadedObj();
                     }
                     p = true;
                     break;
@@ -2543,10 +2375,11 @@ public class Patch {
         if (!(ProcessedInstances.size() == objectinstances.size())) {
             for (AxoObjectInstanceAbstract o : objectinstances) {
                 if (!ProcessedInstances.contains(o.getInstanceName())) {
-                    Logger.getLogger(Patch.class.getName()).log(Level.SEVERE, "PromoteOverloading : fault in {0}", o.getInstanceName());
+                    Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, "PromoteOverloading : fault in {0}", o.getInstanceName());
                 }
             }
         }
+        return promotionOccured;
     }
 
     public InletInstance getInletByReference(String objname, String inletname) {
@@ -2592,10 +2425,6 @@ public class Patch {
         return windowPos;
     }
 
-    public PatchFrame getPatchframe() {
-        return patchframe;
-    }
-
     public String getNotes() {
         return notes;
     }
@@ -2614,88 +2443,21 @@ public class Patch {
     public File getBinFile() {
         String buildDir = System.getProperty(Axoloti.HOME_DIR) + "/build";;
         return new File(buildDir + "/xpatch.bin");
-//            Logger.getLogger(QCmdWriteFile.class.getName()).log(Level.INFO, "bin path: {0}", f.getAbsolutePath());        
-    }
-
-    public void UploadToSDCard(String sdfilename) {
-        WriteCode();
-        Logger.getLogger(PatchFrame.class.getName()).log(Level.INFO, "sdcard filename:{0}", sdfilename);
-        QCmdProcessor qcmdprocessor = QCmdProcessor.getQCmdProcessor();
-        qcmdprocessor.AppendToQueue(new qcmds.QCmdStop());
-        qcmdprocessor.AppendToQueue(new qcmds.QCmdCompilePatch(this));
-        // create subdirs...
-
-        for (int i = 1; i < sdfilename.length(); i++) {
-            if (sdfilename.charAt(i) == '/') {
-                qcmdprocessor.AppendToQueue(new qcmds.QCmdCreateDirectory(sdfilename.substring(0, i)));
-                qcmdprocessor.WaitQueueFinished();
-            }
-        }
-        qcmdprocessor.WaitQueueFinished();
-        Calendar cal;
-        if (dirty) {
-            cal = Calendar.getInstance();
-        } else {
-            cal = Calendar.getInstance();
-            if (FileNamePath != null && !FileNamePath.isEmpty()) {
-                File f = new File(FileNamePath);
-                if (f.exists()) {
-                    cal.setTimeInMillis(f.lastModified());
-                }
-            }
-        }
-        qcmdprocessor.AppendToQueue(new qcmds.QCmdUploadFile(getBinFile(), sdfilename, cal));
-        
-        String dir;
-        int i = sdfilename.lastIndexOf("/");
-        if (i > 0) {
-            dir = sdfilename.substring(0, i);
-        } else {
-            dir = "";
-        }
-        UploadDependentFiles(dir);
-    }
-
-    public void UploadToSDCard() {
-        UploadToSDCard("/" + getSDCardPath() + "/patch.bin");
-    }
-
-    public String getSDCardPath() {
-        String FileNameNoPath = getFileNamePath();
-        String separator = System.getProperty("file.separator");
-        int lastSeparatorIndex = FileNameNoPath.lastIndexOf(separator);
-        if (lastSeparatorIndex > 0) {
-            FileNameNoPath = FileNameNoPath.substring(lastSeparatorIndex + 1);
-        }
-        String FileNameNoExt = FileNameNoPath;
-        if (FileNameNoExt.endsWith(".axp") || FileNameNoExt.endsWith(".axs") || FileNameNoExt.endsWith(".axh")) {
-            FileNameNoExt = FileNameNoExt.substring(0, FileNameNoExt.length() - 4);
-        }
-        return FileNameNoExt;
-    }
-
-    public void Close() {
-        Unlock();
-        Collection<AxoObjectInstanceAbstract> c = (Collection<AxoObjectInstanceAbstract>) objectinstances.clone();
-        for (AxoObjectInstanceAbstract o : c) {
-            o.Close();
-        }
     }
 
     public boolean canUndo() {
-        return !this.IsLocked() && (currentState > 0);
+        return currentState > 0;
     }
 
     public boolean canRedo() {
-        return !this.IsLocked() && (currentState < previousStates.size() - 1);
+        return currentState < undoStates.size() - 1;
     }
 
     public void undo() {
         if (canUndo()) {
             currentState -= 1;
             loadState();
-            SetDirty(false);
-            patchframe.updateUndoRedoEnabled();
+            setDirty();
         }
     }
 
@@ -2703,8 +2465,232 @@ public class Patch {
         if (canRedo()) {
             currentState += 1;
             loadState();
-            SetDirty(false);
-            patchframe.updateUndoRedoEnabled();
+            setDirty();
         }
+    }
+
+    public ArrayList<AxoObjectInstanceAbstract> getObjectInstances() {
+        return objectinstances;
+    }
+
+    public ArrayList<Modulator> getModulators() {
+        return Modulators;
+    }
+
+    public void addModulator(Modulator m) {
+        if (Modulators == null) {
+            Modulators = new ArrayList<Modulator>();
+        }
+        Modulators.add(m);
+    }
+
+    public void addObjectInstance(AxoObjectInstanceAbstract o) {
+        objectinstances.add(o);
+    }
+
+    public ArrayList<Net> getNets() {
+        return nets;
+    }
+
+    public void addNet(Net n) {
+        nets.add(n);
+    }
+
+    public void addModelChangedListener(ModelChangedListener listener) {
+        modelChangedListeners.add(listener);
+    }
+
+    public void notifyModelChangedListeners() {
+        for (ModelChangedListener m : modelChangedListeners) {
+            m.modelChanged();
+        }
+    }
+
+    void paste(String v, Point pos, boolean restoreConnectionsToExternalOutlets) {
+        if (v.isEmpty()) {
+            return;
+        }
+        Strategy strategy = new AnnotationStrategy();
+        Serializer serializer = new Persister(strategy);
+        try {
+            PatchModel p = serializer.read(PatchModel.class, v);
+            Map<String, String> dict = new HashMap<String, String>();
+            ArrayList<AxoObjectInstanceAbstract> obj2 = (ArrayList<AxoObjectInstanceAbstract>) p.objectinstances.clone();
+            for (AxoObjectInstanceAbstract o : obj2) {
+                o.patchModel = this;
+                AxoObjectAbstract obj = o.resolveType();
+                if (obj != null) {
+                    Modulator[] m = obj.getModulators();
+                    if (m != null) {
+                        if (Modulators == null) {
+                            Modulators = new ArrayList<Modulator>();
+                        }
+                        for (Modulator mm : m) {
+                            mm.objinst = o;
+                            Modulators.add(mm);
+                        }
+                    }
+                } else {
+                    //o.patch = this;
+                    p.objectinstances.remove(o);
+                    AxoObjectInstanceZombie zombie = new AxoObjectInstanceZombie(new AxoObjectZombie(), this, o.getInstanceName(), new Point(o.getX(), o.getY()));
+                    zombie.patchModel = this;
+                    zombie.typeName = o.typeName;
+                    p.objectinstances.add(zombie);
+                }
+            }
+            int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+            for (AxoObjectInstanceAbstract o : p.objectinstances) {
+                String original_name = o.getInstanceName();
+                if (original_name != null) {
+                    String new_name = original_name;
+                    String ss[] = new_name.split("_");
+                    boolean hasNumeralSuffix = false;
+                    try {
+                        if ((ss.length > 1) && (Integer.toString(Integer.parseInt(ss[ss.length - 1]))).equals(ss[ss.length - 1])) {
+                            hasNumeralSuffix = true;
+                        }
+                    } catch (NumberFormatException e) {
+                    }
+                    if (hasNumeralSuffix) {
+                        int n = Integer.parseInt(ss[ss.length - 1]) + 1;
+                        String bs = original_name.substring(0, original_name.length() - ss[ss.length - 1].length());
+                        while (GetObjectInstance(new_name) != null) {
+                            new_name = bs + n++;
+                        }
+                        while (dict.containsKey(new_name)) {
+                            new_name = bs + n++;
+                        }
+                    } else {
+                        while (GetObjectInstance(new_name) != null) {
+                            new_name = new_name + "_";
+                        }
+                        while (dict.containsKey(new_name)) {
+                            new_name = new_name + "_";
+                        }
+                    }
+                    if (!new_name.equals(original_name)) {
+                        o.setInstanceName(new_name);
+                    }
+                    dict.put(original_name, new_name);
+                }
+                if (o.getX() < minX) {
+                    minX = o.getX();
+                }
+                if (o.getY() < minY) {
+                    minY = o.getY();
+                }
+                o.patchModel = this;
+                objectinstances.add(o);
+                int newposx = o.getX();
+                int newposy = o.getY();
+
+                if (pos != null) {
+                    // paste at cursor position, with delta snapped to grid
+                    newposx += Constants.X_GRID * ((pos.x - minX + Constants.X_GRID / 2) / Constants.X_GRID);
+                    newposy += Constants.Y_GRID * ((pos.y - minY + Constants.Y_GRID / 2) / Constants.Y_GRID);
+                }
+                while (getObjectAtLocation(newposx, newposy) != null) {
+                    newposx += Constants.X_GRID;
+                    newposy += Constants.Y_GRID;
+                }
+                o.setLocation(newposx, newposy);
+            }
+            for (Net n : p.nets) {
+                InletInstance connectedInlet = null;
+                OutletInstance connectedOutlet = null;
+                if (n.source != null) {
+                    ArrayList<OutletInstance> source2 = new ArrayList<OutletInstance>();
+                    for (OutletInstance o : n.source) {
+                        String objname = o.getObjname();
+                        String outletname = o.getOutletname();
+                        if ((objname != null) && (outletname != null)) {
+                            String on2 = dict.get(objname);
+                            if (on2 != null) {
+//                                o.name = on2 + " " + r[1];
+                                OutletInstance i = new OutletInstance();
+                                i.outletname = outletname;
+                                i.objname = on2;
+                                source2.add(i);
+                            } else if (restoreConnectionsToExternalOutlets) {
+                                AxoObjectInstanceAbstract obj = GetObjectInstance(objname);
+                                if ((obj != null) && (connectedOutlet == null)) {
+                                    OutletInstance oi = obj.GetOutletInstance(outletname);
+                                    if (oi != null) {
+                                        connectedOutlet = oi;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    n.source = source2;
+                }
+                if (n.dest != null) {
+                    ArrayList<InletInstance> dest2 = new ArrayList<InletInstance>();
+                    for (InletInstance o : n.dest) {
+                        String objname = o.getObjname();
+                        String inletname = o.getInletname();
+                        if ((objname != null) && (inletname != null)) {
+                            String on2 = dict.get(objname);
+                            if (on2 != null) {
+                                InletInstance i = new InletInstance();
+                                i.inletname = inletname;
+                                i.objname = on2;
+                                dest2.add(i);
+                            }
+                        }
+                    }
+                    n.dest = dest2;
+                }
+                if (n.source.size() + n.dest.size() > 1) {
+                    if ((connectedInlet == null) && (connectedOutlet == null)) {
+                        n.patchModel = this;
+                        nets.add(n);
+                    } else if (connectedInlet != null) {
+                        for (InletInstance o : n.dest) {
+                            InletInstance o2 = getInletByReference(o.getObjname(), o.getInletname());
+                            if ((o2 != null) && (o2 != connectedInlet)) {
+                                AddConnection(connectedInlet, o2);
+                            }
+                        }
+                        for (OutletInstance o : n.source) {
+                            OutletInstance o2 = getOutletByReference(o.getObjname(), o.getOutletname());
+                            if (o2 != null) {
+                                AddConnection(connectedInlet, o2);
+                            }
+                        }
+                    } else if (connectedOutlet != null) {
+                        for (InletInstance o : n.dest) {
+                            InletInstance o2 = getInletByReference(o.getObjname(), o.getInletname());
+                            if (o2 != null) {
+                                AddConnection(o2, connectedOutlet);
+                            }
+                        }
+                    }
+                }
+            }
+            setDirty();
+        } catch (javax.xml.stream.XMLStreamException ex) {
+            // silence
+        } catch (Exception ex) {
+            Logger.getLogger(PatchModel.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    AxoObjectInstanceAbstract getObjectAtLocation(int x, int y) {
+        for (AxoObjectInstanceAbstract o : getObjectInstances()) {
+            if ((o.getX() == x) && (o.getY() == y)) {
+                return o;
+            }
+        }
+        return null;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    public boolean isLocked() {
+        return locked;
     }
 }
