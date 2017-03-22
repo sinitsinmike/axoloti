@@ -896,8 +896,9 @@ public class Patch {
         Collections.sort(parents);
         // prepend any we haven't seen before
         for (AxoObjectInstanceAbstract c: parents) {
-            if (!result.contains(c))
-                result.addFirst(c);
+            if (result.contains(c))
+                result.remove(c);
+            result.addFirst(c);
         }
         // prepend their parents 
         for (AxoObjectInstanceAbstract c: parents) {
@@ -1601,7 +1602,10 @@ public class Patch {
         }
 
         CreateIID();
-        SortByPosition();
+        if (settings.getGraphedExec())
+            SortByExecution();
+        else
+            SortByPosition();
         String c = generateIncludes();
         c += "\n"
                 + "#pragma GCC diagnostic ignored \"-Wunused-variable\"\n"

@@ -48,6 +48,8 @@ public class PatchSettings {
     private String Attributions;
     @Element(required = false)
     private Boolean Saturate;
+    @Element(required = false)
+    private Boolean GraphedExec;
     PatchSettingsFrame editor;
     
     public int GetMidiChannel() {
@@ -173,7 +175,19 @@ public class PatchSettings {
         }
     }
 
+    public Boolean getGraphedExec() {
+        if (GraphedExec == null) {
+            return false;
+        } else {
+            return GraphedExec;
+        }
+    }
+
     public void setSaturate(Boolean Saturate) {
         this.Saturate = Saturate;
+    }
+
+    public void setGraphedExec(Boolean GraphedExec) {
+        this.GraphedExec = GraphedExec;
     }
 }
