@@ -18,12 +18,14 @@
 package generatedobjects;
 
 import axoloti.inlets.InletBool32;
+import axoloti.inlets.InletCharPtr32;
 import axoloti.inlets.InletFrac32;
 import axoloti.inlets.InletFrac32Buffer;
 import axoloti.inlets.InletInt32;
 import axoloti.inlets.InletInt32Pos;
 import axoloti.object.AxoObject;
 import axoloti.outlets.OutletBool32;
+import axoloti.outlets.OutletCharPtr32;
 import axoloti.outlets.OutletFrac32;
 import axoloti.outlets.OutletFrac32Buffer;
 import axoloti.outlets.OutletInt32;
@@ -36,10 +38,10 @@ public class Demux extends gentools {
 
     static void GenerateAll() {
         String catName = "demux";
-        WriteAxoObject(catName, new AxoObject[]{Create_demux2(), Create_demux2Tilde(), Create_demux2I(), Create_demux2b()});
+        WriteAxoObject(catName, new AxoObject[]{Create_demux2(), Create_demux2Tilde(), Create_demux2I(), Create_demux2b(), Create_demux2s() });
 
         for (int i = 3; i < 9; i++) {
-            WriteAxoObject(catName, new AxoObject[]{Create_demuxn(i), Create_demuxni(i), Create_demuxntilde(i), Create_demuxnb(i)});
+            WriteAxoObject(catName, new AxoObject[]{Create_demuxn(i), Create_demuxni(i), Create_demuxntilde(i), Create_demuxnb(i), Create_demuxns(i) });
         }
     }
 
@@ -60,7 +62,7 @@ public class Demux extends gentools {
         o.helpPatch = "demux 2.axh";
         return o;
     }
-
+	
     static AxoObject Create_demux2Tilde() {
         AxoObject o = new AxoObject("demux 2", descriptionDemux2);
         o.inlets.add(new InletFrac32Buffer("i", "input"));
@@ -100,6 +102,20 @@ public class Demux extends gentools {
         return o;
     }
 
+    static AxoObject Create_demux2s() {
+        AxoObject o = new AxoObject("demux 2", descriptionDemux2);
+        o.inlets.add(new InletCharPtr32("i", "input"));
+        o.inlets.add(new InletCharPtr32("d0", "default 0"));
+        o.inlets.add(new InletCharPtr32("d1", "default 1"));
+        o.inlets.add(new InletBool32("s", "select"));
+        o.outlets.add(new OutletCharPtr32("o0", "output 0"));
+        o.outlets.add(new OutletCharPtr32("o1", "output 1"));
+        o.sKRateCode = "   %o0%= (%s%)?(char *)%d0%:(char *)%i%;\n"
+            + "   %o1%= (%s%)?(char *)%i%:(char *)%d1%;\n";
+        o.helpPatch = "demux 2.axh";
+        return o;
+    }
+
     private static String GenerateDemuxCode(int n) {
         String o;
         o = "   switch(%s%>0?%s%:0){\n";
@@ -122,6 +138,28 @@ public class Demux extends gentools {
         return o;
     }
 
+        private static String GenerateDemuxCodeS(int n) {
+        String o;
+        o = "   switch(%s%>0?%s%:0){\n";
+        for (int i = 0; i < n; i++) {
+            o += "      case " + i + ": \n";
+            for (int j = 0; j < n; j++) {
+                if (i == j) {
+                    o += "         %o" + j + "% = (char *)%i%;\n";
+                } else {
+                    o += "         %o" + j + "% = (char *)%d" + j + "%;\n";
+                }
+            }
+            o += "         break;\n";
+        }
+        o += "      default:\n";
+        for (int j = 0; j < n; j++) {
+            o += "         %o" + j + "% = (char *)%d" + j + "%;\n";
+        }
+        o += "}\n";
+        return o;
+    }
+    
     static AxoObject Create_demuxn(int n) {
         AxoObject o = new AxoObject("demux " + n, descriptionDemuxN);
         o.inlets.add(new InletFrac32("i", "input"));
@@ -182,4 +220,19 @@ public class Demux extends gentools {
         return o;
     }
 
+    static AxoObject Create_demuxns(int n) {
+        AxoObject o = new AxoObject("demux " + n, descriptionDemuxN);
+        o.inlets.add(new InletCharPtr32("i", "input"));
+        for (int i = 0; i < n; i++) {
+            o.inlets.add(new InletCharPtr32("d" + i, "default " + i));
+        }
+        o.inlets.add(new InletInt32Pos("s", "select"));
+        for (int i = 0; i < n; i++) {
+            o.outlets.add(new OutletCharPtr32("o" + i, "output " + i));
+        }
+        o.sKRateCode = GenerateDemuxCodeS(n);
+        o.helpPatch = "demux 3.axh";
+        return o;
+    }
+    
 }
