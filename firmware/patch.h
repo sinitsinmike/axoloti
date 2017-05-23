@@ -115,6 +115,8 @@ void LoadPatchStartFlash(void);
 void LoadPatchIndexed(uint32_t index);
 loadPatchIndex_t GetIndexOfCurrentPatch(void);
 
+void codec_clearbuffer(void);
+
 int get_USBH_LL_GetURBState(void);
 int get_USBH_LL_SubmitURB(void);
 #endif //__PATCH_H

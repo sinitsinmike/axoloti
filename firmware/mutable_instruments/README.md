@@ -6,12 +6,13 @@ from https://github.com/pichenettes/eurorack/tree/6165129cd99416c762da3087594d91
 and https://github.com/pichenettes/stmlib/tree/f8a4b46b7abb5d752a6a72932eeac1a03fe958fd
 before initial commit:
 
-* selected folders Braids, Elements, Rings, Stmlib, Warps
+* selected folders Braids, Elements, Rings, Stmlib, Warps, Clouds
 * changed .cc file extension into .cpp
 * removed "drivers", "hardware_design", "bootloader", "test" folders
 * removed "linker_scripts", "midi", "programming", "system", "test", "third_party" from stmlib
 * removed #include "warps/drivers/debug_pin.h" from warps/dsp/modulator.cpp
 * removed #include "elements/drivers/debug_pin.h" from elements/dsp/resonator.cpp
+* removed #include "clouds/drivers/debug_pin.h" from clouds/dsp/granular_processor.cpp 
 * renamed xxx/resources.cpp -> xxx/xxx_resources.cpp (chibios makefile does digest overlapping object names)
 * commented out the smp_sample_data in elements/elements_resources.cpp
 * move duplicate lut_sine, lut_4_decades, lut_stiffness, lut_fm_frequency_quantizer
@@ -20,6 +21,8 @@ before initial commit:
 	Note that lut_sine in Elements is 360 degrees, while Rings uses 450 degrees, element 4096 changed from 0 to -2.449293598e-16
 * define M_PI in stmlib/dsp/filter.h
 * changed "#define xxx y" to "const int xxx=y;" in */resources.h 
+* sample_data in elements/resources.h made non-const to allow dynamic loading
+* sample_data initialised with new call loadElementsData in axoloti_mi.h/cpp
 
 Original README
 ===============
