@@ -22,7 +22,7 @@ elif [ -f /etc/debian_version ]; then
     if [ -n "`grep 8.6 /etc/debian_version`" ] && [ -z "`uname -m | grep x86_64`" ]; then
       OS=DebianJessie32bit
     fi
-    
+
 elif [ -f /etc/arch-release ]; then
     OS=Archlinux
 elif [ -f /etc/gentoo-release ]; then
@@ -87,7 +87,7 @@ mkdir -p "${PLATFORM_ROOT}/src"
 
 
 CH_VERSION=16.1.8
-if [ ! -d "${PLATFORM_ROOT}/../ChibiOS_${CH_VERSION}" ]; 
+if [ ! -d "${PLATFORM_ROOT}/../ChibiOS_${CH_VERSION}" ];
 then
     cd "${PLATFORM_ROOT}/src"
     ARDIR=ChibiOS_${CH_VERSION}
@@ -95,7 +95,7 @@ then
     if [ ! -f ${ARCHIVE} ];
     then
         echo "downloading ${ARCHIVE}"
-        curl -L http://sourceforge.net/projects/chibios/files/ChibiOS_RT%20stable/Version%20${CH_VERSION}/${ARCHIVE} > ${ARCHIVE}
+        curl -L https://sourceforge.net/projects/chibios/files/ChibiOS%20GPL3/Version%20${CH_VERSION}/${ARCHIVE} > ${ARCHIVE}
     else
         echo "${ARCHIVE} already downloaded"
     fi
@@ -124,7 +124,7 @@ then
     cd "${PLATFORM_ROOT}"
     ARDIR=gcc-arm-none-eabi-6-2017-q1-update
     ARCHIVE=${ARDIR}-linux.tar.bz2
-    if [ ! -f ${ARCHIVE} ]; 
+    if [ ! -f ${ARCHIVE} ];
     then
         echo "downloading ${ARCHIVE}"
         curl -L https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/6_1-2017q1/${ARCHIVE} > ${ARCHIVE}
