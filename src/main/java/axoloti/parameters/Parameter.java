@@ -18,8 +18,11 @@
 package axoloti.parameters;
 
 import axoloti.atom.AtomDefinition;
+import axoloti.atom.AtomDefinitionController;
 import axoloti.datatypes.DataType;
 import axoloti.object.AxoObjectInstance;
+import axoloti.property.BooleanProperty;
+import axoloti.property.Property;
 import axoloti.utils.CharEscape;
 import generatedobjects.GeneratedObjects;
 import java.io.ByteArrayInputStream;
@@ -37,22 +40,16 @@ import org.simpleframework.xml.core.Persister;
  *
  * @author Johannes Taelman
  */
-public abstract class Parameter<T extends ParameterInstance> implements AtomDefinition, Cloneable {
+public abstract class Parameter<T extends ParameterInstance> extends AtomDefinition implements Cloneable {
 
-    @Attribute
-    public String name;
-    @Attribute(required = false)
-    public String description;
-
-//    @Attribute(required = false)
-//    Value<dt> defaultVal;
     @Attribute(required = false)
     public Boolean noLabel;
+
+    public final static Property NOLABEL = new BooleanProperty("NoLabel", Parameter.class, "Hide label");
 
     public String PropagateToChild;
 
     public String CType() {
-        // fixme
         return "int";
     }
 
@@ -60,31 +57,11 @@ public abstract class Parameter<T extends ParameterInstance> implements AtomDefi
     }
 
     public Parameter(String name) {
-        this.name = name;
+        super(name, null);
     }
 
     public String GetCName() {
-        return "param_" + CharEscape.CharEscape(name);
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @Override
-    public String getDescription() {
-        return description;
-    }
-
-    @Override
-    public void setDescription(String description) {
-        this.description = description;
+        return "param_" + CharEscape.CharEscape(getName());
     }
 
     @Override
@@ -92,16 +69,19 @@ public abstract class Parameter<T extends ParameterInstance> implements AtomDefi
         return getTypeName();
     }
 
-    @Override
     public ParameterInstance CreateInstance(AxoObjectInstance o) {
         ParameterInstance pi = InstanceFactory();
-        pi.axoObj = o;
-        pi.name = this.name;
+        AtomDefinitionController c = createController(null, null);
+        pi.setController(c);
+        c.addView(pi);
+        pi.axoObjectInstance = o;
+        pi.name = getName();
         pi.parameter = this;
-        pi.applyDefaultValue();
-        o.p_params.add(pi);
+//        pi.applyDefaultValue();
         return pi;
     }
+
+    abstract public Object getDefaultValue();
 
     public abstract T InstanceFactory();
 
@@ -111,7 +91,7 @@ public abstract class Parameter<T extends ParameterInstance> implements AtomDefi
         Parameter p = null;
         try {
             serializer.write(this, os);
-            p = serializer.read(this.getClass(), new ByteArrayInputStream(os.toByteArray()));
+            p = serializer.read(getClass(), new ByteArrayInputStream(os.toByteArray()));
         } catch (Exception ex) {
             Logger.getLogger(GeneratedObjects.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -123,7 +103,7 @@ public abstract class Parameter<T extends ParameterInstance> implements AtomDefi
     }
 
     public void updateSHA(MessageDigest md) {
-        md.update(name.getBytes());
+        md.update(getName().getBytes());
 //        md.update((byte) getDatatype().hashCode());
     }
 
@@ -133,7 +113,27 @@ public abstract class Parameter<T extends ParameterInstance> implements AtomDefi
     }
 
     @Override
-    public List<String> getEditableFields() {
-        return new ArrayList<String>();
+    public List<Property> getEditableFields() {
+        List<Property> l = new ArrayList<>();
+        l.add(NOLABEL);
+        return l;
     }
+
+    public String GetCType() {
+        return "param_type_undefined";
+    }
+
+    public String GetCUnit() {
+        return "param_unit_abstract";
+    }
+
+    public Boolean getNoLabel() {
+        return noLabel;
+    }
+
+    public void setNoLabel(Boolean noLabel) {
+        this.noLabel = noLabel;
+        firePropertyChange(NOLABEL, null, this.noLabel);
+    }
+
 }

@@ -17,77 +17,34 @@
  */
 package axoloti.parameters;
 
-import axoloti.datatypes.Value;
-import components.AssignMidiCCMenuItems;
-import components.control.CheckboxComponent;
-import javax.swing.JMenu;
-import javax.swing.JPopupMenu;
+import static axoloti.parameters.ParameterInstance.MIDI_CC;
+import axoloti.property.Property;
+import java.util.List;
 import org.simpleframework.xml.Attribute;
 
 /**
  *
  * @author Johannes Taelman
  */
-public class ParameterInstanceBin1 extends ParameterInstanceInt32<ParameterBin1> {
+public class ParameterInstanceBin1 extends ParameterInstanceBin<ParameterBin1> {
 
     public ParameterInstanceBin1() {
+        super();
+    }
+
+    @Override
+    public List<Property> getEditableFields() {
+        List<Property> l = super.getEditableFields();
+        l.add(MIDI_CC);
+        return l;
     }
 
     public ParameterInstanceBin1(@Attribute(name = "value") int v) {
         super(v);
     }
 
-    @Override
-    public CheckboxComponent CreateControl() {
-        return new CheckboxComponent(0, 1);
-    }
-
-    @Override
-    public String GenerateCodeInit(String vprefix, String StructAccces) {
-        String s = /*"    " + variableName(vprefix) + " = " + (value.getInt()) + ";\n"
-                 + "    " + valueName(vprefix) + " = " + (value.getInt()) + ";\n"
-                 +*/ "    " + signalsName(vprefix) + " = 0;\n"
-                + "    SetKVP_IPVP(&" + StructAccces + KVPName(vprefix) + ",ObjectKvpRoot, \"" + KVPName(vprefix) + "\" ,"
-                + "&" + PExName(vprefix) + ","
-                + 0 + ","
-                + ((1 << 16) - 1) + ");\n"
-                + "  KVP_RegisterObject(&" + StructAccces + KVPName(vprefix) + ");\n";
-        return s;
-    }
-
-    @Override
-    public String GenerateCodeDeclaration(String vprefix) {
-        return "KeyValuePair " + KVPName(vprefix) + ";\n";
-    }
-
-    @Override
     public String GenerateCodeMidiHandler(String vprefix) {
         return GenerateMidiCCCodeSub(vprefix, "(data2>0)");
-    }
-
-    @Override
-    public void updateV() {
-        ctrl.setValue(value.getInt());
-    }
-
-    @Override
-    public void setValue(Value value) {
-        super.setValue(value);
-        updateV();
-    }
-
-    @Override
-    public CheckboxComponent getControlComponent() {
-        return (CheckboxComponent) ctrl;
-    }
-
-    @Override
-    public void populatePopup(JPopupMenu m) {
-        super.populatePopup(m);
-        JMenu m1 = new JMenu("Midi CC");
-        // assignMidiCCMenuItems, does stuff in ctor
-        AssignMidiCCMenuItems assignMidiCCMenuItems = new AssignMidiCCMenuItems(this, m1);
-        m.add(m1);
     }
 
 }

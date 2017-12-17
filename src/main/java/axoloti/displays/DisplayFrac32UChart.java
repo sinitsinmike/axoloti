@@ -34,11 +34,6 @@ public class DisplayFrac32UChart extends Display {
     }
 
     @Override
-    public DisplayInstanceFrac32UChart InstanceFactory() {
-        return new DisplayInstanceFrac32UChart();
-    }
-
-    @Override
     public void updateSHA(MessageDigest md) {
         super.updateSHA(md);
         md.update("frac32.u.chart".getBytes());
@@ -56,4 +51,8 @@ public class DisplayFrac32UChart extends Display {
         return TypeName;
     }
 
+    @Override
+    public String GetCMetaType() {
+        return "display_meta_type_chart_uq27";
+    }
 }

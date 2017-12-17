@@ -18,13 +18,14 @@
 package axoloti.dialogs;
 
 import axoloti.DocumentWindow;
-import axoloti.Patch;
-import axoloti.PatchSettings;
+import axoloti.PatchController;
+import axoloti.PatchModel;
 import axoloti.SubPatchMode;
+import axoloti.menus.StandardMenubar;
+import java.beans.PropertyChangeEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
@@ -33,63 +34,50 @@ import javax.swing.SpinnerNumberModel;
  *
  * @author Johannes Taelman
  */
-public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWindow {
+public class PatchSettingsFrame extends AJFrame<PatchController> {
 
-    PatchSettings settings;
+    final PatchController patchController;
 
-    final Patch patch;
+    @Override
+    public PatchController getController() {
+        return patchController;
+    }
 
     /**
      * Creates new form PatchSettingsFrame
      *
-     * @param settings settings to load/save
      */
-    public PatchSettingsFrame(PatchSettings settings, Patch patch) {
+    public PatchSettingsFrame(DocumentWindow parentDocumentWindow, PatchController patchController) {
+        super(parentDocumentWindow);
         initComponents();
-        this.patch = patch;
+        this.patchController = patchController;
         setTitle("settings");
-        setIconImage(new ImageIcon(getClass().getResource("/resources/axoloti_icon.png")).getImage());
-        this.settings = settings;
-        ((SpinnerNumberModel) jSpinnerMidiChannel.getModel()).setValue(settings.GetMidiChannel());
+        setJMenuBar(new StandardMenubar());
         ((SpinnerNumberModel) jSpinnerMidiChannel.getModel()).setMinimum(1);
         ((SpinnerNumberModel) jSpinnerMidiChannel.getModel()).setMaximum(16);
-        ((SpinnerNumberModel) jSpinnerNumPresets.getModel()).setValue(settings.GetNPresets());
         ((SpinnerNumberModel) jSpinnerNumPresets.getModel()).setMinimum(0);
         ((SpinnerNumberModel) jSpinnerNumPresets.getModel()).setMaximum(64);
-        ((SpinnerNumberModel) jSpinnerPresetEntries.getModel()).setValue(settings.GetNPresetEntries());
         ((SpinnerNumberModel) jSpinnerPresetEntries.getModel()).setMinimum(0);
         ((SpinnerNumberModel) jSpinnerPresetEntries.getModel()).setMaximum(64);
-        ((SpinnerNumberModel) jSpinnerModulationSources.getModel()).setValue(settings.GetNModulationSources());
         ((SpinnerNumberModel) jSpinnerModulationSources.getModel()).setMinimum(0);
         ((SpinnerNumberModel) jSpinnerModulationSources.getModel()).setMaximum(64);
-        ((SpinnerNumberModel) jSpinnerModulationTargets.getModel()).setValue(settings.GetNModulationTargetsPerSource());
         ((SpinnerNumberModel) jSpinnerModulationTargets.getModel()).setMinimum(0);
         ((SpinnerNumberModel) jSpinnerModulationTargets.getModel()).setMaximum(64);
-        jTextFieldAuthor.setText(settings.getAuthor());
-        jComboBoxLicense.setSelectedItem(settings.getLicense());
-        jTextFieldAttributions.setText(settings.getAttributions());
-        switch (settings.subpatchmode) {
-            case no:
-                jComboBoxMode.setSelectedIndex(0);
-                break;
-            case normal:
-                jComboBoxMode.setSelectedIndex(1);
-                break;
-            case normalBypass:
-                jComboBoxMode.setSelectedIndex(2);
-                break;
-            case polyphonic:
-                jComboBoxMode.setSelectedIndex(3);
-                break;
-            case polychannel:
-                jComboBoxMode.setSelectedIndex(4);
-                break;
-            case polyexpression:
-                jComboBoxMode.setSelectedIndex(5);
-                break;
-        }
-        jCheckBoxHasChannelAttrib.setSelected(settings.GetMidiSelector());
-        jCheckBoxSaturate.setSelected(settings.getSaturate());
+        /*
+        // test of the PropertyTable class ("inspector")
+        PropertyTable p = new PropertyTable(patchController, asList(new Property[]{
+            PatchModel.PATCH_AUTHOR,
+            PatchModel.PATCH_ATTRIBUTIONS,
+            PatchModel.PATCH_MIDICHANNEL,
+            PatchModel.PATCH_NMODULATIONSOURCES,
+            PatchModel.PATCH_NMODULATIONTARGETSPERSOURCE,
+            PatchModel.PATCH_NPRESETS,
+            PatchModel.PATCH_NPRESETENTRIES,
+            PatchModel.PATCH_MIDISELECTOR
+        }));
+        patchController.addView(p);
+        jScrollPane1.setViewportView(p);
+         */
     }
 
     /**
@@ -134,7 +122,7 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
 
         jLabel1.setText("MIDI Channel");
 
-        jSpinnerMidiChannel.setModel(new javax.swing.SpinnerNumberModel(0, 0, 15, 1));
+        jSpinnerMidiChannel.setModel(new javax.swing.SpinnerNumberModel(1, 1, 16, 1));
         jSpinnerMidiChannel.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
                 jSpinnerMidiChannelStateChanged(evt);
@@ -339,29 +327,29 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
     private void jSpinnerMidiChannelStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jSpinnerMidiChannelStateChanged
         SpinnerModel nModel = jSpinnerMidiChannel.getModel();
         if (nModel instanceof SpinnerNumberModel) {
-            settings.SetMidiChannel(((SpinnerNumberModel) nModel).getNumber().intValue());
+            getController().setModelUndoableProperty(PatchModel.PATCH_MIDICHANNEL,((SpinnerNumberModel) nModel).getNumber().intValue());
         }
     }//GEN-LAST:event_jSpinnerMidiChannelStateChanged
 
     private void jComboBoxModeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxModeActionPerformed
         switch (jComboBoxMode.getSelectedIndex()) {
             case 0:
-                settings.subpatchmode = SubPatchMode.no;
+                getController().setModelUndoableProperty(PatchModel.PATCH_SUBPATCHMODE,SubPatchMode.no);
                 break;
             case 1:
-                settings.subpatchmode = SubPatchMode.normal;
+                getController().setModelUndoableProperty(PatchModel.PATCH_SUBPATCHMODE,SubPatchMode.normal);
                 break;
             case 2:
-                settings.subpatchmode = SubPatchMode.normalBypass;
+                getController().setModelUndoableProperty(PatchModel.PATCH_SUBPATCHMODE,SubPatchMode.normalBypass);
                 break;
             case 3:
-                settings.subpatchmode = SubPatchMode.polyphonic;
+                getController().setModelUndoableProperty(PatchModel.PATCH_SUBPATCHMODE,SubPatchMode.polyphonic);
                 break;
             case 4:
-                settings.subpatchmode = SubPatchMode.polychannel;
+                getController().setModelUndoableProperty(PatchModel.PATCH_SUBPATCHMODE,SubPatchMode.polychannel);
                 break;
             case 5:
-                settings.subpatchmode = SubPatchMode.polyexpression;
+                getController().setModelUndoableProperty(PatchModel.PATCH_SUBPATCHMODE,SubPatchMode.polyexpression);
                 break;
             default:
                 Logger.getLogger(PatchSettingsFrame.class.getName()).severe("undefined subpatchmode");
@@ -371,59 +359,59 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
     private void jSpinnerNumPresetsStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jSpinnerNumPresetsStateChanged
         SpinnerModel nModel = jSpinnerNumPresets.getModel();
         if (nModel instanceof SpinnerNumberModel) {
-            settings.SetNPresets(((SpinnerNumberModel) nModel).getNumber().intValue());
+            getController().setModelUndoableProperty(PatchModel.PATCH_NPRESETS,((SpinnerNumberModel) nModel).getNumber().intValue());
         }
     }//GEN-LAST:event_jSpinnerNumPresetsStateChanged
 
     private void jSpinnerPresetEntriesStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jSpinnerPresetEntriesStateChanged
         SpinnerModel nModel = jSpinnerPresetEntries.getModel();
         if (nModel instanceof SpinnerNumberModel) {
-            settings.SetNPresetEntries(((SpinnerNumberModel) nModel).getNumber().intValue());
+            getController().setModelUndoableProperty(PatchModel.PATCH_NPRESETENTRIES,((SpinnerNumberModel) nModel).getNumber().intValue());
         }
     }//GEN-LAST:event_jSpinnerPresetEntriesStateChanged
 
     private void jSpinnerModulationSourcesStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jSpinnerModulationSourcesStateChanged
         SpinnerModel nModel = jSpinnerModulationSources.getModel();
         if (nModel instanceof SpinnerNumberModel) {
-            settings.SetNModulationSources(((SpinnerNumberModel) nModel).getNumber().intValue());
+            getController().setModelUndoableProperty(PatchModel.PATCH_NMODULATIONSOURCES,((SpinnerNumberModel) nModel).getNumber().intValue());
         }
     }//GEN-LAST:event_jSpinnerModulationSourcesStateChanged
 
     private void jSpinnerModulationTargetsStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_jSpinnerModulationTargetsStateChanged
         SpinnerModel nModel = jSpinnerModulationTargets.getModel();
         if (nModel instanceof SpinnerNumberModel) {
-            settings.SetNModulationTargetsPerSource(((SpinnerNumberModel) nModel).getNumber().intValue());
+            getController().setModelUndoableProperty(PatchModel.PATCH_NMODULATIONTARGETSPERSOURCE,((SpinnerNumberModel) nModel).getNumber().intValue());
         }
     }//GEN-LAST:event_jSpinnerModulationTargetsStateChanged
 
     private void jCheckBoxHasChannelAttribActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCheckBoxHasChannelAttribActionPerformed
-        settings.SetMidiSelector(jCheckBoxHasChannelAttrib.isSelected());
+        getController().setModelUndoableProperty(PatchModel.PATCH_MIDISELECTOR,(Boolean)jCheckBoxHasChannelAttrib.isSelected());
     }//GEN-LAST:event_jCheckBoxHasChannelAttribActionPerformed
 
     private void jComboBoxLicenseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxLicenseActionPerformed
         if (jComboBoxLicense.getSelectedItem() != null) {
-            settings.setLicense(jComboBoxLicense.getSelectedItem().toString());
+            getController().setModelUndoableProperty(PatchModel.PATCH_LICENSE,jComboBoxLicense.getSelectedItem().toString());
         }
     }//GEN-LAST:event_jComboBoxLicenseActionPerformed
 
     private void jTextFieldAuthorFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextFieldAuthorFocusLost
-        settings.setAuthor(jTextFieldAuthor.getText());
+        getController().setModelUndoableProperty(PatchModel.PATCH_AUTHOR,jTextFieldAuthor.getText());
     }//GEN-LAST:event_jTextFieldAuthorFocusLost
 
     private void jCheckBoxSaturateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jCheckBoxSaturateActionPerformed
-        settings.setSaturate(jCheckBoxSaturate.isSelected());
+        //settings.setSaturate(jCheckBoxSaturate.isSelected());
     }//GEN-LAST:event_jCheckBoxSaturateActionPerformed
 
     private void jTextFieldAttributionsFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextFieldAttributionsFocusLost
-        settings.setAttributions(jTextFieldAttributions.getText());
+        getController().setModelUndoableProperty(PatchModel.PATCH_ATTRIBUTIONS,jTextFieldAttributions.getText());
     }//GEN-LAST:event_jTextFieldAttributionsFocusLost
 
     private void formComponentHidden(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentHidden
-        patch.getPatchframe().GetChildDocuments().remove(this);
+        //patchController.getPatchFrame().GetChildDocuments().remove(this);
     }//GEN-LAST:event_formComponentHidden
 
     private void formComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentShown
-        patch.getPatchframe().GetChildDocuments().add(this);
+        //patchController.getPatchFrame().GetChildDocuments().add(this);
     }//GEN-LAST:event_formComponentShown
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -451,12 +439,12 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
     // End of variables declaration//GEN-END:variables
 
     @Override
-    public JFrame GetFrame() {
+    public JFrame getFrame() {
         return this;
     }
 
     @Override
-    public boolean AskClose() {
+    public boolean askClose() {
         return false;
     }
 
@@ -466,7 +454,56 @@ public class PatchSettingsFrame extends javax.swing.JFrame implements DocumentWi
     }
 
     @Override
-    public ArrayList<DocumentWindow> GetChildDocuments() {
+    public ArrayList<DocumentWindow> getChildDocuments() {
         return null;
+    }
+
+    PatchModel getModel() {
+        return patchController.getModel();
+    }
+
+    @Override
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        if (PatchModel.PATCH_AUTHOR.is(evt)) {
+            jTextFieldAuthor.setText((String) evt.getNewValue());
+        } else if (PatchModel.PATCH_LICENSE.is(evt)) {
+            jComboBoxLicense.setSelectedItem((String) evt.getNewValue());
+        } else if (PatchModel.PATCH_ATTRIBUTIONS.is(evt)) {
+            jTextFieldAttributions.setText((String) evt.getNewValue());
+        } else if (PatchModel.PATCH_SUBPATCHMODE.is(evt)) {
+            switch ((SubPatchMode)evt.getNewValue()) {
+            case no:
+                jComboBoxMode.setSelectedIndex(0);
+                break;
+            case normal:
+                jComboBoxMode.setSelectedIndex(1);
+                break;
+            case normalBypass:
+                jComboBoxMode.setSelectedIndex(2);
+                break;
+            case polyphonic:
+                jComboBoxMode.setSelectedIndex(3);
+                break;
+            case polychannel:
+                jComboBoxMode.setSelectedIndex(4);
+                break;
+            case polyexpression:
+                jComboBoxMode.setSelectedIndex(5);
+                break;
+        }
+        } else if (PatchModel.PATCH_NPRESETENTRIES.is(evt)) {
+            ((SpinnerNumberModel) jSpinnerPresetEntries.getModel()).setValue(evt.getNewValue());
+        } else if (PatchModel.PATCH_NPRESETS.is(evt)) {
+            ((SpinnerNumberModel) jSpinnerNumPresets.getModel()).setValue(evt.getNewValue());
+        } else if (PatchModel.PATCH_NMODULATIONSOURCES.is(evt)) {
+            ((SpinnerNumberModel) jSpinnerModulationSources.getModel()).setValue(evt.getNewValue());
+        } else if (PatchModel.PATCH_NMODULATIONTARGETSPERSOURCE.is(evt)) {
+            ((SpinnerNumberModel) jSpinnerModulationTargets.getModel()).setValue(evt.getNewValue());
+        } else if (PatchModel.PATCH_MIDICHANNEL.is(evt)) {
+            ((SpinnerNumberModel) jSpinnerMidiChannel.getModel()).setValue(evt.getNewValue());
+        } else if (PatchModel.PATCH_MIDISELECTOR.is(evt)) {
+            jCheckBoxHasChannelAttrib.setSelected((Boolean)evt.getNewValue());
+        } else {
+        }
     }
 }

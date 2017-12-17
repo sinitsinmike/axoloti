@@ -1,16 +1,23 @@
 package axoloti.iolet;
 
+import axoloti.INetView;
 import axoloti.MainFrame;
 import axoloti.Net;
+import axoloti.NetController;
+import axoloti.NetDrag;
 import axoloti.NetDragging;
-import axoloti.PatchGUI;
+import axoloti.PatchModel;
+import axoloti.PatchViewSwing;
+import axoloti.inlets.IInletInstanceView;
 import axoloti.inlets.InletInstance;
-import axoloti.object.AxoObjectInstanceAbstract;
+import axoloti.inlets.InletInstanceView;
+import axoloti.objectviews.AxoObjectInstanceViewAbstract;
+import axoloti.outlets.IOutletInstanceView;
 import axoloti.outlets.OutletInstance;
+import axoloti.outlets.OutletInstanceView;
 import java.awt.Component;
 import java.awt.IllegalComponentStateException;
 import java.awt.Point;
-import java.awt.dnd.DropTarget;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -20,8 +27,9 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import org.simpleframework.xml.Attribute;
+import axoloti.mvc.IView;
 
-public abstract class IoletAbstract extends JPanel implements MouseListener, MouseMotionListener {
+public abstract class IoletAbstract extends JPanel implements MouseListener, MouseMotionListener, IIoletAbstract, IView {
 
     @Deprecated
     @Attribute(required = false)
@@ -29,7 +37,7 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
     @Attribute(name = "obj", required = false)
     public String objname;
 
-    public AxoObjectInstanceAbstract axoObj;
+    public AxoObjectInstanceViewAbstract axoObj;
     public JLabel lbl;
     public JComponent jack;
 
@@ -47,7 +55,7 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
         }
     }
 
-    public AxoObjectInstanceAbstract GetObjectInstance() {
+    public AxoObjectInstanceViewAbstract getObjectInstanceView() {
         return axoObj;
     }
 
@@ -67,9 +75,10 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
 
     public Point getJackLocInCanvas() {
         try {
-            PatchGUI p = getPatchGui();
+            PatchViewSwing p = getPatchView();
             if (p != null) {
-                return SwingUtilities.convertPoint(jack, 5, 5, getPatchGui().Layers);
+                if (!axoObj.isValid()) axoObj.validate();
+                return SwingUtilities.convertPoint(jack, 5, 5, getPatchView().Layers);
             } else {
                 return getJackLocInCanvasHidden();
             }
@@ -82,12 +91,8 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
 
     abstract public JPopupMenu getPopup();
 
-    public PatchGUI getPatchGui() {
-        try {
-            return (PatchGUI) axoObj.getPatch();
-        } catch (ClassCastException e) {
-            return null;
-        }
+    public PatchViewSwing getPatchView() {
+        return axoObj.getPatchView();
     }
 
     NetDragging dragnet = null;
@@ -100,26 +105,29 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
     @Override
     public void mousePressed(MouseEvent e) {
         if (e.isPopupTrigger()) {
-            getPopup().show(this, 0, getHeight() - 1);
+            getPopup().show(IoletAbstract.this, 0, getHeight() - 1);
             e.consume();
         } else {
             setHighlighted(true);
-            if (!axoObj.IsLocked()) {
-                if (dragnet == null) {
-                    dragnet = new NetDragging(getPatchGui());
+//            if (!axoObj.isLocked()) {
+//                if (dragnet == null) {
+                    Net dnet = new NetDrag();
+                    NetController dragNetController = new NetController(dnet, null, getPatchView().getController());
                     dragtarget = null;
-                    if (this instanceof InletInstance) {
-                        dragnet.connectInlet((InletInstance) this);
+                    if (this instanceof InletInstanceView) {
+                        dragNetController.connectInlet((InletInstance) getController().getModel());
                     } else {
-                        dragnet.connectOutlet((OutletInstance) this);
+                        dragNetController.connectOutlet((OutletInstance) getController().getModel());
                     }
-                }
+                    dragnet = new NetDragging(dnet, dragNetController, getPatchView());
+                    dragNetController.addView(dragnet);
+//                }
                 dragnet.setVisible(true);
-                if (getPatchGui() != null) {
-                    getPatchGui().selectionRectLayerPanel.add(dragnet);
+                if (getPatchView() != null) {
+                    getPatchView().selectionRectLayerPanel.add(dragnet);
                 }
                 e.consume();
-            }
+//            }
         }
     }
 
@@ -128,39 +136,45 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
         if (e.isPopupTrigger()) {
             getPopup().show(this, 0, getHeight() - 1);
             e.consume();
-        } else if ((dragnet != null) && (getPatchGui() != null)) {
+        } else if ((dragnet != null) && (getPatchView() != null)) {
             dragnet.repaint();
-            getPatchGui().selectionRectLayerPanel.remove(dragnet);
+            getPatchView().selectionRectLayerPanel.remove(dragnet);
             dragnet = null;
             Net n = null;
             if (dragtarget == null) {
-                final PatchGUI patchGUI = getPatchGui();
-                Point p = SwingUtilities.convertPoint(this, e.getPoint(), patchGUI.selectionRectLayerPanel);
-                Component c = patchGUI.objectLayerPanel.findComponentAt(p);
+                Point p = SwingUtilities.convertPoint(IoletAbstract.this, e.getPoint(), getPatchView().selectionRectLayerPanel);
+                Component c = getPatchView().objectLayerPanel.findComponentAt(p);
                 while ((c != null) && !(c instanceof IoletAbstract)) {
                     c = c.getParent();
                 }
+
                 if (this != c) {
-                    n = patchGUI.disconnect(this);
+                    if (IoletAbstract.this instanceof InletInstanceView) {
+                        getPatchView().getController().addMetaUndo("disconnect inlet");
+                        n = getPatchView().getController().disconnect((InletInstance) getController().getModel());
+                    } else {
+                        getPatchView().getController().addMetaUndo("disconnect outlet");
+                        n = getPatchView().getController().disconnect((OutletInstance) getController().getModel());
+                    }
                 }
             } else {
-                if (this instanceof InletInstance) {
-                    if (dragtarget instanceof InletInstance) {
-                        n = getPatchGui().AddConnection((InletInstance) this, (InletInstance) dragtarget);
-                    } else if (dragtarget instanceof OutletInstance) {
-                        n = getPatchGui().AddConnection((InletInstance) this, (OutletInstance) dragtarget);
+                if (this instanceof InletInstanceView) {
+                    if (dragtarget instanceof InletInstanceView) {
+                        getPatchView().getController().addMetaUndo("connect");
+                        n = getPatchView().getController().AddConnection(((InletInstance) getController().getModel()), ((InletInstanceView) dragtarget).getController().getModel());
+                    } else if (dragtarget instanceof OutletInstanceView) {
+                        getPatchView().getController().addMetaUndo("connect");
+                        n = getPatchView().getController().AddConnection(((InletInstance) getController().getModel()), ((OutletInstanceView) dragtarget).getController().getModel());
                     }
-                } else if (this instanceof OutletInstance) {
-                    if (dragtarget instanceof InletInstance) {
-                        n = getPatchGui().AddConnection((InletInstance) dragtarget, (OutletInstance) this);
+                } else if (this instanceof OutletInstanceView) {
+                    if (dragtarget instanceof InletInstanceView) {
+                        getPatchView().getController().addMetaUndo("connect");
+                        n = getPatchView().getController().AddConnection(((InletInstanceView) dragtarget).getController().getModel(), ((OutletInstanceView) IoletAbstract.this).getController().getModel());
                     }
                 }
-                axoObj.patch.PromoteOverloading(false);
+                getPatchView().getController().PromoteOverloading(false);
             }
-            if (n != null) {
-                getPatchGui().SetDirty();
-            }
-            getPatchGui().selectionRectLayerPanel.repaint();
+            getPatchView().selectionRectLayerPanel.repaint();
             e.consume();
         }
     }
@@ -177,19 +191,15 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if (!axoObj.IsLocked()) {
-            final PatchGUI patchGUI = getPatchGui();
-            if (patchGUI == null) {
-                return;
-            }
-            Point p = SwingUtilities.convertPoint(this, e.getPoint(), patchGUI.objectLayerPanel);
-            Component c = patchGUI.objectLayerPanel.findComponentAt(p);
+        if (!axoObj.isLocked()) {
+            Point p = SwingUtilities.convertPoint(IoletAbstract.this, e.getPoint(), getPatchView().objectLayerPanel);
+            Component c = getPatchView().objectLayerPanel.findComponentAt(p);
             while ((c != null) && !(c instanceof IoletAbstract)) {
                 c = c.getParent();
             }
             if ((c != null)
                     && (c != this)
-                    && (!((this instanceof OutletInstance) && (c instanceof OutletInstance)))) {
+                    && (!((this instanceof OutletInstanceView) && (c instanceof OutletInstanceView)))) {
                 // different target and not myself?
                 if (c != dragtarget) {
                     // new target
@@ -197,12 +207,9 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
                     Point jackLocation = dragtarget.getJackLocInCanvas();
                     dragnet.SetDragPoint(jackLocation);
                 }
-            } else {
-                // floating
-                if (dragnet != null) {
-                    dragnet.SetDragPoint(p);
-                    dragtarget = null;
-                }
+            } else if (dragnet != null) {
+                dragnet.SetDragPoint(p);
+                dragtarget = null;
             }
         }
         e.consume();
@@ -212,46 +219,15 @@ public abstract class IoletAbstract extends JPanel implements MouseListener, Mou
     public void mouseMoved(MouseEvent e) {
     }
 
-    public boolean isConnected() {
-        if (axoObj == null) {
-            return false;
-        }
-        if (axoObj.patch == null) {
-            return false;
-        }
-        return (axoObj.patch.GetNet(this) != null);
-    }
-
     public void setHighlighted(boolean highlighted) {
         if ((getRootPane() == null
                 || getRootPane().getCursor() != MainFrame.transparentCursor)
                 && axoObj != null
-                && axoObj.patch != null) {
-            Net n = axoObj.patch.GetNet(this);
-            if (n != null
-                    && n.getSelected() != highlighted) {
-                n.setSelected(highlighted);
-            }
-        }
-    }
-
-    public void disconnect() {
-        // only called from GUI action
-        if (axoObj.patch != null) {
-            Net n = axoObj.patch.disconnect(this);
-            if (n != null) {
-                axoObj.patch.SetDirty();
-            }
-        }
-    }
-
-    public void deleteNet() {
-        // only called from GUI action
-        if (axoObj.patch != null) {
-            Net n = axoObj.patch.GetNet(this);
-            n = axoObj.patch.delete(n);
-            if (n != null) {
-                axoObj.patch.SetDirty();
+                && axoObj.getPatchView() != null) {
+            INetView netView = axoObj.getPatchView().GetNetView(this);
+            if (netView != null
+                    && netView.getSelected() != highlighted) {
+                netView.setSelected(highlighted);
             }
         }
     }

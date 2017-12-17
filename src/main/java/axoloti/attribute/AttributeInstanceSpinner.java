@@ -17,11 +17,12 @@
  */
 package axoloti.attribute;
 
+import axoloti.atom.AtomDefinitionController;
 import axoloti.attributedefinition.AxoAttributeSpinner;
 import axoloti.object.AxoObjectInstance;
-import components.control.ACtrlEvent;
-import components.control.ACtrlListener;
-import components.control.NumberBoxComponent;
+import axoloti.property.IntegerProperty;
+import axoloti.property.Property;
+import java.beans.PropertyChangeEvent;
 
 /**
  *
@@ -29,49 +30,20 @@ import components.control.NumberBoxComponent;
  */
 public class AttributeInstanceSpinner extends AttributeInstanceInt<AxoAttributeSpinner> {
 
-    NumberBoxComponent spinner;
+    Integer MinValue;
+    Integer MaxValue;
 
-    public AttributeInstanceSpinner() {
+    public static final Property MINVALUE = new IntegerProperty("MinValue", AttributeInstanceSpinner.class, "Minimum");
+    public static final Property MAXVALUE = new IntegerProperty("MaxValue", AttributeInstanceSpinner.class, "Maximum");
+//    public static final Property DEFAULTVALUE = new IntegerProperty("DefaultValue",AttributeInstanceSpinner.class, "Default");
+
+    AttributeInstanceSpinner() {
+        super();
     }
 
-    public AttributeInstanceSpinner(AxoAttributeSpinner param, AxoObjectInstance axoObj1) {
-        super(param, axoObj1);
-        this.axoObj = axoObj1;
-        value = attr.getDefaultValue();
-    }
-
-    int valueBeforeAdjustment;
-
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        if (value < attr.getMinValue()) {
-            value = attr.getMinValue();
-        }
-        if (value > attr.getMaxValue()) {
-            value = attr.getMaxValue();
-        }
-        spinner = new NumberBoxComponent(value, attr.getMinValue(), attr.getMaxValue(), 1.0);
-        spinner.setParentAxoObjectInstance(this.axoObj);
-        add(spinner);
-        spinner.addACtrlListener(new ACtrlListener() {
-            @Override
-            public void ACtrlAdjusted(ACtrlEvent e) {
-                value = (int) spinner.getValue();
-            }
-
-            @Override
-            public void ACtrlAdjustmentBegin(ACtrlEvent e) {
-                valueBeforeAdjustment = value;
-            }
-
-            @Override
-            public void ACtrlAdjustmentFinished(ACtrlEvent e) {
-                if (value != valueBeforeAdjustment) {
-                    SetDirty();
-                }
-            }
-        });
+    public AttributeInstanceSpinner(AtomDefinitionController controller, AxoObjectInstance axoObj1) {
+        super(controller, axoObj1);
+        value = ((AxoAttributeSpinner) controller.getModel()).getDefaultValue();
     }
 
     @Override
@@ -80,24 +52,33 @@ public class AttributeInstanceSpinner extends AttributeInstanceInt<AxoAttributeS
     }
 
     @Override
-    public void Lock() {
-        if (spinner != null) {
-            spinner.setEnabled(false);
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        if (AxoAttributeSpinner.ATOM_MAXVALUE.is(evt)) {
+            setMaxValue((Integer) evt.getNewValue());
+        } else if (AxoAttributeSpinner.ATOM_MINVALUE.is(evt)) {
+            setMinValue((Integer) evt.getNewValue());
         }
     }
 
-    @Override
-    public void UnLock() {
-        if (spinner != null) {
-            spinner.setEnabled(true);
-        }
+    public Integer getMinValue() {
+        return MinValue;
     }
 
-    public int getValue() {
-        return value;
+    public void setMinValue(Integer MinValue) {
+        Integer prevVal = this.MinValue;
+        this.MinValue = MinValue;
+        firePropertyChange(MINVALUE, prevVal, MinValue);
     }
 
-    public void setValue(int value) {
-        this.value = value;
+    public Integer getMaxValue() {
+        return MaxValue;
     }
+
+    public void setMaxValue(Integer MaxValue) {
+        Integer prevVal = this.MaxValue;
+        this.MaxValue = MaxValue;
+        firePropertyChange(MAXVALUE, prevVal, MaxValue);
+    }
+
 }

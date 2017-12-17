@@ -27,16 +27,10 @@ import java.security.MessageDigest;
 public class DisplayVScale extends Display {
 
     public DisplayVScale() {
-        name = "";
     }
 
     public DisplayVScale(String name) {
         super(name);
-    }
-
-    @Override
-    public DisplayInstanceVScale InstanceFactory() {
-        return new DisplayInstanceVScale();
     }
 
     @Override

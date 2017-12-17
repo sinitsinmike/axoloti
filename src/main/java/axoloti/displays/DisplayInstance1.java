@@ -17,6 +17,7 @@
  */
 package axoloti.displays;
 
+import axoloti.atom.AtomDefinitionController;
 import axoloti.datatypes.Value;
 import java.nio.ByteBuffer;
 
@@ -26,8 +27,8 @@ import java.nio.ByteBuffer;
  */
 public abstract class DisplayInstance1<T extends Display> extends DisplayInstance<T> {
 
-    public DisplayInstance1() {
-        super();
+    public DisplayInstance1(AtomDefinitionController controller) {
+        super(controller);
     }
 
     @Override
@@ -41,11 +42,5 @@ public abstract class DisplayInstance1<T extends Display> extends DisplayInstanc
         return "displayVector[" + offset + "]";
     }
 
-    public abstract Value getValueRef();
-
-    @Override
-    public void ProcessByteBuffer(ByteBuffer bb) {
-        getValueRef().setRaw(bb.getInt());
-        updateV();
-    }
+//    public abstract Value getValueRef();
 }

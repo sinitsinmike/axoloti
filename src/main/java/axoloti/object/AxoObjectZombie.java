@@ -17,10 +17,6 @@
  */
 package axoloti.object;
 
-import axoloti.Patch;
-import axoloti.inlets.Inlet;
-import axoloti.outlets.Outlet;
-import java.awt.Point;
 import org.simpleframework.xml.Root;
 
 /**
@@ -28,7 +24,7 @@ import org.simpleframework.xml.Root;
  * @author Johannes Taelman
  */
 @Root
-public class AxoObjectZombie extends AxoObjectAbstract {
+public class AxoObjectZombie extends AxoObjectAbstract0 {
 
     public AxoObjectZombie() {
         super();
@@ -36,26 +32,6 @@ public class AxoObjectZombie extends AxoObjectAbstract {
 
     public AxoObjectZombie(String id, String sDescription) {
         super(id, sDescription);
-    }
-
-    @Override
-    Inlet GetInlet(String n) {
-        return null;
-    }
-
-    @Override
-    Outlet GetOutlet(String n) {
-        return null;
-    }
-
-    @Override
-    public AxoObjectInstanceAbstract CreateInstance(Patch patch, String InstanceName1, Point location) {
-        AxoObjectInstanceZombie o = new AxoObjectInstanceZombie(this, patch, InstanceName1, location);
-        if (patch != null) {
-            patch.objectinstances.add(o);
-        }
-        o.PostConstructor();
-        return o;
     }
 
     @Override

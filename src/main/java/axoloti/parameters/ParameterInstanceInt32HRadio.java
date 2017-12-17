@@ -17,11 +17,9 @@
  */
 package axoloti.parameters;
 
-import components.AssignMidiCCMenuItems;
-import components.control.HRadioComponent;
-import javax.swing.JMenu;
-import javax.swing.JPopupMenu;
-import org.simpleframework.xml.Attribute;
+import static axoloti.parameters.ParameterInstance.MIDI_CC;
+import axoloti.property.Property;
+import java.util.List;
 
 /**
  *
@@ -32,55 +30,18 @@ public class ParameterInstanceInt32HRadio extends ParameterInstanceInt32 {
     public ParameterInstanceInt32HRadio() {
     }
 
-    public ParameterInstanceInt32HRadio(@Attribute(name = "value") int v) {
-        super(v);
-    }
-
     @Override
-    public void updateV() {
-        ctrl.setValue(value.getInt());
-    }
-
-    @Override
-    public String GenerateCodeInit(String vprefix, String StructAccces) {
-        String s = /*"    " + variableName(vprefix) + " = " + (value.getInt()) + ";\n"
-                 + "    " + valueName(vprefix) + " = " + (value.getInt()) + ";\n"
-                 + "    " + signalsName(vprefix) + " = 0;\n"
-                 + "    SetKVP_IPVP(&" + StructAccces + KVPName(vprefix) + ",ObjectKvpRoot, \"" + KVPName(vprefix) + "\" ,"
-                 + "&" + PExName(vprefix) + ","
-                 + 0 + ","
-                 + ((1<<16)-1) + ");\n"
-                 + "  KVP_RegisterObject(&" + StructAccces + KVPName(vprefix) + ");\n"*/ "";
-        return s;
-    }
-
-    @Override
-    public String GenerateCodeDeclaration(String vprefix) {
-        return "KeyValuePair " + KVPName(vprefix) + ";\n";
+    public List<Property> getEditableFields() {
+        List<Property> l = super.getEditableFields();
+        l.add(MIDI_CC);
+        return l;
     }
 
     @Override
     public String GenerateCodeMidiHandler(String vprefix) {
         // hmm this is only one possible behavior - could also map to full MIDI range...
         int max = ((ParameterInt32HRadio) parameter).MaxValue.getInt();
-        return GenerateMidiCCCodeSub(vprefix, "(data2<" + max + ")?data2:" + (max-1));
+        return GenerateMidiCCCodeSub(vprefix, "(data2<" + max + ")?data2:" + (max - 1));
     }
 
-    @Override
-    public HRadioComponent CreateControl() {
-        return new HRadioComponent(0, ((ParameterInt32HRadio) parameter).MaxValue.getInt());
-    }
-
-    @Override
-    public HRadioComponent getControlComponent() {
-        return (HRadioComponent) ctrl;
-    }
-
-    @Override
-    public void populatePopup(JPopupMenu m) {
-        super.populatePopup(m);
-        JMenu m1 = new JMenu("Midi CC");
-        new AssignMidiCCMenuItems(this, m1);
-        m.add(m1);
-    }
 }

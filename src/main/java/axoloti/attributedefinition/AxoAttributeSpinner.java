@@ -17,8 +17,8 @@
  */
 package axoloti.attributedefinition;
 
-import axoloti.attribute.AttributeInstanceSpinner;
-import axoloti.object.AxoObjectInstance;
+import axoloti.property.IntegerProperty;
+import axoloti.property.Property;
 import java.util.List;
 import org.simpleframework.xml.Attribute;
 
@@ -29,13 +29,16 @@ import org.simpleframework.xml.Attribute;
 public class AxoAttributeSpinner extends AxoAttribute {
 
     @Attribute
-    public int MinValue;
+    Integer MinValue = 0;
     @Attribute
-    public int MaxValue;
+    Integer MaxValue = 1;
     @Attribute
-    public int DefaultValue;
+    Integer DefaultValue = 0;
 
     public AxoAttributeSpinner() {
+        MinValue = 0;
+        MaxValue = 0;
+        DefaultValue = 0;
     }
 
     public AxoAttributeSpinner(String name, int MinValue, int MaxValue, int DefaultValue) {
@@ -45,37 +48,54 @@ public class AxoAttributeSpinner extends AxoAttribute {
         this.DefaultValue = DefaultValue;
     }
 
-    public int getMinValue() {
-        return MinValue;
-    }
+    public static final Property ATOM_MINVALUE = new IntegerProperty("MinValue", AxoAttributeSpinner.class, "Minimum");
+    public static final Property ATOM_MAXVALUE = new IntegerProperty("MaxValue", AxoAttributeSpinner.class, "Maximum");
+    public static final Property ATOM_DEFAULTVALUE = new IntegerProperty("DefaultValue", AxoAttributeSpinner.class, "Default");
 
-    public int getMaxValue() {
-        return MaxValue;
-    }
-
-    public int getDefaultValue() {
-        return DefaultValue;
-    }
-
-    @Override
-    public AttributeInstanceSpinner InstanceFactory(AxoObjectInstance o) {
-        return new AttributeInstanceSpinner(this, o);
-    }
-
-    static public final String TypeName = "spinner";
+    public static final String TypeName = "spinner";
 
     @Override
     public String getTypeName() {
         return TypeName;
     }
-    
+
     @Override
-    public List<String> getEditableFields(){
+    public List<Property> getEditableFields() {
         List l = super.getEditableFields();
-        l.add("MinValue");
-        l.add("MaxValue");
-        l.add("DefaultValue");
+        l.add(ATOM_MINVALUE);
+        l.add(ATOM_MAXVALUE);
+        l.add(ATOM_DEFAULTVALUE);
         return l;
     }
-    
+
+    public Integer getMinValue() {
+        return MinValue;
+    }
+
+    public Integer getMaxValue() {
+        return MaxValue;
+    }
+
+    public Integer getDefaultValue() {
+        return DefaultValue;
+    }
+
+    public void setMinValue(Integer MinValue) {
+        Integer oldValue = this.MinValue;
+        this.MinValue = MinValue;
+        firePropertyChange(ATOM_MINVALUE, oldValue, MinValue);
+    }
+
+    public void setMaxValue(Integer MaxValue) {
+        Integer oldValue = this.MaxValue;
+        this.MaxValue = MaxValue;
+        firePropertyChange(ATOM_MAXVALUE, oldValue, MaxValue);
+    }
+
+    public void setDefaultValue(Integer DefaultValue) {
+        Integer oldValue = this.DefaultValue;
+        this.DefaultValue = DefaultValue;
+        firePropertyChange(ATOM_DEFAULTVALUE, oldValue, DefaultValue);
+    }
+
 }

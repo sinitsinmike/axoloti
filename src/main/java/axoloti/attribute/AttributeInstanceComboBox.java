@@ -17,11 +17,10 @@
  */
 package axoloti.attribute;
 
+import axoloti.atom.AtomDefinitionController;
 import axoloti.attributedefinition.AxoAttributeComboBox;
 import axoloti.object.AxoObjectInstance;
-import axoloti.utils.Constants;
-import components.DropDownComponent;
-import java.util.logging.Level;
+import java.beans.PropertyChangeEvent;
 import org.simpleframework.xml.Attribute;
 
 /**
@@ -32,53 +31,20 @@ public class AttributeInstanceComboBox extends AttributeInstanceString<AxoAttrib
 
     @Attribute(name = "selection", required = false)
     String selection;
-    DropDownComponent comboBox;
 
-    public AttributeInstanceComboBox() {
+    AttributeInstanceComboBox() {
     }
 
-    public AttributeInstanceComboBox(AxoAttributeComboBox param, AxoObjectInstance axoObj1) {
-        super(param, axoObj1);
-    }
-
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        comboBox = new DropDownComponent(GetDefinition().getMenuEntries(), this);
-        comboBox.setFont(Constants.FONT);
-        setString(selection);
-        comboBox.addItemListener(new DropDownComponent.DDCListener() {
-            @Override
-            public void SelectionChanged() {
-                if (!selection.equals((String) comboBox.getSelectedItem())) {
-                    selection = (String) comboBox.getSelectedItem();
-                    SetDirty();
-                }
-            }
-        });
-        this.add(comboBox);
-    }
-
-    @Override
-    public void Lock() {
-        if (comboBox != null) {
-            comboBox.setEnabled(false);
-        }
-    }
-
-    @Override
-    public void UnLock() {
-        if (comboBox != null) {
-            comboBox.setEnabled(true);
-        }
+    AttributeInstanceComboBox(AtomDefinitionController controller, AxoObjectInstance axoObj1) {
+        super(controller, axoObj1);
     }
 
     @Override
     public String CValue() {
-        if (GetDefinition().getCEntries().isEmpty()) {
+        if (getModel().getCEntries().isEmpty()) {
             return "";
         }
-        String s = GetDefinition().getCEntries().get(comboBox.getSelectedIndex());
+        String s = getModel().getCEntries().get(getSelectedIndex());
         if (s != null) {
             return s;
         } else {
@@ -87,32 +53,55 @@ public class AttributeInstanceComboBox extends AttributeInstanceString<AxoAttrib
     }
 
     @Override
-    public String getString() {
+    public String getValue() {
+        if (selection == null) {
+            return "";
+        }
         return selection;
     }
 
     @Override
-    public void setString(String selection) {
-        this.selection = selection;
-        if (comboBox == null) {
-            return;
+    public void setValue(String selection) {
+        String oldvalue = this.selection;
+        if (getModel().getMenuEntries().isEmpty()) {
+            // no menu entries present
+            this.selection = null;
+        } else {
+            int selectedIndex = getIndex(selection);
+            selection = getModel().getMenuEntries().get(selectedIndex);
+            this.selection = selection;
         }
-        if (comboBox.getItemCount() == 0) {
-            return;
-        }
+        firePropertyChange(
+                ATTR_VALUE,
+                oldvalue, this.selection);
+    }
+
+    public int getIndex(String selection) {
+        int selectedIndex = 0;
         if (selection == null) {
-            this.selection = (String) comboBox.getItemAt(0);
+            return 0;
         }
-        comboBox.setSelectedItem(this.selection);
-        if (this.selection.equals((String) comboBox.getSelectedItem())) {
-            return;
-        }
-        for (int i = 0; i < comboBox.getItemCount(); i++) {
-            if (this.selection.equals(comboBox.getItemAt(i))) {
-                this.selection = comboBox.getItemAt(i);
-                return;
+        for (int i = 0; i < getModel().getMenuEntries().size(); i++) {
+            if (selection.equals(getModel().getMenuEntries().get(i))) {
+                selectedIndex = i;
+                break;
             }
         }
-        java.util.logging.Logger.getLogger(AxoObjectInstance.class.getName()).log(Level.SEVERE, "Error: object \"{0}\" attribute \"{1}\", value \"{2}\" unmatched", new Object[]{GetObjectInstance().getInstanceName(), GetDefinition().getName(), selection});
+        return selectedIndex;
     }
+
+    public int getSelectedIndex() {
+        return getIndex(selection);
+    }
+
+    @Override
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        if (AxoAttributeComboBox.ATOM_CENTRIES.is(evt)) {
+            firePropertyChange(AxoAttributeComboBox.ATOM_CENTRIES, evt.getOldValue(), evt.getNewValue());
+        } else if (AxoAttributeComboBox.ATOM_MENUENTRIES.is(evt)) {
+            firePropertyChange(AxoAttributeComboBox.ATOM_MENUENTRIES, evt.getOldValue(), evt.getNewValue());
+        }
+    }
+
 }

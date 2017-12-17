@@ -18,6 +18,7 @@
 package axoloti.parameters;
 
 import axoloti.datatypes.ValueInt32;
+import axoloti.property.Property;
 import java.security.MessageDigest;
 import java.util.List;
 import org.simpleframework.xml.Element;
@@ -26,7 +27,7 @@ import org.simpleframework.xml.Element;
  *
  * @author Johannes Taelman
  */
-public class ParameterInt32VRadio extends Parameter<ParameterInstanceInt32VRadio> {
+public class ParameterInt32VRadio extends ParameterInt32<ParameterInstanceInt32VRadio> {
 
     @Element
     public ValueInt32 MaxValue;
@@ -49,7 +50,7 @@ public class ParameterInt32VRadio extends Parameter<ParameterInstanceInt32VRadio
     @Override
     public void updateSHA(MessageDigest md) {
         super.updateSHA(md);
-        md.update(("int32.vradio" + MaxValue.getInt()).getBytes());
+        md.update(("int32.vradio" + MaxValue).getBytes());
     }
 
     static public final String TypeName = "int32.vradio";
@@ -60,9 +61,36 @@ public class ParameterInt32VRadio extends Parameter<ParameterInstanceInt32VRadio
     }
 
     @Override
-    public List<String> getEditableFields() {
+    public List<Property> getEditableFields() {
         List l = super.getEditableFields();
-        l.add("MaxValue");
+        l.add(VALUE_MAX);
         return l;
     }
+
+    @Override
+    public String GetCType() {
+        return "param_type_int";
+    }
+
+    @Override
+    public Integer getMinValue() {
+        return 0;
+    }
+
+    @Override
+    public Integer getMaxValue() {
+        return MaxValue.getInt();
+    }
+
+    @Override
+    public void setMaxValue(Integer max) {
+        this.MaxValue = new ValueInt32(max);
+        firePropertyChange(VALUE_MAX, null, max);
+    }
+
+    @Override
+    public void setMinValue(Integer v) {
+    }
+    
+    
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013, 2014 Johannes Taelman
+ * Copyright (C) 2013 - 2017 Johannes Taelman
  *
  * This file is part of Axoloti.
  *
@@ -15,14 +15,18 @@
  * You should have received a copy of the GNU General Public License along with
  * Axoloti. If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include "ch.h"
 #include "hal.h"
 #include "axoloti_board.h"
 #include "midi.h"
+#include "midi_routing.h"
 #include "serial_midi.h"
 #include "patch.h"
 
-static unsigned char StatusLengthLookup[16] = {0, 0, 0, 0, 0, 0, 0, 0, 3, // 0x80=note off, 3 bytes
+#include "chibios_migration.h"
+
+const unsigned char StatusLengthLookup[16] = {0, 0, 0, 0, 0, 0, 0, 0, 3, // 0x80=note off, 3 bytes
                                                3, // 0x90=note on, 3 bytes
                                                3, // 0xa0=poly pressure, 3 bytes
                                                3, // 0xb0=control change, 3 bytes
@@ -50,24 +54,55 @@ const signed char SysMsgLengthLookup[16] = {-1, // 0xf0=sysex start. may vary
     3 // 0xff= not reset, but a META-EVENT, which is always 3 bytes
     };
 
-unsigned char MidiByte0;
-unsigned char MidiByte1;
-unsigned char MidiByte2;
-unsigned char MidiCurData;
-unsigned char MidiNumData;
-unsigned char MidiInChannel;
+midi_input_remap_t midi_inputmap_din = {
+		.name = "DIN",
+		.nports = 1,
+		.bmvports = {0b00000001}
+};
 
-void serial_MidiInByteHandler(uint8_t data);
+midi_output_routing_t midi_outputmap_din = {
+			.name = "DIN",
+			.nports = 1,
+			.bmvports = {1}
+};
 
+static unsigned char MidiByte0;
+static unsigned char MidiByte1;
+static unsigned char MidiByte2;
+static unsigned char MidiCurData;
+static unsigned char MidiNumData;
 
-void serial_MidiInByteHandler(uint8_t data) {
+// CIN for everyting except sysex
+inline uint8_t SMidi_calcCIN(uint8_t b0) {
+    return (b0 & 0xF0 ) >> 4;
+}
+
+__STATIC_INLINE void dispatch_midi_input(midi_message_t m) {
+	  int portmap = midi_inputmap_din.bmvports[0];
+	  int v;
+	  for (v=0;v<16;v++) {
+		  if (portmap & 1) {
+			  m.fields.port = v;
+			  midi_input_buffer_put(&midi_input_buffer, m);
+		  }
+		  portmap = portmap>>1;
+	  }
+}
+
+static void serial_MidiInByteHandler(uint8_t data) {
   int8_t len;
   if (data & 0x80) {
     len = StatusLengthLookup[data >> 4];
     if (len == -1) {
       len = SysMsgLengthLookup[data - 0xF0];
       if (len == 1) {
-        MidiInMsgHandler(MIDI_DEVICE_DIN, 1, data, 0, 0);
+    	  // TODO: sysex handling...
+    	  midi_message_t m;
+    	  m.bytes.ph = SMidi_calcCIN(data);
+    	  m.bytes.b0 = data;
+    	  m.bytes.b1 = 0;
+    	  m.bytes.b2 = 0;
+    	  dispatch_midi_input(m);
       }
       else {
         MidiByte0 = data;
@@ -87,7 +122,12 @@ void serial_MidiInByteHandler(uint8_t data) {
       MidiByte1 = data;
       if (MidiNumData == 1) {
         // 2 byte message complete
-        MidiInMsgHandler(MIDI_DEVICE_DIN, 1, MidiByte0, MidiByte1, 0);
+    	  midi_message_t m;
+    	  m.bytes.ph = SMidi_calcCIN(MidiByte0);
+    	  m.bytes.b0 = MidiByte0;
+    	  m.bytes.b1 = MidiByte1;
+    	  m.bytes.b2 = 0;
+    	  dispatch_midi_input(m);
         MidiCurData = 0;
       }
       else
@@ -96,7 +136,12 @@ void serial_MidiInByteHandler(uint8_t data) {
     else if (MidiCurData == 1) {
       MidiByte2 = data;
       if (MidiNumData == 2) {
-        MidiInMsgHandler(MIDI_DEVICE_DIN, 1, MidiByte0, MidiByte1, MidiByte2);
+    	  midi_message_t m;
+    	  m.bytes.ph = SMidi_calcCIN(MidiByte0);
+    	  m.bytes.b0 = MidiByte0;
+    	  m.bytes.b1 = MidiByte1;
+    	  m.bytes.b2 = MidiByte2;
+    	  dispatch_midi_input(m);
         MidiCurData = 0;
       }
     }
@@ -105,23 +150,65 @@ void serial_MidiInByteHandler(uint8_t data) {
 
 // Midi OUT
 
+void serial_MidiSend(midi_message_t midimsg) {
+	// TODO: running status
+	// TODO: skip other messages when sysex is in progress
+	switch(midimsg.fields.cin){
+  case 0x4: // sysex start/continue
+    sdWrite(&SDMIDI, &midimsg.bytes.b0, 3);
+    break;
+  case 0x5: // end 1 byte
+    sdWrite(&SDMIDI, &midimsg.bytes.b0, 1);
+    break;
+  case 0x6: // end 2 byte
+    sdWrite(&SDMIDI, &midimsg.bytes.b0, 2);
+    break;
+  case 0x7: // end 3 byte
+    sdWrite(&SDMIDI, &midimsg.bytes.b0, 3);
+    break;
+
+	case 0x8: // note-off
+	case 0x9: // note-on
+	case 0xA: // PolyKeyPress
+	case 0xB: // Control change
+		sdWrite(&SDMIDI, &midimsg.bytes.b0, 3);
+		break;
+	case 0xC: // program change
+	case 0xD: // channel pressure
+		sdWrite(&SDMIDI, &midimsg.bytes.b0, 2);
+		break;
+	case 0xE: // pitch bend
+		sdWrite(&SDMIDI, &midimsg.bytes.b0, 3);
+		break;
+	case 0xF: // single byte
+		sdWrite(&SDMIDI, &midimsg.bytes.b0, 1);
+		break;
+	}
+}
+
+
 void serial_MidiSend1(uint8_t b0) {
-  sdPut(&SDMIDI, b0);
+	midi_message_t m;
+	m.bytes.b0 = b0;
+	m.fields.cin = b0>>4;
+	serial_MidiSend(m);
 }
 
 void serial_MidiSend2(uint8_t b0, uint8_t b1) {
-  unsigned char tx[2];
-  tx[0] = b0;
-  tx[1] = b1;
-  sdWrite(&SDMIDI, tx, 2);
+	midi_message_t m;
+	m.bytes.b0 = b0;
+	m.bytes.b1 = b1;
+	m.fields.cin = b0>>4;
+	serial_MidiSend(m);
 }
 
 void serial_MidiSend3(uint8_t b0, uint8_t b1, uint8_t b2) {
-  unsigned char tx[3];
-  tx[0] = b0;
-  tx[1] = b1;
-  tx[2] = b2;
-  sdWrite(&SDMIDI, tx, 3);
+	midi_message_t m;
+	m.bytes.b0 = b0;
+	m.bytes.b1 = b1;
+	m.bytes.b2 = b2;
+	m.fields.cin = b0>>4;
+	serial_MidiSend(m);
 }
 
 int serial_MidiGetOutputBufferPending(void) {
@@ -132,14 +219,10 @@ int serial_MidiGetOutputBufferPending(void) {
 static const SerialConfig sdMidiCfg = {31250, // baud
     0, 0, 0};
 
-static WORKING_AREA(waThreadMidi, 256) __attribute__ ((section (".ccmramend")));
-
-__attribute__((noreturn))
-  static msg_t ThreadMidi(void *arg) {
+static WORKING_AREA(waThreadMidiIn, 256);
+static THD_FUNCTION(ThreadMidiIn, arg) {
   (void)arg;
-#if CH_USE_REGISTRY
-  chRegSetThreadName("midi");
-#endif
+  chRegSetThreadName("midi_din_in");
   while (1) {
     char ch;
     ch = sdGet(&SDMIDI);
@@ -147,23 +230,45 @@ __attribute__((noreturn))
   }
 }
 
+midi_output_buffer_t midi_output_din;
+
+static WORKING_AREA(waThreadMidiOut, 256);
+static THD_FUNCTION(ThreadMidiOut, arg) {
+	(void) arg;
+	chRegSetThreadName("midi_din_out");
+	while (1) {
+		eventmask_t evt = chEvtWaitOne(1);
+		(void) evt;
+		midi_message_t m;
+		msg_t r;
+		r = midi_output_buffer_get(&midi_output_din, &m);
+		while (r == MSG_OK ) {
+			serial_MidiSend(m);
+			r = midi_output_buffer_get(&midi_output_din, &m);
+		}
+	}
+}
+
+static thread_t * thd_midi_din_writer;
+
+static void notify(void *obj) {
+  chEvtSignal(thd_midi_din_writer,1);
+}
+
 void serial_midi_init(void) {
   /*
    * Activates the serial driver 2 using the driver default configuration.
    * PA2(TX) and PA3(RX) are routed to USART2.
    */
-#ifdef BOARD_AXOLOTI_V05
   // RX
   palSetPadMode(GPIOG, 9, PAL_MODE_ALTERNATE(8) | PAL_MODE_INPUT_PULLUP);
   // TX
   palSetPadMode(GPIOG, 14, PAL_MODE_ALTERNATE(8) | PAL_STM32_OTYPE_OPENDRAIN);
-#else
-  // RX
-  palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7)|PAL_MODE_INPUT_PULLUP);
-  // TX
-  palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7)|PAL_STM32_OTYPE_OPENDRAIN);
-#endif
+
   sdStart(&SDMIDI, &sdMidiCfg);
-  chThdCreateStatic(waThreadMidi, sizeof(waThreadMidi), NORMALPRIO, ThreadMidi,
+  chThdCreateStatic(waThreadMidiIn, sizeof(waThreadMidiIn), NORMALPRIO, ThreadMidiIn,
                     NULL);
+  thd_midi_din_writer = chThdCreateStatic(waThreadMidiOut, sizeof(waThreadMidiOut), NORMALPRIO, ThreadMidiOut,
+                    NULL);
+  midi_output_buffer_objinit(&midi_output_din, notify);
 }

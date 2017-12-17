@@ -17,8 +17,12 @@
  */
 package axoloti.attribute;
 
+import axoloti.atom.AtomDefinitionController;
 import axoloti.attributedefinition.AxoAttribute;
 import axoloti.object.AxoObjectInstance;
+import axoloti.property.Property;
+import axoloti.property.StringProperty;
+import java.util.List;
 
 /**
  *
@@ -26,22 +30,33 @@ import axoloti.object.AxoObjectInstance;
  */
 public abstract class AttributeInstanceString<T extends AxoAttribute> extends AttributeInstance<T> {
 
-    public AttributeInstanceString() {
+    AttributeInstanceString() {
+        super();
     }
 
-    public AttributeInstanceString(T param, AxoObjectInstance axoObj1) {
-        super(param, axoObj1);
+    AttributeInstanceString(AtomDefinitionController controller, AxoObjectInstance axoObj1) {
+        super(controller, axoObj1);
     }
 
-    public abstract String getString();
+    public static final StringProperty ATTR_VALUE = new StringProperty("Value", AttributeInstanceString.class);
 
-    public abstract void setString(String s);
+    @Override
+    public List<Property> getProperties() {
+        List<Property> l = super.getProperties();
+        l.add(ATTR_VALUE);
+        return l;
+    }
+
+    public abstract String getValue();
+
+    public abstract void setValue(String s);
 
     @Override
     public void CopyValueFrom(AttributeInstance a) {
         if (a instanceof AttributeInstanceString) {
             AttributeInstanceString a1 = (AttributeInstanceString) a;
-            setString(a1.getString());
+            setValue(a1.getValue());
         }
     }
+
 }

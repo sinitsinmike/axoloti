@@ -17,9 +17,6 @@
  */
 package axoloti.attributedefinition;
 
-import axoloti.attribute.AttributeInstanceWavefile;
-import axoloti.object.AxoObjectInstance;
-
 /**
  *
  * @author Johannes Taelman
@@ -28,15 +25,10 @@ import axoloti.object.AxoObjectInstance;
 public class AxoAttributeWavefile extends AxoAttribute {
 
     public AxoAttributeWavefile(String name) {
-        this.name = name;
+        super(name);
     }
 
     public AxoAttributeWavefile() {
-    }
-
-    @Override
-    public AttributeInstanceWavefile InstanceFactory(AxoObjectInstance o) {
-        return new AttributeInstanceWavefile(this, o);
     }
 
     static public final String TypeName = "unused!";

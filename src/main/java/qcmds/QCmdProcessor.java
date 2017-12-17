@@ -17,10 +17,11 @@
  */
 package qcmds;
 
-import axoloti.Connection;
+import axoloti.IConnection;
 import axoloti.MainFrame;
-import axoloti.Patch;
-import axoloti.USBBulkConnection;
+import axoloti.CConnection;
+import axoloti.PatchViewCodegen;
+import axoloti.utils.Preferences;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
@@ -35,8 +36,8 @@ public class QCmdProcessor implements Runnable {
 
     private final BlockingQueue<QCmd> queue;
     private final BlockingQueue<QCmd> queueResponse;
-    protected Connection serialconnection;
-    private Patch patch;
+    protected IConnection serialconnection;
+    private PatchViewCodegen patchController;
     private final PeriodicPinger pinger;
     private final Thread pingerThread;
     private final PeriodicDialTransmitter dialTransmitter;
@@ -48,12 +49,15 @@ public class QCmdProcessor implements Runnable {
         public void run() {
             while (true) {
                 try {
-                    Thread.sleep(MainFrame.prefs.getPollInterval());
+                    Thread.sleep(Preferences.getPreferences().getPollInterval());
                 } catch (InterruptedException ex) {
                     Logger.getLogger(QCmdProcessor.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 if (queue.isEmpty() && serialconnection.isConnected()) {
                     queue.add(new QCmdPing());
+                    if (MainFrame.mainframe.getRemote().isFocused()){
+                        MainFrame.mainframe.getRemote().refreshFB();
+                    }
                 }
             }
         }
@@ -79,7 +83,7 @@ public class QCmdProcessor implements Runnable {
     protected QCmdProcessor() {
         queue = new ArrayBlockingQueue<QCmd>(10);
         queueResponse = new ArrayBlockingQueue<QCmd>(10);
-        serialconnection = USBBulkConnection.GetConnection();
+        serialconnection = CConnection.GetConnection();
         pinger = new PeriodicPinger();
         pingerThread = new Thread(pinger);
         dialTransmitter = new PeriodicDialTransmitter();
@@ -94,8 +98,8 @@ public class QCmdProcessor implements Runnable {
         return singleton;
     }
     
-    public Patch getPatch() {
-        return patch;
+    public PatchViewCodegen getPatchController() {
+        return patchController;
     }
 
     public boolean AppendToQueue(QCmd cmd) {
@@ -151,18 +155,25 @@ public class QCmdProcessor implements Runnable {
         });
     }
 
-    public void WaitQueueFinished() {
+    public void WaitQueueFinished() throws Exception {
+        int t = 0;
         while (true) {
             if (queue.isEmpty() && queueResponse.isEmpty()) {
                 break;
             }
             try {
                 Thread.sleep(10);
+                t += 10;
+                if (t > 5000) {
+                    throw new Exception("Queue timeout " + currentcmd);
+                }
             } catch (InterruptedException ex) {
                 Logger.getLogger(QCmdProcessor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
+
+    QCmd currentcmd = null;
 
     @Override
     public void run() {
@@ -174,38 +185,38 @@ public class QCmdProcessor implements Runnable {
             setProgress(0);
             try {
                 queueResponse.clear();
-                QCmd cmd = queue.take();
-                if (!((cmd instanceof QCmdPing) || (cmd instanceof QCmdGuiDialTx))) {
+                currentcmd = queue.take();
+                if (!((currentcmd instanceof QCmdPing) || (currentcmd instanceof QCmdGuiDialTx))) {
                     //System.out.println(cmd);
                     //setProgress((100 * (queue.size() + 1)) / (queue.size() + 2));
                 }
-                String m = cmd.GetStartMessage();
+                String m = currentcmd.GetStartMessage();
                 if (m != null) {
                     publish(m);
                     println(m);
                 }
-                if (QCmdShellTask.class.isInstance(cmd)) {
+                if (QCmdShellTask.class.isInstance(currentcmd)) {
                     //                shellprocessor.AppendToQueue((QCmdShellTask)cmd);
                     //                publish(queueResponse.take());
-                    QCmd response = ((QCmdShellTask) cmd).Do(this);
+                    QCmd response = ((QCmdShellTask) currentcmd).Do(this);
                     if ((response != null)) {
                         ((QCmdGUITask) response).DoGUI(this);
                     }
                 }
-                if (QCmdSerialTask.class.isInstance(cmd)) {
+                if (QCmdSerialTask.class.isInstance(currentcmd)) {
                     if (serialconnection.isConnected()) {
-                        serialconnection.AppendToQueue((QCmdSerialTask) cmd);
+                        serialconnection.AppendToQueue((QCmdSerialTask) currentcmd);
                         QCmd response = queueResponse.take();
                         publish(response);
-                        if (response instanceof QCmdDisconnect){
+                        if (response instanceof QCmdDisconnect) {
                             queue.clear();
                         }
                     }
                 }
-                if (QCmdGUITask.class.isInstance(cmd)) {
-                    publish(cmd);
+                if (QCmdGUITask.class.isInstance(currentcmd)) {
+                    publish(currentcmd);
                 }
-                m = cmd.GetDoneMessage();
+                m = currentcmd.GetDoneMessage();
                 if (m != null) {
                     println(m);
                     publish(m);
@@ -229,11 +240,11 @@ public class QCmdProcessor implements Runnable {
         });
     }
 
-    public void SetPatch(Patch patch) {
-        if (this.patch != null) {
-            this.patch.Unlock();
+    public void setPatchController(PatchViewCodegen patchController) {
+        if (this.patchController != null) {
+            this.patchController.getController().setLocked(false);
         }
-        this.patch = patch;
+        this.patchController = patchController;
     }
 
     public BlockingQueue<QCmd> getQueueResponse() {

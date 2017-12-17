@@ -34,48 +34,37 @@ public class ParameterInstanceFrac32SMap extends ParameterInstanceFrac32UMap<Par
     }
 
     @Override
-    double getMin() {
+    public double getMin() {
         return -64.0;
     }
 
     @Override
-    double getMax() {
+    public double getMax() {
         return 64.0;
     }
 
     @Override
-    double getTick() {
+    public double getTick() {
         return 1.0;
     }
 
     @Override
     public String GetPFunction() {
         if (pfunction == null) {
-            return "pfun_signed_clamp";
+            return "parameter_function::pf_signed_clamp";
         } else {
             return pfunction;
         }
     }
 
     @Override
-    public String GenerateCodeInit(String vprefix, String StructAccces) {
-        String n;
-        if (axoObj.parameterInstances.size() == 1) {
-            n = axoObj.getInstanceName();
-        } else {
-            n = axoObj.getInstanceName() + ":" + name;
-        }
-        String s = PExName(vprefix) + ".pfunction = " + GetPFunction() + ";\n"
-                + "  SetKVP_IPVP(&" + StructAccces + KVPName(vprefix) + ",ObjectKvpRoot, \"" + n + "\" ,"
-                + "&" + PExName(vprefix) + ","
-                + " -1<<27,"
-                + " 1<<27);\n"
-                + "  KVP_RegisterObject(&" + StructAccces + KVPName(vprefix) + ");\n";
-        return s;
+    public String GetCOffset() {
+        return "0";
     }
 
     @Override
     public String GenerateCodeMidiHandler(String vprefix) {
         return GenerateMidiCCCodeSub(vprefix, "(data2!=127)?(data2-64)<<21:0x07FFFFFF");
     }
+
 }

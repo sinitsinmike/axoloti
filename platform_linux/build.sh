@@ -35,13 +35,13 @@ fi
 
 case $OS in
     Ubuntu|Debian|DebianJessie32bit)
-        echo "apt-get install -y libtool libudev-dev automake autoconf ant curl lib32z1 lib32ncurses5 lib32bz2-1.0"
+        echo "apt-get install -y libtool libudev-dev automake autoconf ant curl lib32z1 lib32ncurses5 lib32bz2-1.0 p7zip-full"
       if [ $OS==DebianJessie32bit ]; then
             sudo apt-get install -y libtool libudev-dev automake autoconf \
-               ant curl
+               ant curl p7zip-full fakeroot
       else
             sudo apt-get install -y libtool libudev-dev automake autoconf \
-               ant curl lib32z1 lib32ncurses5
+               ant curl lib32z1 lib32ncurses5 p7zip-full fakeroot
       fi
 
         # On more recent versions of Ubuntu
@@ -86,46 +86,55 @@ mkdir -p "${PLATFORM_ROOT}/lib"
 mkdir -p "${PLATFORM_ROOT}/src"
 
 
-if [ ! -d "${PLATFORM_ROOT}/../chibios" ];
+CH_VERSION=16.1.8
+if [ ! -d "${PLATFORM_ROOT}/../ChibiOS_${CH_VERSION}" ]; 
 then
     cd "${PLATFORM_ROOT}/src"
-    CH_VERSION=2.6.9
     ARDIR=ChibiOS_${CH_VERSION}
     ARCHIVE=${ARDIR}.zip
     if [ ! -f ${ARCHIVE} ];
     then
-        echo "##### downloading ${ARCHIVE} #####"
+        echo "downloading ${ARCHIVE}"
         curl -L https://sourceforge.net/projects/chibios/files/ChibiOS%20GPL3/Version%20${CH_VERSION}/${ARCHIVE} > ${ARCHIVE}
     else
-        echo "##### ${ARCHIVE} already downloaded #####"
+        echo "${ARCHIVE} already downloaded"
     fi
     unzip -q -o ${ARCHIVE}
-    mv ${ARDIR} chibios
-    cd chibios/ext
-    unzip -q -o ./fatfs-0.9-patched.zip
+    cd ${ARDIR}/ext
+    7z x ./fatfs-0.10b-patched.7z
     cd ../../
-    mv chibios ../..
+    mv ${ARDIR} ../..
+
+
+    echo "fixing ChibiOS community from ChibiOS-Contrib"
+    cd ${PLATFORM_ROOT}/../ChibiOS_${CH_VERSION}
+    rm -rf community
+    git clone https://github.com/axoloti/ChibiOS-Contrib.git community
+    cd community
+    git checkout patch-1
+
 else
-    echo "##### chibios directory already present, skipping... #####"
+    echo "chibios directory already present, skipping..."
 fi
 
 
-if [ ! -f "$PLATFORM_ROOT/bin/arm-none-eabi-gcc" ];
+
+if [ ! -f "${PLATFORM_ROOT}/gcc-arm-none-eabi-6-2017-q1-update/bin/arm-none-eabi-gcc" ];
 then
-    cd "${PLATFORM_ROOT}/src"
-    ARCHIVE=gcc-arm-none-eabi-4_9-2015q2-20150609-linux.tar.bz2
-    if [ ! -f ${ARCHIVE} ];
+    cd "${PLATFORM_ROOT}"
+    ARDIR=gcc-arm-none-eabi-6-2017-q1-update
+    ARCHIVE=${ARDIR}-linux.tar.bz2
+    if [ ! -f ${ARCHIVE} ]; 
     then
         echo "downloading ${ARCHIVE}"
-        curl -L https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/$ARCHIVE > $ARCHIVE
+        curl -L https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/6_1-2017q1/${ARCHIVE} > ${ARCHIVE}
     else
         echo "${ARCHIVE} already downloaded"
     fi
     tar xfj ${ARCHIVE}
-    cp -rv gcc-arm-none-eabi-4_9-2015q2/* ..
-    rm -r gcc-arm-none-eabi-4_9-2015q2
+    rm ${ARCHIVE}
 else
-    echo "bin/arm-none-eabi-gcc already present, skipping..."
+    echo "gcc-arm-none-eabi-6-2017-q1-update/bin/arm-none-eabi-gcc already present, skipping..."
 fi
 
 if [ ! -f "$PLATFORM_ROOT/lib/libusb-1.0.a" ];

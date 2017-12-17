@@ -17,9 +17,8 @@
  */
 package axoloti.object;
 
-import static axoloti.Axoloti.FIRMWARE_DIR;
+import static axoloti.Axoloti.CHIBIOS_DIR;
 import axoloti.Modulator;
-import axoloti.Patch;
 import axoloti.SDFileReference;
 import axoloti.attributedefinition.AxoAttribute;
 import axoloti.attributedefinition.AxoAttributeComboBox;
@@ -108,15 +107,17 @@ import axoloti.parameters.ParameterInt32Box;
 import axoloti.parameters.ParameterInt32BoxSmall;
 import axoloti.parameters.ParameterInt32HRadio;
 import axoloti.parameters.ParameterInt32VRadio;
-import java.awt.Point;
+import axoloti.property.BooleanProperty;
+import axoloti.property.Property;
+import axoloti.property.StringProperty;
+import axoloti.property.StringPropertyNull;
 import java.awt.Rectangle;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.simpleframework.xml.*;
 
 /**
@@ -129,9 +130,9 @@ public class AxoObject extends AxoObjectAbstract {
     @Element(required = false)
     public String helpPatch;
     @Element(required = false)
-    private Boolean providesModulationSource;
+    private Boolean providesModulationSource = false;
     @Element(required = false)
-    private Boolean rotatedParams;
+    private Boolean rotatedParams = false;
     @ElementList(required = false)
     public ArrayList<String> ModulationSources;
     @Path("inlets")
@@ -150,7 +151,7 @@ public class AxoObject extends AxoObjectAbstract {
         @ElementList(entry = InletFrac32BufferPos.TypeName, type = InletFrac32BufferPos.class, inline = true, required = false),
         @ElementList(entry = InletFrac32BufferBipolar.TypeName, type = InletFrac32BufferBipolar.class, inline = true, required = false)
     })
-    public ArrayList<Inlet> inlets;
+    public List<Inlet> inlets = new ArrayList<>();
     @Path("outlets")
     @ElementListUnion({
         @ElementList(entry = OutletBool32.TypeName, type = OutletBool32.class, inline = true, required = false),
@@ -166,7 +167,7 @@ public class AxoObject extends AxoObjectAbstract {
         @ElementList(entry = OutletFrac32BufferPos.TypeName, type = OutletFrac32BufferPos.class, inline = true, required = false),
         @ElementList(entry = OutletFrac32BufferBipolar.TypeName, type = OutletFrac32BufferBipolar.class, inline = true, required = false)
     })
-    public ArrayList<Outlet> outlets;
+    public List<Outlet> outlets = new ArrayList<>();
     @Path("displays")
     @ElementListUnion({
         @ElementList(entry = DisplayBool32.TypeName, type = DisplayBool32.class, inline = true, required = false),
@@ -189,7 +190,7 @@ public class AxoObject extends AxoObjectAbstract {
         @ElementList(entry = DisplayFrac8U128VBar.TypeName, type = DisplayFrac8U128VBar.class, inline = true, required = false),
         @ElementList(entry = DisplayNoteLabel.TypeName, type = DisplayNoteLabel.class, inline = true, required = false)
     })
-    public ArrayList<Display> displays; // readouts
+    public List<Display> displays = new ArrayList<>(); // readouts
     @Path("params")
     @ElementListUnion({
         @ElementList(entry = ParameterFrac32UMap.TypeName, type = ParameterFrac32UMap.class, inline = true, required = false),
@@ -223,7 +224,7 @@ public class AxoObject extends AxoObjectAbstract {
         @ElementList(entry = ParameterBin1.TypeName, type = ParameterBin1.class, inline = true, required = false),
         @ElementList(entry = ParameterBin1Momentary.TypeName, type = ParameterBin1Momentary.class, inline = true, required = false)
     })
-    public ArrayList<Parameter> params; // variables
+    public List<Parameter> params  = new ArrayList<>(); // variables
     @Path("attribs")
     @ElementListUnion({
         @ElementList(entry = AxoAttributeObjRef.TypeName, type = AxoAttributeObjRef.class, inline = true, required = false),
@@ -233,7 +234,7 @@ public class AxoObject extends AxoObjectAbstract {
         @ElementList(entry = AxoAttributeSpinner.TypeName, type = AxoAttributeSpinner.class, inline = true, required = false),
         @ElementList(entry = AxoAttributeSDFile.TypeName, type = AxoAttributeSDFile.class, inline = true, required = false),
         @ElementList(entry = AxoAttributeTextEditor.TypeName, type = AxoAttributeTextEditor.class, inline = true, required = false)})
-    public ArrayList<AxoAttribute> attributes; // literal constants
+    public List<AxoAttribute> attributes = new ArrayList<>(); // literal constants
     @ElementList(name = "file-depends", entry = "file-depend", type = SDFileReference.class, required = false)
     public ArrayList<SDFileReference> filedepends;
     @ElementList(name = "includes", entry = "include", type = String.class, required = false)
@@ -241,18 +242,21 @@ public class AxoObject extends AxoObjectAbstract {
     @ElementList(name = "depends", entry = "depend", type = String.class, required = false)
     public HashSet<String> depends;
 
+    @ElementList(name = "modules", entry = "modules", type = String.class, required = false)
+    public HashSet<String> modules;
+
     @Element(name = "code.declaration", required = false, data = true)
-    public String sLocalData;
+    public String sLocalData = "";
     @Element(name = "code.init", required = false, data = true)
-    public String sInitCode;
+    public String sInitCode = "";
     @Element(name = "code.dispose", required = false, data = true)
-    public String sDisposeCode;
+    public String sDisposeCode = "";
     @Element(name = "code.krate", required = false, data = true)
-    public String sKRateCode;
+    public String sKRateCode = "";
     @Element(name = "code.srate", required = false, data = true)
-    public String sSRateCode;
+    public String sSRateCode = "";
     @Element(name = "code.midihandler", required = false, data = true)
-    public String sMidiCode;
+    public String sMidiCode = "";
 
     @Element(name = "code.midicc", required = false, data = true)
     @Deprecated
@@ -277,76 +281,57 @@ public class AxoObject extends AxoObjectAbstract {
     public String sMidiResetControllersCode;
 
     public AxoObject() {
-        inlets = new ArrayList<Inlet>();
-        outlets = new ArrayList<Outlet>();
-        displays = new ArrayList<Display>();
-        params = new ArrayList<Parameter>();
-        attributes = new ArrayList<AxoAttribute>();
-        includes = new HashSet<String>();
     }
 
     public AxoObject(String id, String sDescription) {
         super(id, sDescription);
-        inlets = new ArrayList<Inlet>();
-        outlets = new ArrayList<Outlet>();
-        displays = new ArrayList<Display>();
-        params = new ArrayList<Parameter>();
-        attributes = new ArrayList<AxoAttribute>();
-        includes = new HashSet<String>();
     }
 
-    ArrayList<ObjectModifiedListener> instances = new ArrayList<ObjectModifiedListener>();
     AxoObjectEditor editor;
-    
+
     Rectangle editorBounds;
     Integer editorActiveTabIndex;
-    
-    private void setEditorBounds(Rectangle editorBounds) {
-        if(editorBounds != null) {
+
+    public void setEditorBounds(Rectangle editorBounds) {
+        if (editorBounds != null) {
             editor.setBounds(editorBounds);
-        }
-        else if(this.editorBounds != null) {
+        } else if (this.editorBounds != null) {
             editor.setBounds(this.editorBounds);
         }
-        
+
     }
-    
-    private void setEditorActiveTabIndex(Integer editorActiveTabIndex) {
-        if(editorActiveTabIndex != null) {
+
+    public void setEditorActiveTabIndex(Integer editorActiveTabIndex) {
+        if (editorActiveTabIndex != null) {
             editor.setActiveTabIndex(editorActiveTabIndex);
-        }
-        else if(this.editorActiveTabIndex != null) {
+        } else if (this.editorActiveTabIndex != null) {
             editor.setActiveTabIndex(this.editorActiveTabIndex);
         }
     }
-    
+
+    @Override
     public void OpenEditor(Rectangle editorBounds, Integer editorActiveTabIndex) {
         if (editor == null) {
-            editor = new AxoObjectEditor(this);
+            ObjectController ctrl = createController(null, null);
+            editor = new AxoObjectEditor(ctrl);
         }
-        
+
         setEditorBounds(editorBounds);
         setEditorActiveTabIndex(editorActiveTabIndex);
-        
+
         editor.setState(java.awt.Frame.NORMAL);
         editor.setVisible(true);
     }
 
     public void CloseEditor() {
-        FireObjectModified(this);
         editor = null;
     }
 
+    /*
     @Override
-    public void DeleteInstance(AxoObjectInstanceAbstract o) {
-        if ((o != null) && (o instanceof AxoObjectInstance)) {
-            instances.remove((AxoObjectInstance) o);
-        }
-    }
-
-    @Override
-    public AxoObjectInstance CreateInstance(Patch patch, String InstanceName1, Point location) {
-        if (patch != null) {
+    public AxoObjectInstance CreateInstance(PatchController patchController, String InstanceName1, Point location) {
+        PatchModel patchModel = null;
+        if (patchController != null) {
             if ((sMidiCCCode != null)
                     || (sMidiAllNotesOffCode != null)
                     || (sMidiCCCode != null)
@@ -357,17 +342,13 @@ public class AxoObject extends AxoObjectAbstract {
                     || (sMidiResetControllersCode != null)) {
                 Logger.getLogger(AxoObject.class.getName()).log(Level.SEVERE, "Object {0} uses obsolete midi handling. If it is a subpatch-generated object, open and save the original patch again!", InstanceName1);
             }
+            patchModel = patchController.getModel();
         }
-
-        AxoObjectInstance o = new AxoObjectInstance(this, patch, InstanceName1, location);
-//        System.out.println("object " + o);
-//        Thread.dumpStack();
-        if (patch != null) {
-            patch.objectinstances.add(o);
-        }
-        o.PostConstructor();
+        ObjectController ctrl = createController(null, null);
+        AxoObjectInstance o = new AxoObjectInstance(ctrl, patchModel, InstanceName1, location);
+        ctrl.addView(o);
         return o;
-    }
+    }*/
 
     @Override
     public boolean providesModulationSource() {
@@ -406,36 +387,6 @@ public class AxoObject extends AxoObjectAbstract {
     }
 
     @Override
-    public Inlet GetInlet(String n) {
-        for (Inlet i : inlets) {
-            if (i.getName().equals(n)) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public Outlet GetOutlet(String n) {
-        for (Outlet i : outlets) {
-            if (i.getName().equals(n)) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public ArrayList<Inlet> GetInlets() {
-        return inlets;
-    }
-
-    @Override
-    public ArrayList<Outlet> GetOutlets() {
-        return outlets;
-    }
-
-    @Override
     public String getCName() {
         return id;
     }
@@ -444,18 +395,6 @@ public class AxoObject extends AxoObjectAbstract {
     public String GenerateUUID() {
         UUID uuid = UUID.randomUUID();
         return uuid.toString();
-    }
-
-    public Boolean getRotatedParams() {
-        if (rotatedParams == null) {
-            return false;
-        } else {
-            return rotatedParams;
-        }
-    }
-
-    public void setRotatedParams(boolean rotatedParams) {
-        this.rotatedParams = rotatedParams;
     }
 
     private static String getRelativePath(String baseDir, String targetPath) {
@@ -492,23 +431,23 @@ public class AxoObject extends AxoObjectAbstract {
     public HashSet<String> GetIncludes() {
         if ((includes == null) || includes.isEmpty()) {
             return null;
-        } else if (sPath != null) {
+        } else if (getPath() != null) {
             HashSet<String> r = new HashSet<String>();
             for (String s : includes) {
                 if (s.startsWith("./")) {
-                    String strippedPath = sPath.substring(0, sPath.lastIndexOf(File.separatorChar));
+                    String strippedPath = getPath().substring(0, getPath().lastIndexOf(File.separatorChar));
                     File f = new File(strippedPath + "/" + s.substring(2));
                     String s2 = f.getAbsolutePath();
                     s2 = s2.replace('\\', '/');
                     r.add(s2);
                 } else if (s.startsWith("../")) {
-                    String strippedPath = sPath.substring(0, sPath.lastIndexOf(File.separatorChar));
+                    String strippedPath = getPath().substring(0, getPath().lastIndexOf(File.separatorChar));
                     File f = new File(strippedPath + "/" + s);
                     String s2 = f.getAbsolutePath();
                     s2 = s2.replace('\\', '/');
                     r.add(s2);
                 } else if (s.startsWith("chibios/")) {
-                    r.add((new File(System.getProperty(FIRMWARE_DIR))).getAbsolutePath() + "/../chibios" + s.substring(7));
+                    r.add((new File(System.getProperty(CHIBIOS_DIR))).getAbsolutePath() + s.substring(7));
                 } else {
                     r.add(s);
                 }
@@ -531,11 +470,17 @@ public class AxoObject extends AxoObjectAbstract {
         return depends;
     }
 
+    @Override
+    public Set<String> GetModules() {
+        return modules;
+    }
+
+    @Override
     public File GetHelpPatchFile() {
-        if ((helpPatch == null) || (sPath == null) || sPath.isEmpty()) {
+        if ((helpPatch == null) || (getPath() == null) || getPath().isEmpty()) {
             return null;
         }
-        File o = new File(sPath);
+        File o = new File(getPath());
         String p = o.getParent() + File.separator + helpPatch;
         File f = new File(p);
         if (f.isFile() && f.canRead()) {
@@ -546,27 +491,10 @@ public class AxoObject extends AxoObjectAbstract {
     }
 
     @Override
-    public void FireObjectModified(Object src) {
-        ArrayList<ObjectModifiedListener> c = new ArrayList<ObjectModifiedListener>(instances);
-        for (ObjectModifiedListener oml : c) {
-            oml.ObjectModified(src);
-        }
-    }
-
-    @Override
-    public void addObjectModifiedListener(ObjectModifiedListener oml) {
-        if (!instances.contains(oml)) {
-            instances.add(oml);
-        }
-    }
-
-    @Override
-    public void removeObjectModifiedListener(ObjectModifiedListener oml) {
-        instances.remove(oml);
-    }
-
-    @Override
     public AxoObject clone() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException();        
+        /* 
+        // This implementation does not make a shallow clone!
         AxoObject c = (AxoObject) super.clone();
         c.inlets = new ArrayList<Inlet>();
         for (Inlet i : inlets) {
@@ -589,10 +517,13 @@ public class AxoObject extends AxoObjectAbstract {
             c.attributes.add(i.clone());
         }
         return c;
+        */
     }
 
     public void copy(AxoObject o) throws CloneNotSupportedException {
-
+        throw new CloneNotSupportedException();        
+        /* 
+        // This implementation does not make a shallow clone!
         inlets = new ArrayList<Inlet>();
         for (Inlet i : o.inlets) {
             inlets.add(i.clone());
@@ -633,14 +564,238 @@ public class AxoObject extends AxoObjectAbstract {
             o.depends = null;
 
         }
+
+        if (o.modules != null) {
+            modules = (HashSet<String>) o.modules.clone();
+        } else {
+            o.modules = null;
+        }
+
         sLocalData = o.sLocalData;
         sInitCode = o.sInitCode;
         sDisposeCode = o.sDisposeCode;
         sKRateCode = o.sKRateCode;
         sSRateCode = o.sSRateCode;
         sMidiCode = o.sMidiCode;
-        sAuthor = o.sAuthor;
-        sLicense = o.sLicense;
+        setAuthor(o.getAuthor());
+        setLicense(o.getLicense());
+        //sAuthor = o.sAuthor;
+        //sLicense = o.sLicense;
         sDescription = o.sDescription;
+        */
     }
+
+    public AxoObjectEditor getEditor() {
+        return editor;
+    }
+
+    /* MVC code */
+    
+    public static final Property OBJ_ID = new StringProperty("Id", AxoObject.class);
+    public static final Property OBJ_DESCRIPTION = new StringPropertyNull("Description", AxoObject.class);
+    public static final Property OBJ_LICENSE = new StringPropertyNull("License", AxoObject.class);
+    public static final Property OBJ_PATH = new StringPropertyNull("Path", AxoObject.class);
+    public static final Property OBJ_AUTHOR = new StringPropertyNull("Author", AxoObject.class);
+    public static final Property OBJ_HELPPATCH = new StringPropertyNull("HelpPatch", AxoObject.class);
+    public static final Property OBJ_ROTATEDPARAMS = new BooleanProperty("RotatedParams", AxoObject.class, "bbb");
+
+    public static final Property OBJ_INIT_CODE = new StringPropertyNull("InitCode", AxoObject.class);
+    public static final Property OBJ_DISPOSE_CODE = new StringPropertyNull("DisposeCode", AxoObject.class);
+    public static final Property OBJ_LOCAL_DATA = new StringPropertyNull("LocalData", AxoObject.class);
+    public static final Property OBJ_KRATE_CODE = new StringPropertyNull("KRateCode", AxoObject.class);
+    public static final Property OBJ_SRATE_CODE = new StringPropertyNull("SRateCode", AxoObject.class);
+    public static final Property OBJ_MIDI_CODE = new StringPropertyNull("MidiCode", AxoObject.class);
+
+    @Override
+    public List<Property> getProperties() {
+        List<Property> l =  new ArrayList<>();
+        l.add(OBJ_ID);
+        l.add(OBJ_DESCRIPTION);
+        l.add(OBJ_LICENSE);
+        l.add(OBJ_PATH);
+        l.add(OBJ_AUTHOR);
+        l.add(OBJ_HELPPATCH);
+        l.add(OBJ_INLETS);
+        l.add(OBJ_OUTLETS);
+        l.add(OBJ_ATTRIBUTES);
+        l.add(OBJ_PARAMETERS);
+        l.add(OBJ_DISPLAYS);
+        l.add(OBJ_INIT_CODE);
+        l.add(OBJ_DISPOSE_CODE);
+        l.add(OBJ_LOCAL_DATA);
+        l.add(OBJ_KRATE_CODE);
+        l.add(OBJ_SRATE_CODE);
+        l.add(OBJ_MIDI_CODE);
+        return l;
+    }
+
+    private String StringDenull(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s;
+    }
+
+    @Override
+    public String getHelpPatch() {
+        return StringDenull(helpPatch);
+    }
+
+    public void setHelpPatch(String helpPatch) {
+        String prev_val = this.helpPatch;
+        this.helpPatch = helpPatch;
+        firePropertyChange(OBJ_HELPPATCH, prev_val, helpPatch);
+    }
+    
+    @Override
+    public List<Inlet> getInlets() {
+        if (inlets == null) return new ArrayList<>();
+        return inlets;
+    }
+
+    @Override
+    public void setInlets(ArrayList<Inlet> inlets) {
+        List<Inlet> old_val = this.inlets;
+        this.inlets = inlets;
+        firePropertyChange(OBJ_INLETS, old_val, inlets);
+    }
+
+    @Override
+    public List<Outlet> getOutlets() {
+        if (outlets == null) return new ArrayList<>();
+        return outlets;
+    }
+
+    @Override
+    public void setOutlets(ArrayList<Outlet> outlets) {
+        List<Outlet> old_val = this.outlets;
+        this.outlets = outlets;
+        firePropertyChange(OBJ_OUTLETS, old_val, outlets);
+    }
+
+    @Override
+    public List<Parameter> getParameters() {
+        if (params == null) return new ArrayList<>();
+        return params;
+    }
+
+    @Override
+    public void setParameters(ArrayList<Parameter> parameters) {
+        List<Parameter> old_val = this.params;
+        this.params = parameters;
+        firePropertyChange(OBJ_PARAMETERS, old_val, parameters);
+    }
+
+    @Override
+    public List<AxoAttribute> getAttributes() {
+        if (attributes == null) return new ArrayList<>();
+        return attributes;
+    }
+
+    @Override
+    public void setAttributes(ArrayList<AxoAttribute> attributes) {
+        List<AxoAttribute> old_val = this.attributes;
+        this.attributes = attributes;
+        firePropertyChange(OBJ_ATTRIBUTES, old_val, attributes);
+    }
+
+    @Override
+    public List<Display> getDisplays() {
+        if (displays == null) return new ArrayList<>();
+        return displays;
+    }
+
+    @Override
+    public void setDisplays(ArrayList<Display> displays) {
+        List<Display> old_val = this.displays;
+        this.displays = displays;
+        firePropertyChange(OBJ_DISPLAYS, old_val, displays);
+    }
+
+    @Override
+    public Boolean getRotatedParams() {
+        if (rotatedParams == null) {
+            return false;
+        } else {
+            return rotatedParams;
+        }
+    }
+
+    public void setRotatedParams(Boolean rotatedParams) {
+        Boolean prev_value = this.rotatedParams;
+        this.rotatedParams = rotatedParams;
+        firePropertyChange(OBJ_ROTATEDPARAMS, prev_value, rotatedParams);
+    }
+
+    @Override
+    public String getInitCode() {
+        return StringDenull(sInitCode);
+    }
+
+    public void setInitCode(String sInitCode) {
+        String prev_val = this.sInitCode;
+        this.sInitCode = sInitCode;
+        firePropertyChange(OBJ_INIT_CODE, prev_val, sInitCode);
+    }
+
+    @Override
+    public String getDisposeCode() {
+        return StringDenull(sDisposeCode);
+    }
+
+    public void setDisposeCode(String sDisposeCode) {
+        String prev_val = this.sDisposeCode;
+        this.sDisposeCode = sDisposeCode;
+        firePropertyChange(OBJ_DISPOSE_CODE, prev_val, sDisposeCode);
+    }
+
+    @Override
+    public String getLocalData() {
+        return StringDenull(sLocalData);
+    }
+
+    public void setLocalData(String sLocalData) {
+        String prev_val = this.sLocalData;
+        this.sLocalData = sLocalData;
+        firePropertyChange(OBJ_LOCAL_DATA, prev_val, sLocalData);
+    }
+
+    @Override
+    public String getKRateCode() {
+        return StringDenull(sKRateCode);
+    }
+
+    public void setKRateCode(String sKRateCode) {
+        String prev_val = this.sKRateCode;
+        this.sKRateCode = sKRateCode;
+        firePropertyChange(OBJ_KRATE_CODE, prev_val, sKRateCode);
+    }
+
+    @Override
+    public String getSRateCode() {
+        return StringDenull(sSRateCode);
+    }
+
+    public void setSRateCode(String sSRateCode) {
+        String prev_val = this.sSRateCode;
+        this.sSRateCode = sSRateCode;
+        firePropertyChange(OBJ_SRATE_CODE, prev_val, sSRateCode);
+    }
+
+    @Override
+    public String getMidiCode() {
+        return StringDenull(sMidiCode);
+    }
+
+    public void setMidiCode(String sMidiCode) {
+        String prev_val = this.sMidiCode;
+        this.sMidiCode = sMidiCode;
+        firePropertyChange(OBJ_MIDI_CODE, prev_val, sMidiCode);
+    }
+
+    @Override
+    public ArrayList<SDFileReference> getFileDepends() {
+        return filedepends;
+    }
+
 }

@@ -13,6 +13,7 @@ portaudio/*
 win32tools/
 chibios/
 chibios_2.6.5/
+ChibiOS_*/
 patch/xpatch.c
 patch/xpatch.cpp
 patch/xpatch.elf
@@ -27,6 +28,7 @@ patch/xpatch.map
 /build/
 /nbproject/private/
 /dist/
+/test/
 hs_err_*.log
 axoloti_osx.zip
 private_key.*

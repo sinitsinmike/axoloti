@@ -17,104 +17,127 @@
  */
 package axoloti.inlets;
 
-import axoloti.Theme;
+import axoloti.atom.AtomDefinition;
+import axoloti.atom.AtomDefinitionController;
 import axoloti.atom.AtomInstance;
 import axoloti.datatypes.DataType;
-import axoloti.iolet.IoletAbstract;
-import axoloti.object.AxoObjectInstance;
-import components.JackInputComponent;
-import components.LabelComponent;
-import components.SignalMetaDataIcon;
-import java.awt.Dimension;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JPopupMenu;
+import axoloti.object.IAxoObjectInstance;
+import java.beans.PropertyChangeEvent;
 import org.simpleframework.xml.*;
+import org.simpleframework.xml.core.Persist;
 
 /**
  *
  * @author Johannes Taelman
  */
 @Root(name = "dest")
-public class InletInstance<T extends Inlet> extends IoletAbstract implements AtomInstance<T> {
+public class InletInstance<T extends Inlet> extends AtomInstance<T> {
 
     @Attribute(name = "inlet", required = false)
-    public String inletname;
+    protected String inletname;
+    @Deprecated
+    @Attribute(required = false)
+    protected String name;
+    @Attribute(name = "obj", required = false)
+    protected String objname;
 
-    private final T inlet;
+    private final AtomDefinitionController controller;
+
+    protected IAxoObjectInstance axoObj;
 
     public String getInletname() {
-        if (inletname != null) {
-            return inletname;
-        } else {
-            int sepIndex = name.lastIndexOf(' ');
-            return name.substring(sepIndex + 1);
-        }
+        return inletname;
+    }
+
+    public IAxoObjectInstance getObjectInstance() {
+        return axoObj;
+    }
+
+    @Persist
+    public void Persist() {
+        objname = axoObj.getInstanceName();
     }
 
     @Override
-    public T GetDefinition() {
-        return inlet;
+    public T getModel() {
+        return (T) getController().getModel();
     }
 
     public InletInstance() {
-        this.inlet = null;
-        this.axoObj = null;
-        this.setBackground(Theme.getCurrentTheme().Object_Default_Background);
+        axoObj = null;
+        controller = null;
     }
 
-    public InletInstance(T inlet, final AxoObjectInstance axoObj) {
-        this.inlet = inlet;
+    public InletInstance(String objname, String inletname) {
+        axoObj = null;
+        controller = null;
+        this.objname = objname;
+        this.inletname = inletname;
+    }
+
+    public InletInstance(AtomDefinitionController inletController, final IAxoObjectInstance axoObj) {
+        this.controller = inletController;
         this.axoObj = axoObj;
         RefreshName();
-        PostConstructor();
     }
 
-    public final void RefreshName() {
-        name = axoObj.getInstanceName() + " " + inlet.name;
-        objname = axoObj.getInstanceName();
-        inletname = inlet.name;
-        name = null;
-    }
-
-    public DataType GetDataType() {
-        return inlet.getDatatype();
+    public DataType getDataType() {
+        return getModel().getDatatype();
     }
 
     public String GetCName() {
-        return inlet.GetCName();
+        return getModel().GetCName();
     }
 
     public String GetLabel() {
-        return inlet.name;
+        return getModel().getName();
     }
 
-    public final void PostConstructor() {
-        setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        setBackground(Theme.getCurrentTheme().Object_Default_Background);
-        setMaximumSize(new Dimension(32767, 14));
-        jack = new JackInputComponent(this);
-        jack.setForeground(inlet.getDatatype().GetColor());
-        jack.setBackground(Theme.getCurrentTheme().Object_Default_Background);
-        add(jack);
-        add(new SignalMetaDataIcon(inlet.GetSignalMetaData()));
-        if (axoObj.getType().GetInlets().size() > 1) {
-            add(Box.createHorizontalStrut(3));
-            add(new LabelComponent(inlet.name));
+    public void RefreshName() {
+        if (axoObj != null) {
+            name = axoObj.getInstanceName() + " " + getModel().getName();
+            objname = axoObj.getInstanceName();
+            name = null;
         }
-        add(Box.createHorizontalGlue());
-        setToolTipText(inlet.description);
-
-        addMouseListener(this);
-        addMouseMotionListener(this);
     }
 
-    public Inlet getInlet() {
-        return inlet;
+    public String getObjname() {
+        if (axoObj != null) {
+            return axoObj.getInstanceName();
+        } else {
+            return this.objname;
+        }
+    }
+
+    public boolean isConnected() {
+        if (axoObj == null) {
+            return false;
+        }
+        return false;
+        //FIXME: return (axoObj.getPatchModel().GetNet(this) != null);
     }
 
     @Override
-    public JPopupMenu getPopup() {
-        return new InletInstancePopupMenu(this);
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        if (AtomDefinition.NAME.is(evt)) {
+            setName((String) evt.getNewValue());
+        }
     }
+
+    @Override
+    public AtomDefinitionController getController() {
+        return controller;
+    }
+
+    public String getName() {
+        return inletname;
+    }
+
+    public void setName(String inletname) {
+        String preVal = this.inletname;
+        this.inletname = inletname;
+        firePropertyChange(NAME, preVal, inletname);
+    }
+
 }

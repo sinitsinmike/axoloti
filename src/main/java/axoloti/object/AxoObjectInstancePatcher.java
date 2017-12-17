@@ -17,13 +17,7 @@
  */
 package axoloti.object;
 
-import axoloti.MainFrame;
-import axoloti.Patch;
-import axoloti.PatchFrame;
-import axoloti.PatchGUI;
-import components.ButtonComponent;
-import components.ButtonComponent.ActListener;
-import java.awt.Component;
+import axoloti.PatchModel;
 import java.awt.Point;
 import org.simpleframework.xml.Element;
 
@@ -33,111 +27,38 @@ import org.simpleframework.xml.Element;
  */
 public class AxoObjectInstancePatcher extends AxoObjectInstance {
 
-    PatchFrame pf;
     @Element(name = "subpatch")
-    PatchGUI pg;
-
-    private ButtonComponent BtnUpdate;
+    PatchModel subPatchModel;
 
     public AxoObjectInstancePatcher() {
-    }
-
-    public AxoObjectInstancePatcher(AxoObject type, Patch patch1, String InstanceName1, Point location) {
-        super(type, patch1, InstanceName1, location);
-    }
-
-    @Override
-    public void updateObj1() {
-        if (pg == null) {
-            pg = new PatchGUI();
-        }
-        if (pf == null) {
-            pf = new PatchFrame((PatchGUI) pg, MainFrame.mainframe.getQcmdprocessor());
-            pg.setFileNamePath(getInstanceName());
-            pg.PostContructor();
-        }
-        if (pg != null) {
-            AxoObject ao = pg.GenerateAxoObj(new AxoObjectPatcher());
-            setType(ao);
-            ao.id = "patch/patcher";
-            ao.sDescription = pg.getNotes();
-            ao.sLicense = pg.getSettings().getLicense();
-            ao.sAuthor = pg.getSettings().getAuthor();
-            pg.container(patch);
+        if (subPatchModel == null) {
+            subPatchModel = new PatchModel();
         }
     }
 
-    @Override
-    public void updateObj() {
-        if (pg != null) {
-            AxoObject ao = pg.GenerateAxoObj(new AxoObjectPatcher());
-            setType(ao);
-            PostConstructor();
-        }
-        validate();
+    public AxoObjectInstancePatcher(ObjectController controller, PatchModel patch1, String InstanceName1, Point location) {
+        this(controller, patch1, InstanceName1, location, new PatchModel());
     }
 
-    @Override
-    public void Unlock() {
-        super.Unlock();
-        if (BtnUpdate != null) {
-            BtnUpdate.setEnabled(true);
-        }
+    public AxoObjectInstancePatcher(ObjectController controller, PatchModel patch1, String InstanceName1, Point location, PatchModel subPatchModel) {
+        super(controller, patch1, InstanceName1, location);
+        this.subPatchModel = subPatchModel;
+        subPatchModel.setFileNamePath(InstanceName1);
     }
 
-    @Override
-    public void Lock() {
-        super.Lock();
-        if (BtnUpdate != null) {
-            BtnUpdate.setEnabled(false);
-        }
-    }
-
-    public void edit() {
-        if (pg == null) {
-            pg = new PatchGUI();
-        }
-        if (pf == null) {
-            pf = new PatchFrame((PatchGUI) pg, MainFrame.mainframe.getQcmdprocessor());
-            pg.setFileNamePath(getInstanceName());
-            pg.PostContructor();
-        }
-        pf.setState(java.awt.Frame.NORMAL);
-        pf.setVisible(true);
-    }
-
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        //updateObj();
-        ButtonComponent BtnEdit = new ButtonComponent("edit");
-        BtnEdit.setAlignmentX(LEFT_ALIGNMENT);
-        BtnEdit.setAlignmentY(TOP_ALIGNMENT);
-        BtnEdit.addActListener(new ActListener() {
-            @Override
-            public void OnPushed() {
-                edit();
-            }
-        });
-        add(BtnEdit);
-        BtnUpdate = new ButtonComponent("update");
-        BtnUpdate.setAlignmentX(LEFT_ALIGNMENT);
-        BtnUpdate.setAlignmentY(TOP_ALIGNMENT);
-        BtnUpdate.addActListener(new ActListener() {
-            @Override
-            public void OnPushed() {
-                updateObj();
-            }
-        });
-        add(BtnUpdate);
-        resizeToGrid();
+    public PatchModel getSubPatchModel() {
+        return subPatchModel;
     }
 
     @Override
     public void Close() {
         super.Close();
-        if (pf != null) {
-            pf.Close();
-        }
+    }
+
+    @Override
+    public boolean setInstanceName(String s) {
+        boolean b = super.setInstanceName(s);
+        subPatchModel.setFileNamePath(s);
+        return b;
     }
 }

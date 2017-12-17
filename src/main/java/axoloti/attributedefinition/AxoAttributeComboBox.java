@@ -17,8 +17,8 @@
  */
 package axoloti.attributedefinition;
 
-import axoloti.attribute.AttributeInstanceComboBox;
-import axoloti.object.AxoObjectInstance;
+import axoloti.property.Property;
+import axoloti.property.StringListProperty;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,38 +31,40 @@ import org.simpleframework.xml.ElementList;
 public class AxoAttributeComboBox extends AxoAttribute {
 
     @ElementList(required = false)
-    public ArrayList<String> MenuEntries;
+    public List<String> MenuEntries = new ArrayList<>();
     @ElementList(required = false)
-    public ArrayList<String> CEntries;
+    public List<String> CEntries = new ArrayList<>();
+
+    public static final Property ATOM_MENUENTRIES = new StringListProperty("MenuEntries", AxoAttributeComboBox.class, "Menu entries");
+    public static final Property ATOM_CENTRIES = new StringListProperty("CEntries", AxoAttributeComboBox.class, "C++ entries");
 
     public AxoAttributeComboBox() {
-        if (MenuEntries == null) {
-            MenuEntries = new ArrayList<String>();
-        }
-        if (CEntries == null) {
-            CEntries = new ArrayList<String>();
-        }
     }
 
     public AxoAttributeComboBox(String name, String MenuEntries[], String CEntries[]) {
         super(name);
-        this.MenuEntries = new ArrayList<String>();
-        this.CEntries = new ArrayList<String>();
         this.MenuEntries.addAll(Arrays.asList(MenuEntries));
         this.CEntries.addAll(Arrays.asList(CEntries));
     }
 
-    public ArrayList<String> getMenuEntries() {
+    public List<String> getMenuEntries() {
         return MenuEntries;
     }
 
-    public ArrayList<String> getCEntries() {
+    public void setMenuEntries(ArrayList<String> MenuEntries) {
+        List<String> oldVal = this.MenuEntries;
+        this.MenuEntries = MenuEntries;
+        firePropertyChange(ATOM_MENUENTRIES, oldVal, MenuEntries);
+    }
+
+    public List<String> getCEntries() {
         return CEntries;
     }
 
-    @Override
-    public AttributeInstanceComboBox InstanceFactory(AxoObjectInstance o) {
-        return new AttributeInstanceComboBox(this, o);
+    public void setCEntries(ArrayList<String> CEntries) {
+        List<String> oldVal = this.CEntries;
+        this.CEntries = CEntries;
+        firePropertyChange(ATOM_CENTRIES, oldVal, CEntries);
     }
 
     static public final String TypeName = "combo";
@@ -73,10 +75,10 @@ public class AxoAttributeComboBox extends AxoAttribute {
     }
 
     @Override
-    public List<String> getEditableFields() {
+    public List<Property> getEditableFields() {
         List l = super.getEditableFields();
-        l.add("MenuEntries");
-        l.add("CEntries");
+        l.add(ATOM_MENUENTRIES);
+        l.add(ATOM_CENTRIES);
         return l;
     }
 

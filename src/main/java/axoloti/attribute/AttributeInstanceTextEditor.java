@@ -17,14 +17,10 @@
  */
 package axoloti.attribute;
 
-import axoloti.StringRef;
 import axoloti.TextEditor;
+import axoloti.atom.AtomDefinitionController;
 import axoloti.attributedefinition.AxoAttributeTextEditor;
 import axoloti.object.AxoObjectInstance;
-import components.ButtonComponent;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowFocusListener;
-import javax.swing.JLabel;
 import org.simpleframework.xml.Element;
 
 /**
@@ -33,106 +29,41 @@ import org.simpleframework.xml.Element;
  */
 public class AttributeInstanceTextEditor extends AttributeInstanceString<AxoAttributeTextEditor> {
 
-    final StringRef sRef = new StringRef();
+    public TextEditor editor;
 
-    @Element(data = true, name = "sText", required = false)
-    String getSText() {
-        return sRef.s;
-    }
-    ButtonComponent bEdit;
-    JLabel vlabel;
-    TextEditor editor;
+    @Element(data = true, required = false)
+    String sText;
 
-    public AttributeInstanceTextEditor() {
+    AttributeInstanceTextEditor() {
+        super();
     }
 
-    public AttributeInstanceTextEditor(@Element(name = "sText", required = false) String s) {
-        if (s == null) {
-            sRef.s = "";
-        } else {
-            sRef.s = s;
-        }
-    }
-
-    public AttributeInstanceTextEditor(AxoAttributeTextEditor param, AxoObjectInstance axoObj1) {
-        super(param, axoObj1);
-    }
-
-    String valueBeforeAdjustment = "";
-
-    void showEditor() {
-        if (editor == null) {
-            editor = new TextEditor(sRef, GetObjectInstance().getPatch().getPatchframe());
-            editor.setTitle(GetObjectInstance().getInstanceName() + "/" + attr.getName());
-            editor.addWindowFocusListener(new WindowFocusListener() {
-
-                @Override
-                public void windowGainedFocus(WindowEvent e) {
-                    valueBeforeAdjustment = sRef.s;
-                }
-
-                @Override
-                public void windowLostFocus(WindowEvent e) {
-                    if (!valueBeforeAdjustment.equals(sRef.s)) {
-                        SetDirty();
-                    }
-                }
-            });
-        }
-        editor.setState(java.awt.Frame.NORMAL);
-        editor.setVisible(true);
-    }
-
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        bEdit = new ButtonComponent("Edit");
-        add(bEdit);
-        bEdit.addActListener(new ButtonComponent.ActListener() {
-            @Override
-            public void OnPushed() {
-                showEditor();
-            }
-        });
+    AttributeInstanceTextEditor(AtomDefinitionController controller, AxoObjectInstance axoObj1) {
+        super(controller, axoObj1);
     }
 
     @Override
     public String CValue() {
-        return sRef.s;
+        return sText;
     }
 
     @Override
-    public void Lock() {
-        if (bEdit != null) {
-            bEdit.setEnabled(false);
-        }
+    public String getValue() {
+        return sText;
     }
 
     @Override
-    public void UnLock() {
-        if (bEdit != null) {
-            bEdit.setEnabled(true);
-        }
+    public void setValue(String sText) {
+        this.sText = sText;
     }
 
     @Override
-    public String getString() {
-        return sRef.s;
-    }
-
-    @Override
-    public void setString(String sText) {
-        sRef.s = sText;
-        if (editor != null) {
-            editor.SetText(sText);
-        }
-    }
-
-    @Override
-    public void Close() {
+    public void dispose() {
+        super.dispose();
         if (editor != null) {
             editor.Close();
         }
         editor = null;
     }
+
 }

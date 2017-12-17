@@ -18,7 +18,8 @@
 package components;
 
 import axoloti.Theme;
-import axoloti.parameters.ParameterInstanceFrac32UMap;
+import axoloti.parameters.ParameterInstance;
+import axoloti.parameters.ParameterInstanceController;
 import axoloti.utils.Constants;
 import components.control.HSliderComponent;
 import java.awt.Dimension;
@@ -39,20 +40,21 @@ public class AssignPresetComponent extends JComponent {
 
     private static final Dimension dim = new Dimension(16, 12);
 
-    final ParameterInstanceFrac32UMap param;
+    final ParameterInstanceController parameterInstanceController;
 
-    public AssignPresetComponent(ParameterInstanceFrac32UMap param) {
+    public AssignPresetComponent(ParameterInstanceController parameterInstanceController) {
+        this.parameterInstanceController  = parameterInstanceController;
         setMinimumSize(dim);
         setMaximumSize(dim);
         setPreferredSize(dim);
         setSize(dim);
-        this.param = param;
 
         addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 JPopupMenu pm = new JPopupMenu();
-                AssignPresetMenuItems m = new AssignPresetMenuItems(AssignPresetComponent.this.param, pm);
+                // FIXME
+                //AssignPresetMenuItems m = new AssignPresetMenuItems(AssignPresetComponent.this.parameterInstanceView, pm);
                 pm.show(AssignPresetComponent.this, 0, getHeight());
 
                 e.consume();
@@ -81,29 +83,26 @@ public class AssignPresetComponent extends JComponent {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if ((param.getPresets() != null) && (!param.getPresets().isEmpty())) {
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setFont(Constants.FONT);
-            g2.setColor(Theme.getCurrentTheme().Object_Default_Background);
-            g2.fillRect(1, 1, getWidth(), getHeight());
-            if ((param.getPresets() != null) && (!param.getPresets().isEmpty())) {
-                g2.setColor(Theme.getCurrentTheme().Component_Primary);
-                g2.fillRect(1, 1, 8, getHeight());
-                g2.setColor(Theme.getCurrentTheme().Component_Secondary);
-            } else {
-                g2.setColor(Theme.getCurrentTheme().Component_Primary);
-            }
-            g2.drawString("P", 1, getHeight() - 2);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setFont(Constants.FONT);
+        g2.setColor(Theme.getCurrentTheme().Object_Default_Background);
+        g2.fillRect(1, 1, getWidth(), getHeight());
+        if ((parameterInstanceController.getModel().getPresets() != null) && (!parameterInstanceController.getModel().getPresets().isEmpty())) {
             g2.setColor(Theme.getCurrentTheme().Component_Primary);
-            final int rmargin = 2;
-            final int htick = 2;
-            int[] xp = new int[]{getWidth() - rmargin - htick * 2, getWidth() - rmargin, getWidth() - rmargin - htick};
-            final int vmargin = 4;
-            int[] yp = new int[]{vmargin, vmargin, vmargin + htick * 2};
-            g2.fillPolygon(xp, yp, 3);
+            g2.fillRect(1, 1, 8, getHeight());
+            g2.setColor(Theme.getCurrentTheme().Component_Secondary);
+        } else {
+            g2.setColor(Theme.getCurrentTheme().Component_Primary);
         }
+        g2.drawString("P", 1, getHeight() - 2);
+        g2.setColor(Theme.getCurrentTheme().Component_Primary);
+        final int rmargin = 2;
+        final int htick = 2;
+        int[] xp = new int[]{getWidth() - rmargin - htick * 2, getWidth() - rmargin, getWidth() - rmargin - htick};
+        final int vmargin = 4;
+        int[] yp = new int[]{vmargin, vmargin, vmargin + htick * 2};
+        g2.fillPolygon(xp, yp, 3);
     }
-
 }

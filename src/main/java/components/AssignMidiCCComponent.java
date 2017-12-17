@@ -18,7 +18,10 @@
 package components;
 
 import axoloti.Theme;
-import axoloti.parameters.ParameterInstanceFrac32UMap;
+import axoloti.parameters.ParameterInstance;
+import axoloti.parameters.ParameterInstanceController;
+import axoloti.property.MidiCCProperty;
+import axoloti.propertyViewSwingMenu.AssignMidiCCMenuItems;
 import axoloti.utils.Constants;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -37,14 +40,14 @@ public class AssignMidiCCComponent extends JComponent {
 
     private static final Dimension dim = new Dimension(16, 12);
 
-    ParameterInstanceFrac32UMap param;
+    ParameterInstanceController parameterInstanceController;
 
-    public AssignMidiCCComponent(ParameterInstanceFrac32UMap param) {
+    public AssignMidiCCComponent(ParameterInstanceController parameterInstanceController) {
         setMinimumSize(dim);
         setMaximumSize(dim);
         setPreferredSize(dim);
         setSize(dim);
-        this.param = param;
+        this.parameterInstanceController = parameterInstanceController;
 
         addMouseListener(new MouseListener() {
 
@@ -74,36 +77,35 @@ public class AssignMidiCCComponent extends JComponent {
 
     void doPopup() {
         JPopupMenu sub1 = new JPopupMenu();
-        AssignMidiCCMenuItems assignMidiCCMenuItems = new AssignMidiCCMenuItems(param, sub1);
+        AssignMidiCCMenuItems assignMidiCCMenuItems = new AssignMidiCCMenuItems(parameterInstanceController, (MidiCCProperty) ParameterInstance.MIDI_CC);
+        sub1.add(assignMidiCCMenuItems);
         sub1.show(this, 0, getHeight() - 1);
     }
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (param.getMidiCC() >= 0) {
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setFont(Constants.FONT);
-            g2.setColor(Theme.getCurrentTheme().Object_Default_Background);
-            g2.fillRect(1, 1, getWidth(), getHeight());
-            if (param.getMidiCC() >= 0) {
-                g2.setColor(Theme.getCurrentTheme().Component_Primary);
-                g2.fillRect(1, 1, 8, getHeight());
-                g2.setColor(Theme.getCurrentTheme().Component_Secondary);
-            } else {
-                g2.setColor(Theme.getCurrentTheme().Component_Primary);
-            }
-            g2.drawString("C", 1, getHeight() - 2);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setFont(Constants.FONT);
+        g2.setColor(Theme.getCurrentTheme().Object_Default_Background);
+        g2.fillRect(1, 1, getWidth(), getHeight());
+        if (parameterInstanceController.getModel().getMidiCC() >= 0) {
             g2.setColor(Theme.getCurrentTheme().Component_Primary);
-            final int rmargin = 2;
-            final int htick = 2;
-            int[] xp = new int[]{getWidth() - rmargin - htick * 2, getWidth() - rmargin, getWidth() - rmargin - htick};
-            final int vmargin = 4;
-            int[] yp = new int[]{vmargin, vmargin, vmargin + htick * 2};
-            g2.fillPolygon(xp, yp, 3);
+            g2.fillRect(1, 1, 8, getHeight());
+            g2.setColor(Theme.getCurrentTheme().Component_Secondary);
+        } else {
+            g2.setColor(Theme.getCurrentTheme().Component_Primary);
         }
+        g2.drawString("C", 1, getHeight() - 2);
+        g2.setColor(Theme.getCurrentTheme().Component_Primary);
+        final int rmargin = 2;
+        final int htick = 2;
+        int[] xp = new int[]{getWidth() - rmargin - htick * 2, getWidth() - rmargin, getWidth() - rmargin - htick};
+        final int vmargin = 4;
+        int[] yp = new int[]{vmargin, vmargin, vmargin + htick * 2};
+        g2.fillPolygon(xp, yp, 3);
     }
 
     public void setCC(int i) {

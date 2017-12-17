@@ -17,71 +17,105 @@
  */
 package axoloti.displays;
 
+import axoloti.atom.AtomDefinitionController;
 import axoloti.atom.AtomInstance;
-import axoloti.object.AxoObjectInstance;
-import axoloti.object.AxoObjectInstanceAbstract;
-import components.LabelComponent;
+import axoloti.property.ObjectProperty;
+import axoloti.property.PropagatedProperty;
+import axoloti.property.Property;
+import axoloti.utils.CodeGeneration;
+import java.beans.PropertyChangeEvent;
 import java.nio.ByteBuffer;
-import javax.swing.BoxLayout;
-import javax.swing.JPanel;
+import java.util.List;
 import org.simpleframework.xml.Attribute;
 
 /**
  *
  * @author Johannes Taelman
  */
-public abstract class DisplayInstance<T extends Display> extends JPanel implements AtomInstance<T> {
+public abstract class DisplayInstance<T extends Display> extends AtomInstance<T> {
 
     @Attribute
     String name;
     @Attribute(required = false)
     Boolean onParent;
     protected int index;
-    public T display;
-    AxoObjectInstance axoObj;
+
     protected int offset;
 
-    public DisplayInstance() {
+    AtomDefinitionController controller;
+
+    public static final Property DISP_VALUE = new ObjectProperty("Value", Object.class, DisplayInstance.class);
+    public static final PropagatedProperty NOLABEL = new PropagatedProperty(Display.NOLABEL, DisplayInstance.class);
+
+    public DisplayInstance(AtomDefinitionController controller) {
+        this.controller = controller;
     }
 
     @Override
-    public AxoObjectInstanceAbstract GetObjectInstance() {
-        return axoObj;
+    public T getModel() {
+        return (T) getController().getModel();
     }
 
-    @Override
-    public T GetDefinition() {
-        return display;
-    }    
-    
     public String GetCName() {
-        return display.GetCName();
+        return getModel().GetCName();
     }
 
     public int getLength() { // length in 32-bit words
-        return display.getLength();
+        return getModel().getLength();
     }
 
     public void setOffset(int offset) {
         this.offset = offset;
     }
 
+    public void setIndex(int i) {
+        index = i;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
     public abstract String valueName(String vprefix);
 
     public abstract String GenerateCodeInit(String vprefix);
 
-    public void PostConstructor() {
-        setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        if ((display.noLabel == null) || (display.noLabel == false)) {
-            add(new LabelComponent(display.name));
-        }
-        setSize(getPreferredSize());
-        if (display.getDescription() != null) {
-            setToolTipText(display.getDescription());
+    public abstract void ProcessByteBuffer(ByteBuffer bb);
+
+    public String GenerateDisplayMetaInitializer() {
+        String c = "{ display_type: " + getModel().GetCMetaType() + ", name: "
+                + CodeGeneration.CPPCharArrayStaticInitializer(getModel().getName(), CodeGeneration.param_name_length)
+                + ", displaydata: &displayVector[" + offset + "]},\n";
+        return c;
+    }
+
+    public abstract Object getValue();
+    public abstract void setValue(Object o);
+
+    @Override
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        // triggered by a model definition change, triggering instance view changes
+        final PropagatedProperty propagateProperties[] = new PropagatedProperty[]{NOLABEL};
+        for (PropagatedProperty p : propagateProperties) {
+            if (p.is(evt)) {
+                firePropertyChange(p,
+                        evt.getOldValue(),
+                        evt.getNewValue());
+            }
         }
     }
 
-    public abstract void ProcessByteBuffer(ByteBuffer bb);
+    @Override
+    public AtomDefinitionController getController() {
+        return controller;
+    }
 
-    public abstract void updateV();
+    @Override
+    public List<Property> getProperties() {
+        List<Property> l = super.getProperties();
+        l.add(NOLABEL);
+        return l;
+    }
+
 }

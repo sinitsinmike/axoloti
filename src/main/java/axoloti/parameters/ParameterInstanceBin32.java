@@ -17,10 +17,6 @@
  */
 package axoloti.parameters;
 
-import axoloti.datatypes.Value;
-import components.control.CheckboxComponent;
-import org.simpleframework.xml.Attribute;
-
 /**
  *
  * @author Johannes Taelman
@@ -28,33 +24,7 @@ import org.simpleframework.xml.Attribute;
 public class ParameterInstanceBin32 extends ParameterInstanceInt32 {
 
     public ParameterInstanceBin32() {
-    }
-
-    public ParameterInstanceBin32(@Attribute(name = "value") int v) {
-        super(v);
-    }
-
-    @Override
-    public CheckboxComponent CreateControl() {
-        return new CheckboxComponent(0, 32);
-    }
-
-    @Override
-    public String GenerateCodeInit(String vprefix, String StructAccces) {
-        String s = /*"    " + variableName(vprefix) + " = " + (value.getInt()) + ";\n"
-                 + "    " + valueName(vprefix) + " = " + (value.getInt()) + ";\n"
-                 + "    " + signalsName(vprefix) + " = 0;\n"
-                 +*/ "    SetKVP_IPVP(&" + StructAccces + KVPName(vprefix) + ",ObjectKvpRoot, \"" + KVPName(vprefix) + "\" ,"
-                + "&" + PExName(vprefix) + ","
-                + 0 + ","
-                + ((1 << 16) - 1) + ");\n"
-                + "  KVP_RegisterObject(&" + StructAccces + KVPName(vprefix) + ");\n";
-        return s;
-    }
-
-    @Override
-    public String GenerateCodeDeclaration(String vprefix) {
-        return "KeyValuePair " + KVPName(vprefix) + ";\n";
+        super();
     }
 
     @Override
@@ -62,19 +32,4 @@ public class ParameterInstanceBin32 extends ParameterInstanceInt32 {
         return "";
     }
 
-    @Override
-    public void updateV() {
-        ctrl.setValue(value.getInt());
-    }
-
-    @Override
-    public void setValue(Value value) {
-        super.setValue(value);
-        updateV();
-    }
-
-    @Override
-    public CheckboxComponent getControlComponent() {
-        return (CheckboxComponent) ctrl;
-    }
 }

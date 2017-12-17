@@ -17,102 +17,136 @@
  */
 package axoloti.outlets;
 
-import axoloti.Theme;
+import axoloti.atom.AtomDefinition;
+import axoloti.atom.AtomDefinitionController;
 import axoloti.atom.AtomInstance;
 import axoloti.datatypes.DataType;
-import axoloti.iolet.IoletAbstract;
-import axoloti.object.AxoObjectInstance;
-import components.LabelComponent;
-import components.SignalMetaDataIcon;
-import java.awt.Dimension;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JPopupMenu;
+import axoloti.object.IAxoObjectInstance;
+import java.beans.PropertyChangeEvent;
 import org.simpleframework.xml.*;
+import org.simpleframework.xml.core.Persist;
 
 /**
  *
  * @author Johannes Taelman
  */
 @Root(name = "source")
-public class OutletInstance<T extends Outlet> extends IoletAbstract implements Comparable<OutletInstance>, AtomInstance<T> {
+public class OutletInstance<T extends Outlet> extends AtomInstance<T> implements Comparable<OutletInstance> {
 
     @Attribute(name = "outlet", required = false)
-    public String outletname;
+    String outletname;
+    @Deprecated
+    @Attribute(required = false)
+    public String name;
+    @Attribute(name = "obj", required = false)
+    String objname;
 
-    private final T outlet;
+    final private AtomDefinitionController controller;
+
+    protected IAxoObjectInstance axoObj;
+
+    @Persist
+    public void Persist() {
+        objname = axoObj.getInstanceName();
+    }
+
+    public IAxoObjectInstance getObjectInstance() {
+        return this.axoObj;
+    }
 
     public String getOutletname() {
-        if (outletname != null) {
-            return outletname;
-        } else {
-            int sepIndex = name.lastIndexOf(' ');
-            return name.substring(sepIndex + 1);
-        }
+        return outletname;
     }
 
     @Override
-    public T GetDefinition() {
-        return outlet;
+    public T getModel() {
+        return (T) getController().getModel();
     }
 
     public OutletInstance() {
-        this.outlet = null;
+        this.controller = null;
         this.axoObj = null;
     }
 
-    public OutletInstance(T outlet, AxoObjectInstance axoObj) {
-        this.outlet = outlet;
+    public OutletInstance(String objname, String outletname) {
+        this.controller = null;
+        this.axoObj = null;
+        this.objname = objname;
+        this.outletname = outletname;
+    }
+
+    public OutletInstance(AtomDefinitionController outletController, IAxoObjectInstance axoObj) {
+        this.controller = outletController;
         this.axoObj = axoObj;
-        RefreshName();
-        PostConstructor();
+        //RefreshName();
     }
 
-    public final void RefreshName() {
-        name = axoObj.getInstanceName() + " " + outlet.name;
-        objname = axoObj.getInstanceName();
-        outletname = outlet.name;
-        name = null;
-    }
-
-    public DataType GetDataType() {
-        return outlet.getDatatype();
+    public DataType getDataType() {
+        return getModel().getDatatype();
     }
 
     public String GetLabel() {
-        return outlet.name;
+        return getModel().getName();
     }
 
     public String GetCName() {
-        return outlet.GetCName();
-    }
-
-    public final void PostConstructor() {
-        setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        setMaximumSize(new Dimension(32767, 14));
-        setBackground(Theme.getCurrentTheme().Object_Default_Background);
-        add(Box.createHorizontalGlue());
-        if (axoObj.getType().GetOutlets().size() > 1) {
-            add(new LabelComponent(outlet.name));
-            add(Box.createHorizontalStrut(2));
-        }
-        add(new SignalMetaDataIcon(outlet.GetSignalMetaData()));
-        jack = new components.JackOutputComponent(this);
-        jack.setForeground(outlet.getDatatype().GetColor());
-        add(jack);
-        setToolTipText(outlet.description);
-
-        addMouseListener(this);
-        addMouseMotionListener(this);
-    }
-
-    @Override
-    public JPopupMenu getPopup() {
-        return new OutletInstancePopupMenu(this);
+        return getModel().GetCName();
     }
 
     @Override
     public int compareTo(OutletInstance t) {
         return axoObj.compareTo(t.axoObj);
     }
+
+    @Deprecated
+    public void RefreshName() {
+        /*
+         name = axoObj.getInstanceName() + " " + getModel().getName();
+         objname = axoObj.getInstanceName();
+         outletname = getModel().getName();
+         name = null;
+         */
+    }
+
+    public String getObjname() {
+        if (axoObj != null) {
+            return axoObj.getInstanceName();
+        } else {
+            return this.objname;
+        }
+    }
+
+    public boolean isConnected() {
+        if (axoObj == null) {
+            return false;
+        }
+
+        // FIXME: return (axoObj.getPatchModel().GetNet(this) != null);
+        return false;
+    }
+
+    @Override
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        // triggered by a model definition change, triggering instance view changes
+        if (AtomDefinition.NAME.is(evt)) {
+            setName((String) evt.getNewValue());
+        }
+    }
+    
+    public String getName() {
+        return outletname;
+    }
+
+    public void setName(String outletname) {
+        String preVal = this.outletname;
+        this.outletname = outletname;
+        firePropertyChange(AtomDefinition.NAME, preVal, outletname);
+    }
+
+    @Override
+    public AtomDefinitionController getController() {
+        return controller;
+    }
+
 }

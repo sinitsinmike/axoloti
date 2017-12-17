@@ -20,10 +20,14 @@ package axoloti.menus;
 import axoloti.FileUtils;
 import axoloti.MainFrame;
 import static axoloti.MainFrame.axoObjects;
+import axoloti.PatchController;
 import axoloti.PatchFrame;
-import axoloti.PatchGUI;
+import axoloti.PatchModel;
+import axoloti.PatchView;
+import axoloti.PatchViewSwing;
 import axoloti.dialogs.PatchBank;
 import axoloti.dialogs.PreferencesFrame;
+import axoloti.mvc.AbstractDocumentRoot;
 import axoloti.utils.AxolotiLibrary;
 import axoloti.utils.KeyUtils;
 import axoloti.utils.Preferences;
@@ -188,7 +192,7 @@ public class FileMenu extends JMenu {
         add(jMenuQuit);
 
         jMenuRegenerateObjects.setVisible(false);
-        if (!Preferences.LoadPreferences().getExpertMode()) {
+        if (!Preferences.getPreferences().getExpertMode()) {
             jMenuAutoTest.setVisible(false);
         }
     }
@@ -243,7 +247,7 @@ public class FileMenu extends JMenu {
         try {
             InputStream input = new URL(url).openStream();
             String name = url.substring(url.lastIndexOf("/") + 1, url.length());
-            PatchGUI.OpenPatch(name, input);
+            PatchViewSwing.OpenPatch(name, input);
         } catch (MalformedURLException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, "Invalid URL {0}\n{1}", new Object[]{url, ex});
         } catch (IOException ex) {
@@ -260,7 +264,7 @@ public class FileMenu extends JMenu {
     }
 
     private void jMenuSyncActionPerformed(java.awt.event.ActionEvent evt) {
-        for (AxolotiLibrary lib : Preferences.LoadPreferences().getLibraries()) {
+        for (AxolotiLibrary lib : Preferences.getPreferences().getLibraries()) {
             lib.sync();
         }
         axoObjects.LoadAxoObjects();
@@ -271,10 +275,8 @@ public class FileMenu extends JMenu {
     }
 
     public void NewPatch() {
-        PatchGUI patch1 = new PatchGUI();
-        PatchFrame pf = new PatchFrame(patch1, QCmdProcessor.getQCmdProcessor());
-        patch1.PostContructor();
-        patch1.setFileNamePath("untitled");
+        PatchModel patchModel = new PatchModel();
+        PatchFrame pf = PatchView.OpenPatchModel(patchModel, "untitled");
         pf.setVisible(true);
     }
 

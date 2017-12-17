@@ -18,10 +18,9 @@
 package axoloti.outlets;
 
 import axoloti.atom.AtomDefinition;
-import axoloti.atom.AtomInstance;
 import axoloti.datatypes.DataType;
 import axoloti.datatypes.SignalMetaData;
-import axoloti.object.AxoObjectInstance;
+import axoloti.property.Property;
 import axoloti.utils.CharEscape;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -32,12 +31,8 @@ import org.simpleframework.xml.Attribute;
  *
  * @author Johannes Taelman
  */
-public abstract class Outlet implements AtomDefinition, Cloneable {
+public abstract class Outlet extends AtomDefinition implements Cloneable {
 
-    @Attribute
-    String name;
-    @Attribute(required = false)
-    public String description;
     @Deprecated
     @Attribute(required = false)
     Boolean SumBuffer;
@@ -50,8 +45,7 @@ public abstract class Outlet implements AtomDefinition, Cloneable {
     }
 
     public Outlet(String name, String description) {
-        this.name = name;
-        this.description = description;
+        super(name, description);
     }
 
     @Override
@@ -60,41 +54,16 @@ public abstract class Outlet implements AtomDefinition, Cloneable {
     }
 
     public String GetCName() {
-        return "outlet_" + CharEscape.CharEscape(name);
+        return "outlet_" + CharEscape.CharEscape(getName());
     }
 
-    SignalMetaData GetSignalMetaData() {
+    public SignalMetaData GetSignalMetaData() {
         return SignalMetaData.none;
     }
 
     public void updateSHA(MessageDigest md) {
-        md.update(name.getBytes());
+        md.update(getName().getBytes());
         md.update((byte) getDatatype().hashCode());
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @Override
-    public String getDescription() {
-        return description;
-    }
-
-    @Override
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    @Override
-    public AtomInstance CreateInstance(AxoObjectInstance o) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
@@ -103,7 +72,7 @@ public abstract class Outlet implements AtomDefinition, Cloneable {
     }
 
     @Override
-    public List<String> getEditableFields() {
-        return new ArrayList<String>();
+    public List<Property> getEditableFields() {
+        return new ArrayList<>();
     }
 }

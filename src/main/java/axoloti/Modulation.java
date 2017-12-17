@@ -18,7 +18,7 @@
 package axoloti;
 
 import axoloti.datatypes.ValueFrac32;
-import axoloti.object.AxoObjectInstanceAbstract;
+import axoloti.object.IAxoObjectInstance;
 import axoloti.parameters.ParameterInstanceFrac32;
 import java.util.ArrayList;
 import org.simpleframework.xml.Attribute;
@@ -40,30 +40,35 @@ public class Modulation {
         return value.getDouble();
     }
 
-    final ValueFrac32 value = new ValueFrac32();
+    ValueFrac32 value;
 
     public Modulation(@Attribute(name = "value") double v) {
-        value.setDouble(v);
+        value = new ValueFrac32(v);
     }
 
     public Modulation() {
+        value = null;
     }
 
-    public ValueFrac32 getValue() {
-        return value;
+    public Double getValue() {
+        return value.getDouble();
+    }
+
+    public void setValue(Double value) {
+        this.value = new ValueFrac32(value);
     }
 
     public void PostConstructor(ParameterInstanceFrac32 p) {
         System.out.println("Modulation postconstructor");
         destination = p;
-        source = p.GetObjectInstance().patch.GetObjectInstance(sourceName);
+        source = p.getObjectInstance().getPatchModel().GetObjectInstance(sourceName);
         if (source == null) {
             System.out.println("modulation source missing!");
         } else {
             System.out.println("modulation source found " + source.getInstanceName());
         }
         Modulator m = null;
-        for (Modulator m1 : p.GetObjectInstance().patch.Modulators) {
+        for (Modulator m1 : p.getObjectInstance().getPatchModel().getPatchModulators()) {
             System.out.println("modulator match? " + m1.objinst.getInstanceName());
             if (m1.objinst == source) {
                 if ((m1.name != null) && (!m1.name.isEmpty())) {
@@ -86,6 +91,6 @@ public class Modulation {
             }
         }
     }
-    public AxoObjectInstanceAbstract source;
+    public IAxoObjectInstance source;
     public ParameterInstanceFrac32 destination;
 }

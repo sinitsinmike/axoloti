@@ -17,7 +17,6 @@
  */
 package generatedobjects;
 
-import axoloti.MainFrame;
 import axoloti.attributedefinition.AxoAttribute;
 import axoloti.inlets.Inlet;
 import axoloti.inlets.InletFrac32;
@@ -101,17 +100,17 @@ public class gentools {
         s = s.replaceAll("default", "");
         for (Parameter p : o.params) {
             if (s.contains(p.getName())) {
-                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
+                Logger.getLogger(axoloti.PatchModel.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
             }
         }
         for (Inlet p : o.inlets) {
             if (s.contains(p.getName())) {
-                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
+                Logger.getLogger(axoloti.PatchModel.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
             }
         }
         for (Outlet p : o.outlets) {
             if (s.contains(p.getName())) {
-                Logger.getLogger(axoloti.Patch.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
+                Logger.getLogger(axoloti.PatchModel.class.getName()).log(Level.SEVERE, "Object " + o.id + ": contains unmarked string " + p.getName() + "\n" + s);
             }
         }
 
@@ -201,11 +200,11 @@ public class gentools {
              CheckString(oo,oo.sSRateCode);            
              */
         }
-        if (o.sAuthor == null) {
-            o.sAuthor = "Johannes Taelman";
+        if (o.getAuthor() == null) {
+            o.setAuthor("Johannes Taelman");
         }
-        if (o.sLicense == null) {
-            o.sLicense = "BSD";
+        if (o.getLicense() == null) {
+            o.setLicense("BSD");
         }
         if (o.GetIncludes() == null) {
             o.SetIncludes(null);
@@ -222,10 +221,10 @@ public class gentools {
             AxoObject oo = (AxoObject) o;
             for (Parameter p : oo.params) {
                 if (oo.sKRateCode != null) {
-                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sKRateCode = oo.sKRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
                 if (oo.sSRateCode != null) {
-                    oo.sSRateCode = oo.sSRateCode.replaceAll("%" + p.name + "%", p.GetCName());
+                    oo.sSRateCode = oo.sSRateCode.replaceAll("%" + p.getName() + "%", p.GetCName());
                 }
             }
             for (AxoAttribute p : oo.attributes) {
@@ -338,7 +337,7 @@ public class gentools {
             f = new File(path);
             fn = f.getName();
             String objPath = null;
-            for (String s : Preferences.LoadPreferences().getObjectSearchPath()) {
+            for (String s : Preferences.getPreferences().getObjectSearchPath()) {
                 if (path.startsWith(s)) {
                     objPath = path.substring(s.length() + 1);
                     break;
@@ -714,7 +713,7 @@ public class gentools {
     }
 
     static String getObjDir() {
-        AxolotiLibrary lib = MainFrame.prefs.getLibrary(AxolotiLibrary.FACTORY_ID);
+        AxolotiLibrary lib = Preferences.getPreferences().getLibrary(AxolotiLibrary.FACTORY_ID);
         String objdir = "objects/";
         if (lib != null) {
             objdir = lib.getLocalLocation() + objdir;

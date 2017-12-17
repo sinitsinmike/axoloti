@@ -34,11 +34,6 @@ public class DisplayInt32Label extends Display {
     }
 
     @Override
-    public DisplayInstanceInt32Label InstanceFactory() {
-        return new DisplayInstanceInt32Label();
-    }
-
-    @Override
     public void updateSHA(MessageDigest md) {
         super.updateSHA(md);
         md.update("int32.label".getBytes());
@@ -56,4 +51,8 @@ public class DisplayInt32Label extends Display {
         return TypeName;
     }
 
+    @Override
+    public String GetCMetaType() {
+        return "display_meta_type_int32";
+    }
 }

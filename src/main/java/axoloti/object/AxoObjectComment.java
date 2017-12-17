@@ -17,8 +17,6 @@
  */
 package axoloti.object;
 
-import axoloti.Patch;
-import java.awt.Point;
 import org.simpleframework.xml.Root;
 
 /**
@@ -26,7 +24,7 @@ import org.simpleframework.xml.Root;
  * @author Johannes Taelman
  */
 @Root
-public class AxoObjectComment extends AxoObjectAbstract {
+public class AxoObjectComment extends AxoObjectAbstract0 {
 
     public AxoObjectComment() {
         super();
@@ -34,16 +32,6 @@ public class AxoObjectComment extends AxoObjectAbstract {
 
     public AxoObjectComment(String id, String sDescription) {
         super(id, sDescription);
-    }
-
-    @Override
-    public AxoObjectInstanceAbstract CreateInstance(Patch patch, String InstanceName1, Point location) {
-        AxoObjectInstanceComment o = new AxoObjectInstanceComment(this, patch, InstanceName1, location);
-        if (patch != null) {
-            patch.objectinstances.add(o);
-        }
-        o.PostConstructor();
-        return o;
     }
 
     @Override

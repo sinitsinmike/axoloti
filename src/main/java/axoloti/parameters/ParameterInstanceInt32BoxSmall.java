@@ -17,29 +17,13 @@
  */
 package axoloti.parameters;
 
-import components.control.NumberBoxComponent;
-import org.simpleframework.xml.Attribute;
-
 /**
  *
  * @author Johannes Taelman
  */
 public class ParameterInstanceInt32BoxSmall extends ParameterInstanceInt32Box {
 
-    protected NumberBoxComponent dial;
-
     public ParameterInstanceInt32BoxSmall() {
-    }
-
-    public ParameterInstanceInt32BoxSmall(@Attribute(name = "value") int v) {
-        super(v);
-    }
-
-    @Override
-    public NumberBoxComponent CreateControl() {
-        NumberBoxComponent n = new NumberBoxComponent(0.0, min, max, 1.0, 12, 12);
-        n.setParentAxoObjectInstance(axoObj);
-        return n;
     }
 
 }

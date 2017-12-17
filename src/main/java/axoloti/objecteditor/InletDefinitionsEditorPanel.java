@@ -19,7 +19,9 @@ package axoloti.objecteditor;
 
 import axoloti.inlets.Inlet;
 import axoloti.inlets.InletTypes;
-import java.util.ArrayList;
+import axoloti.mvc.array.ArrayController;
+import axoloti.object.AxoObject;
+import axoloti.object.ObjectController;
 
 /**
  *
@@ -27,13 +29,8 @@ import java.util.ArrayList;
  */
 public class InletDefinitionsEditorPanel extends AtomDefinitionsEditor<Inlet> {
 
-    public InletDefinitionsEditorPanel() {
-        super(InletTypes.getTypes());
-    }
-
-    @Override
-    ArrayList<Inlet> GetAtomDefinitions() {
-        return obj.GetInlets();
+    public InletDefinitionsEditorPanel(ObjectController controller) {
+        super(controller, AxoObject.OBJ_INLETS, InletTypes.getTypes());
     }
 
     @Override
@@ -41,4 +38,13 @@ public class InletDefinitionsEditorPanel extends AtomDefinitionsEditor<Inlet> {
         return "i";
     }
 
+    @Override
+    String getAtomTypeName() {
+        return "inlet";
+    }
+
+    @Override
+    ArrayController getTController() {
+        return getController().inlets;
+    }
 }

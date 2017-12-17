@@ -17,9 +17,18 @@
  */
 package axoloti;
 
-import axoloti.object.AxoObjectAbstract;
 import axoloti.object.AxoObjectInstanceAbstract;
+import axoloti.object.AxoObjectInstanceFactory;
+import axoloti.object.AxoObjectInstancePatcher;
 import axoloti.object.AxoObjectTreeNode;
+import axoloti.object.IAxoObject;
+import axoloti.object.IAxoObjectInstance;
+import axoloti.object.ObjectController;
+import axoloti.object.ObjectInstanceController;
+import axoloti.object.ObjectInstancePatcherController;
+import axoloti.objectviews.AxoObjectInstanceViewAbstract;
+import axoloti.objectviews.AxoObjectInstanceViewFactory;
+import axoloti.objectviews.IAxoObjectInstanceView;
 import axoloti.utils.Constants;
 import java.awt.Cursor;
 import java.awt.GraphicsConfiguration;
@@ -33,7 +42,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
+import javax.swing.JList;
+import javax.swing.JPanel;
 import javax.swing.JRootPane;
+import javax.swing.JTextPane;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
@@ -50,9 +63,9 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
 
     DefaultMutableTreeNode root;
     DefaultTreeModel tm;
-    public AxoObjectAbstract type;
-    private final PatchGUI p;
-    public AxoObjectInstanceAbstract target_object;
+    public IAxoObject type;
+    protected final PatchController patchController;
+    public IAxoObjectInstance target_object;
     private AxoObjectTreeNode objectTree;
 
     /**
@@ -60,15 +73,16 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
      *
      * @param p parent
      */
-    public ObjectSearchFrame(PatchGUI p) {
+    public ObjectSearchFrame(PatchController patchController) {
         initComponents();
         getRootPane().setWindowDecorationStyle(JRootPane.PLAIN_DIALOG);
-        this.p = p;
+        this.patchController = patchController;
         DefaultMutableTreeNode root1 = new DefaultMutableTreeNode();
         this.objectTree = MainFrame.axoObjects.ObjectTree;
         this.root = PopulateJTree(MainFrame.axoObjects.ObjectTree, root1);
         tm = new DefaultTreeModel(this.root);
         jTree1.setModel(tm);
+        jTree1.setShowsRootHandles(true);
         jTree1.addTreeSelectionListener(new TreeSelectionListener() {
             @Override
             public void valueChanged(TreeSelectionEvent e) {
@@ -85,10 +99,10 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
                     previewObj = null;
                 }
                 Object nodeInfo = node.getUserObject();
-                if (nodeInfo instanceof AxoObjectAbstract) {
-                    SetPreview((AxoObjectAbstract) nodeInfo);
+                if (nodeInfo instanceof IAxoObject) {
+                    SetPreview((IAxoObject) nodeInfo);
                     if (!jTextFieldObjName.hasFocus()) {
-                        jTextFieldObjName.setText(((AxoObjectAbstract) nodeInfo).id);
+                        jTextFieldObjName.setText(((IAxoObject) nodeInfo).getId());
                     }
                 }
             }
@@ -149,13 +163,13 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             @Override
             public void valueChanged(ListSelectionEvent e) {
                 Object o = ObjectSearchFrame.this.jList1.getSelectedValue();
-                if (o instanceof AxoObjectAbstract) {
-                    SetPreview((AxoObjectAbstract) o);
+                if (o instanceof IAxoObject) {
+                    SetPreview((IAxoObject) o);
                     if (!jTree1.hasFocus()) {
-                        ExpandJTreeToEl((AxoObjectAbstract) o);
+                        ExpandJTreeToEl((IAxoObject) o);
                     }
                     if (!jTextFieldObjName.hasFocus()) {
-                        jTextFieldObjName.setText(((AxoObjectAbstract) o).id);
+                        jTextFieldObjName.setText(((IAxoObject) o).getId());
                     }
                 } else if (o == null) {
                 } else {
@@ -241,45 +255,47 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             }
         });
     }
-    AxoObjectAbstract previewObj;
+    protected IAxoObject previewObj;
     int patchLocX;
     int patchLocY;
-    
+
     private Point snapToGrid(Point p) {
         p.x = Constants.X_GRID * (p.x / Constants.X_GRID);
         p.y = Constants.Y_GRID * (p.y / Constants.Y_GRID);
         return p;
     }
 
-    private Point clipToStayWithinScreen(Point patchLoc) {
+    public Point clipToStayWithinScreen(Point patchLoc) {
 
         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         GraphicsDevice[] gs = ge.getScreenDevices();
         Rectangle allScreenBounds = new Rectangle();
 
-        for(GraphicsDevice curGs : gs)
-        {
+        for (GraphicsDevice curGs : gs) {
             GraphicsConfiguration[] gc = curGs.getConfigurations();
-            for(GraphicsConfiguration curGc : gc)
-            {
+            for (GraphicsConfiguration curGc : gc) {
                 Rectangle bounds = curGc.getBounds();
                 allScreenBounds = allScreenBounds.union(bounds);
             }
         }
 
-        Point patchFrameOnScreen = p.getPatchframe().patch.objectLayerPanel.getLocationOnScreen();
+        Point patchFrameOnScreen = patchController.getViewLocationOnScreen();
 
-        if(patchFrameOnScreen.getX() + patchLoc.getX() + getWidth() > allScreenBounds.getWidth() + allScreenBounds.getX()) {
+        if (patchFrameOnScreen.getX() + patchLoc.getX() + getWidth() > allScreenBounds.getWidth() + allScreenBounds.getX()) {
             patchLoc.x = (int) (allScreenBounds.getWidth() + allScreenBounds.getX() - patchFrameOnScreen.getX() - getWidth());
         }
-        if(patchFrameOnScreen.getY() + patchLoc.getY() + getHeight() > allScreenBounds.getHeight() + allScreenBounds.getY()) {
+        if (patchFrameOnScreen.getY() + patchLoc.getY() + getHeight() > allScreenBounds.getHeight() + allScreenBounds.getY()) {
             patchLoc.y = (int) (allScreenBounds.getHeight() + allScreenBounds.getY() - patchFrameOnScreen.getY() - getHeight());
         }
 
         return patchLoc;
     }
 
-    void Launch(Point patchLoc, AxoObjectInstanceAbstract o, String searchString) {
+    public void Launch(Point patchLoc, IAxoObjectInstanceView o, String searchString) {
+        Launch(patchLoc, o, searchString, true);
+    }
+
+    public void Launch(Point patchLoc, IAxoObjectInstanceView o, String searchString, boolean setVisible) {
         if (this.objectTree != MainFrame.axoObjects.ObjectTree) {
             DefaultMutableTreeNode root1 = new DefaultMutableTreeNode();
             this.objectTree = MainFrame.axoObjects.ObjectTree;
@@ -293,19 +309,23 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         snapToGrid(patchLoc);
         patchLocX = patchLoc.x;
         patchLocY = patchLoc.y;
-        Point ps = p.objectLayerPanel.getLocationOnScreen();
+        Point ps = patchController.getViewLocationOnScreen();
         Point patchLocClipped = clipToStayWithinScreen(patchLoc);
 
         setLocation(patchLocClipped.x + ps.x, patchLocClipped.y + ps.y);
-        target_object = o;
         if (o != null) {
-            AxoObjectAbstract oa = o.getType();
+            target_object = o.getModel();
+        } else {
+            target_object = null;
+        }
+        if (o != null) {
+            IAxoObject oa = o.getModel().getType();
             if (oa != null) {
-                Search(oa.id);
+                Search(oa.getId());
                 SetPreview(oa);
                 ExpandJTreeToEl(oa);
             }
-            jTextFieldObjName.setText(o.typeName);
+            jTextFieldObjName.setText(o.getModel().getType().getId());
         } else if (searchString != null) {
             Search(searchString);
             jTextFieldObjName.setText(searchString);
@@ -313,10 +333,12 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         jTextFieldObjName.grabFocus();
         jTextFieldObjName.setSelectionStart(0);
         jTextFieldObjName.setSelectionEnd(jTextFieldObjName.getText().length());
-        setVisible(true);
+        if (setVisible) {
+            setVisible(true);
+        }
     }
 
-    void SetPreview(AxoObjectAbstract o) {
+    public void SetPreview(IAxoObject o) {
         if (o == null) {
             previewObj = null;
             type = null;
@@ -331,20 +353,28 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             jList1.setSelectedValue(o, true);
             if (jList1.getSelectedValue() != o) {
             }
-            AxoObjectInstanceAbstract inst = o.CreateInstance(null, "dummy", new Point(5, 5));
+            ObjectController oc = o.createController(null, null);
+            AxoObjectInstanceAbstract objectInstance = AxoObjectInstanceFactory.createView(oc, null, "dummy", new Point(5, 5));
+            ObjectInstanceController c;
+
+            if (objectInstance instanceof AxoObjectInstancePatcher) {
+                c = new ObjectInstancePatcherController((AxoObjectInstancePatcher) objectInstance, null, null);
+            } else {
+                c = new ObjectInstanceController(objectInstance, null, null);
+            }
+
+            AxoObjectInstanceViewAbstract objectInstanceView = AxoObjectInstanceViewFactory.createView(c, null);
             jPanel1.removeAll();
-            jPanel1.add(inst);
-            inst.invalidate();
-            inst.repaint();
-            inst.revalidate();
-            jPanel1.revalidate();
-            jPanel1.repaint();
-            AxoObjectAbstract t = inst.getType();
+            jPanel1.add(objectInstanceView);
+            objectInstanceView.resizeToGrid();
+            jPanel1.repaint();  //reqd, as removed object may be smaller than new object
+           
+            IAxoObject t = objectInstanceView.getModel().getType();
             if (t != null) {
-                String description = t.sDescription == null || t.sDescription.isEmpty() ? o.sDescription : t.sDescription;
-                String path = t.sPath == null ? o.sPath : t.sPath;
-                String author = t.sAuthor == null ? o.sAuthor : t.sAuthor;
-                String license = t.sLicense == null ? o.sLicense : t.sLicense;
+                String description = t.getDescription() == null || t.getDescription().isEmpty() ? o.getDescription() : t.getDescription();
+                String path = t.getPath() == null ? o.getPath() : t.getPath();
+                String author = t.getAuthor() == null ? o.getAuthor() : t.getAuthor();
+                String license = t.getLicense() == null ? o.getLicense() : t.getLicense();
                 String txt = description;
                 if ((path != null) && (!path.isEmpty())) {
                     txt += "\n<p>\nPath: " + path;
@@ -366,14 +396,14 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             DefaultMutableTreeNode node = new DefaultMutableTreeNode(anode.SubNodes.get(n));
             root.add(PopulateJTree(anode.SubNodes.get(n), node));
         }
-        for (AxoObjectAbstract n : anode.Objects) {
+        for (IAxoObject n : anode.Objects) {
             DefaultMutableTreeNode node = new DefaultMutableTreeNode(n);
             root.add(node);
         }
         return root;
     }
 
-    void ExpandJTreeToEl(AxoObjectAbstract s) {
+    protected void ExpandJTreeToEl(IAxoObject s) {
         Enumeration e = root.depthFirstEnumeration();
         DefaultMutableTreeNode n = null;
         while (e.hasMoreElements()) {
@@ -395,9 +425,9 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
     }
 
     public void Search(String s) {
-        ArrayList<AxoObjectAbstract> listData = new ArrayList<AxoObjectAbstract>();
+        ArrayList<IAxoObject> listData = new ArrayList<IAxoObject>();
         if ((s == null) || s.isEmpty()) {
-            for (AxoObjectAbstract o : MainFrame.axoObjects.ObjectList) {
+            for (IAxoObject o : MainFrame.axoObjects.ObjectList) {
                 listData.add(o);
             }
             jList1.setListData(listData.toArray());
@@ -405,35 +435,33 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
 //            jList1.revalidate();
         } else {
             // exact match first
-            for (AxoObjectAbstract o : MainFrame.axoObjects.ObjectList) {
-                if (o.id.equals(s)) {
+            for (IAxoObject o : MainFrame.axoObjects.ObjectList) {
+                if (o.getId().equals(s)) {
                     listData.add(o);
                 }
             }
-            for (AxoObjectAbstract o : MainFrame.axoObjects.ObjectList) {
-                if (o.id.startsWith(s)) {
+            for (IAxoObject o : MainFrame.axoObjects.ObjectList) {
+                if (o.getId().startsWith(s)) {
                     if (!listData.contains(o)) {
                         listData.add(o);
                     }
                 }
             }
-            for (AxoObjectAbstract o : MainFrame.axoObjects.ObjectList) {
-                if (o.id.contains(s)) {
+            for (IAxoObject o : MainFrame.axoObjects.ObjectList) {
+                if (o.getId().contains(s)) {
                     if (!listData.contains(o)) {
                         listData.add(o);
                     }
                 }
             }
-            for (AxoObjectAbstract o : MainFrame.axoObjects.ObjectList) {
-                if (o.sDescription != null && o.sDescription.contains(s)) {
+            for (IAxoObject o : MainFrame.axoObjects.ObjectList) {
+                if (o.getDescription() != null && o.getDescription().contains(s)) {
                     if (!listData.contains(o)) {
                         listData.add(o);
                     }
                 }
             }
             jList1.setListData(listData.toArray());
-//            jList1.doLayout();
-//            jList1.revalidate();
             if (!listData.isEmpty()) {
                 type = listData.get(0);
                 jList1.setSelectedIndex(0);
@@ -441,7 +469,7 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
                 ExpandJTreeToEl(listData.get(0));
                 SetPreview(type);
             } else {
-                ArrayList<AxoObjectAbstract> objs = MainFrame.axoObjects.GetAxoObjectFromName(s, p.GetCurrentWorkingDirectory());
+                List<IAxoObject> objs = MainFrame.axoObjects.GetAxoObjectFromName(s, patchController.GetCurrentWorkingDirectory());
                 if ((objs != null) && (objs.size() > 0)) {
                     jList1.setListData(objs.toArray());
                     SetPreview(objs.get(0));
@@ -456,7 +484,6 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         accepted = false;
         MainFrame.mainframe.SetGrabFocusOnSevereErrors(true);
         setVisible(false);
-        p.repaint();
     }
 
     void Accept() {
@@ -464,9 +491,9 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             accepted = true;
             MainFrame.mainframe.SetGrabFocusOnSevereErrors(true);
             setVisible(false);
-            AxoObjectAbstract x = type;
+            IAxoObject x = type;
             if (x == null) {
-                ArrayList<AxoObjectAbstract> objs = MainFrame.axoObjects.GetAxoObjectFromName(jTextFieldObjName.getText(), p.GetCurrentWorkingDirectory());
+                List<IAxoObject> objs = MainFrame.axoObjects.GetAxoObjectFromName(jTextFieldObjName.getText(), patchController.GetCurrentWorkingDirectory());
                 if ((objs != null) && (!objs.isEmpty())) {
                     x = objs.get(0);
                     jTextFieldObjName.setText("");
@@ -474,15 +501,27 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
             }
             if (x != null) {
                 if (target_object == null) {
-                    p.AddObjectInstance(x, new Point(patchLocX, patchLocY));
+                    patchController.addMetaUndo("add object");
+                    patchController.AddObjectInstance(x, new Point(patchLocX, patchLocY));
                 } else {
-                    AxoObjectInstanceAbstract oi = p.ChangeObjectInstanceType(target_object, x);
-                    p.cleanUpIntermediateChangeStates(2);
+                    patchController.addMetaUndo("change object type");
+                    AxoObjectInstanceAbstract oi = patchController.ChangeObjectInstanceType(target_object, x);
                 }
             }
             setVisible(false);
-            p.repaint();
         }
+    }
+
+    protected JPanel getMainView() {
+        return jPanel1;
+    }
+
+    protected JList getListView() {
+        return jList1;
+    }
+
+    protected JTextPane getTextPane() {
+        return jTextPane1;
     }
 
     /**
@@ -505,6 +544,7 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         jSplitPane2 = new javax.swing.JSplitPane();
         jScrollPane4 = new javax.swing.JScrollPane();
         jTextPane1 = new javax.swing.JTextPane();
+        jScrollPane2 = new javax.swing.JScrollPane();
         jPanel1 = new javax.swing.JPanel();
 
         setForeground(java.awt.SystemColor.control);
@@ -559,7 +599,6 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
         jTree1.setDragEnabled(true);
         jTree1.setMinimumSize(new java.awt.Dimension(100, 50));
         jTree1.setRootVisible(false);
-        jTree1.setShowsRootHandles(true);
         jScrollPane1.setViewportView(jTree1);
 
         jSplitPane3.setBottomComponent(jScrollPane1);
@@ -579,7 +618,6 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
 
         jTextPane1.setEditable(false);
         jTextPane1.setFocusCycleRoot(false);
-        jTextPane1.setFocusTraversalKeysEnabled(false);
         jTextPane1.setFocusable(false);
         jTextPane1.setRequestFocusEnabled(false);
         jScrollPane4.setViewportView(jTextPane1);
@@ -588,21 +626,22 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
 
         jPanel1.setBackground(new java.awt.Color(153, 153, 153));
         jPanel1.setEnabled(false);
-        jPanel1.setFocusTraversalKeysEnabled(false);
         jPanel1.setFocusable(false);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 349, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 247, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
 
-        jSplitPane2.setRightComponent(jPanel1);
+        jScrollPane2.setViewportView(jPanel1);
+
+        jSplitPane2.setRightComponent(jScrollPane2);
 
         jSplitPane1.setRightComponent(jSplitPane2);
 
@@ -629,6 +668,7 @@ public class ObjectSearchFrame extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JSplitPane jSplitPane1;

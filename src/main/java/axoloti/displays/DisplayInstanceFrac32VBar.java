@@ -17,7 +17,7 @@
  */
 package axoloti.displays;
 
-import components.displays.VBarComponent;
+import axoloti.atom.AtomDefinitionController;
 
 /**
  *
@@ -25,22 +25,8 @@ import components.displays.VBarComponent;
  */
 public class DisplayInstanceFrac32VBar extends DisplayInstanceFrac32<DisplayFrac32VBar> {
 
-    private VBarComponent vbar;
-
-    public DisplayInstanceFrac32VBar() {
+    DisplayInstanceFrac32VBar(AtomDefinitionController controller) {
+        super(controller);
     }
 
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-
-        vbar = new VBarComponent(0, 0, 64);
-        vbar.setValue(0);
-        add(vbar);
-    }
-
-    @Override
-    public void updateV() {
-        vbar.setValue(value.getDouble());
-    }
 }

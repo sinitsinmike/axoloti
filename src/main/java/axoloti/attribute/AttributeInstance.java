@@ -18,58 +18,38 @@
 package axoloti.attribute;
 
 import axoloti.SDFileReference;
-import axoloti.Theme;
+import axoloti.atom.AtomDefinitionController;
 import axoloti.atom.AtomInstance;
 import axoloti.attributedefinition.AxoAttribute;
 import axoloti.object.AxoObjectInstance;
 import static axoloti.utils.CharEscape.CharEscape;
 import components.LabelComponent;
+import java.beans.PropertyChangeEvent;
 import java.util.ArrayList;
-import javax.swing.BoxLayout;
-import javax.swing.JPanel;
 import org.simpleframework.xml.Attribute;
 
 /**
  *
  * @author Johannes Taelman
  */
-public abstract class AttributeInstance<T extends AxoAttribute> extends JPanel implements AtomInstance<T> {
+public abstract class AttributeInstance<T extends AxoAttribute> extends AtomInstance<T> {
 
     @Attribute
     String attributeName;
 
-    T attr;
+    final AtomDefinitionController controller;
 
     AxoObjectInstance axoObj;
     LabelComponent lbl;
 
-    public AttributeInstance() {
+    AttributeInstance() {
+        this.controller = null;
     }
 
-    public AttributeInstance(T attr, AxoObjectInstance axoObj1) {
-        this.attr = attr;
+    AttributeInstance(AtomDefinitionController controller, AxoObjectInstance axoObj1) {
+        this.controller = controller;
         axoObj = axoObj1;
-        attributeName = attr.getName();
     }
-
-    public void PostConstructor() {
-        setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        setBackground(Theme.getCurrentTheme().Object_Default_Background);
-        add(new LabelComponent(GetDefinition().getName()));
-        setSize(getPreferredSize());
-        if (attr.getDescription() != null) {
-            setToolTipText(attr.getDescription());
-        }
-    }
-
-    @Override
-    public String getName() {
-        return attributeName;
-    }
-
-    public abstract void Lock();
-
-    public abstract void UnLock();
 
     public abstract String CValue();
 
@@ -79,27 +59,40 @@ public abstract class AttributeInstance<T extends AxoAttribute> extends JPanel i
         return "attr_" + CharEscape(attributeName);
     }
 
-    @Override
-    public AxoObjectInstance GetObjectInstance() {
+    public AxoObjectInstance getObjectInstance() {
         return axoObj;
     }
 
     @Override
-    public T GetDefinition() {
-        return attr;
+    public T getModel() {
+        return (T) getController().getModel();
     }
 
     public ArrayList<SDFileReference> GetDependendSDFiles() {
         return null;
     }
 
-    public void Close() {
-    }
-
-    void SetDirty() {
-        // propagate dirty flag to patch if there is one
-        if (axoObj.getPatch() != null) {
-            axoObj.getPatch().SetDirty();
+    @Override
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        if (AxoAttribute.NAME.is(evt)) {
+            setName((String) evt.getNewValue());
         }
     }
+
+    @Override
+    public AtomDefinitionController getController() {
+        return controller;
+    }
+
+    public String getName() {
+        return attributeName;
+    }
+
+    public void setName(String attributeName) {
+        String preVal = this.attributeName;
+        this.attributeName = attributeName;
+        firePropertyChange(NAME, preVal, attributeName);
+    }
+
 }

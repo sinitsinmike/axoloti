@@ -18,6 +18,7 @@
 package axoloti.parameters;
 
 import axoloti.datatypes.ValueInt32;
+import axoloti.property.Property;
 import java.security.MessageDigest;
 import java.util.List;
 import org.simpleframework.xml.Element;
@@ -26,7 +27,7 @@ import org.simpleframework.xml.Element;
  *
  * @author Johannes Taelman
  */
-public class ParameterInt32BoxSmall extends Parameter<ParameterInstanceInt32BoxSmall> {
+public class ParameterInt32BoxSmall extends ParameterInt32<ParameterInstanceInt32BoxSmall> {
 
     @Element
     public ValueInt32 MinValue;
@@ -35,7 +36,7 @@ public class ParameterInt32BoxSmall extends Parameter<ParameterInstanceInt32BoxS
 
     public ParameterInt32BoxSmall() {
         this.MinValue = new ValueInt32(0);
-        this.MaxValue = new ValueInt32(0);
+        this.MaxValue = new ValueInt32(64);
     }
 
     public ParameterInt32BoxSmall(String name, int MinValue, int MaxValue) {
@@ -47,8 +48,6 @@ public class ParameterInt32BoxSmall extends Parameter<ParameterInstanceInt32BoxS
     @Override
     public ParameterInstanceInt32BoxSmall InstanceFactory() {
         ParameterInstanceInt32BoxSmall b = new ParameterInstanceInt32BoxSmall();
-        b.min = MinValue.getInt();
-        b.max = MaxValue.getInt();
         return b;
     }
 
@@ -66,10 +65,37 @@ public class ParameterInt32BoxSmall extends Parameter<ParameterInstanceInt32BoxS
     }
 
     @Override
-    public List<String> getEditableFields() {
+    public List<Property> getEditableFields() {
         List l = super.getEditableFields();
-        l.add("MinValue");
-        l.add("MaxValue");
+        l.add(VALUE_MIN);
+        l.add(VALUE_MAX);
         return l;
     }
+
+    @Override
+    public String GetCType() {
+        return "param_type_int";
+    }
+
+    @Override
+    public Integer getMinValue() {
+        return MinValue.getInt();
+    }
+
+    public void setMinValue(Integer min) {
+        this.MinValue = new ValueInt32(min);
+        firePropertyChange(VALUE_MIN, null, min);
+    }
+
+    @Override
+    public Integer getMaxValue() {
+        return MaxValue.getInt();
+    }
+
+    @Override
+    public void setMaxValue(Integer max) {
+        this.MaxValue = new ValueInt32(max);
+        firePropertyChange(VALUE_MAX, null, max);
+    }
+
 }

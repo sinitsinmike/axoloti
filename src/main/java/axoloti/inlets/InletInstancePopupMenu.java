@@ -17,6 +17,8 @@
  */
 package axoloti.inlets;
 
+import axoloti.NetController;
+import axoloti.PatchController;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JMenuItem;
@@ -28,26 +30,39 @@ import javax.swing.JPopupMenu;
  */
 public class InletInstancePopupMenu extends JPopupMenu {
 
-    InletInstance inletinstance;
-
-    public InletInstancePopupMenu(InletInstance inletinstance1) {
+    public InletInstancePopupMenu(InletInstanceController inletInstanceController) {
         super();
-        this.inletinstance = inletinstance1;
+
+        PatchController pc = inletInstanceController.getParent().getParent();
+        NetController nc = pc.getNetFromInlet(inletInstanceController.getModel());
+
         JMenuItem itemDisconnect = new JMenuItem("Disconnect inlet");
-        JMenuItem itemDelete = new JMenuItem("Delete net");
-        itemDisconnect.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                inletinstance.disconnect();
-            }
-        });
-        itemDelete.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                inletinstance.deleteNet();
-            }
-        });
-        this.add(itemDisconnect);
-        this.add(itemDelete);
+        if (nc == null) {
+            itemDisconnect.setEnabled(false);
+            add(itemDisconnect);
+            return;
+        }
+        if (nc.getModel().getDestinations().length + nc.getModel().getSources().length > 1) {
+            add(itemDisconnect);
+            itemDisconnect.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    inletInstanceController.addMetaUndo("disconnect inlet");
+                    pc.disconnect(inletInstanceController.getModel());
+                }
+            });
+        }
+        if (nc.getModel().getDestinations().length + nc.getModel().getSources().length > 2) {
+            add(itemDisconnect);
+            JMenuItem itemDelete = new JMenuItem("Delete net");
+            itemDelete.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    inletInstanceController.addMetaUndo("delete net");
+                    pc.delete(nc);
+                }
+            });
+            add(itemDelete);
+        }
     }
 }

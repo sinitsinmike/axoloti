@@ -19,47 +19,47 @@ package axoloti.parameters;
 
 import axoloti.Modulation;
 import axoloti.Modulator;
-import axoloti.Preset;
-import axoloti.datatypes.Frac32;
-import axoloti.datatypes.Value;
-import axoloti.datatypes.ValueFrac32;
+import axoloti.PresetDouble;
 import axoloti.object.AxoObjectInstance;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
 import org.simpleframework.xml.Attribute;
 import org.simpleframework.xml.ElementList;
+import org.simpleframework.xml.ElementListUnion;
 
 /**
  *
  * @author Johannes Taelman
  */
-public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extends ParameterInstance<Tx> {
+public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extends ParameterInstance<Tx, Double> {
 
     @Attribute(name = "value", required = false)
     public double getValuex() {
-        return value.getDouble();
-    }        
+        return value;
+    }
     @ElementList(required = false)
     ArrayList<Modulation> modulators;
 
-    final ValueFrac32 value = new ValueFrac32();
+    @ElementListUnion({
+        @ElementList(entry = "Preset", type = PresetDouble.class, inline = false, required = false)
+    })
+    ArrayList<PresetDouble> presets;
+
+    Double value = 0.0;
 
     public ParameterInstanceFrac32(@Attribute(name = "value") double v) {
-        value.setDouble(v);
+        value = v;
     }
 
     public ParameterInstanceFrac32() {
         //value = new ValueFrac32();
     }
 
-    abstract double getMin();
+    public abstract double getMin();
 
-    abstract double getMax();
+    public abstract double getMax();
 
-    abstract double getTick();
+    public abstract double getTick();
 
     public ParameterInstanceFrac32(Tx param, AxoObjectInstance axoObj1) {
         super(param, axoObj1);
@@ -67,52 +67,48 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
     }
 
     @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        if (modulators != null) {
-            for (Modulation m : modulators) {
-                System.out.println("mod amount " + m.getValue().getDouble());
-                m.PostConstructor(this);
-            }
-        }
+    public ByteBuffer getValueBB() {
+        ByteBuffer bb = super.getValueBB();
+        bb.putInt((int) ((1 << 21) * (double) value));
+        return bb;
     }
 
     @Override
-    public Value<Frac32> getValue() {
-        return value;
+    public int valToInt32(Double v) {
+        int f2i = 1 << 21;
+        return (int) Math.round(v * f2i);
     }
 
     @Override
-    public void setValue(Value value) {
-        super.setValue(value);
-        this.value.setDouble(value.getDouble());
-        updateV();
+    public Double int32ToVal(int v) {
+        double i2f = 1.0 / (1 << 21);
+        return v * i2f;
     }
 
     @Override
-    public void applyDefaultValue() {
-        if (((ParameterFrac32) parameter).DefaultValue != null) {
-            value.setRaw(((ParameterFrac32) parameter).DefaultValue.getRaw());
+    public PresetDouble presetFactory(int index, Double value) {
+        return new PresetDouble(index, value);
+    }
+
+    @Override
+    public ArrayList<PresetDouble> getPresets() {
+        if (presets != null) {
+            return presets;
         } else {
-            value.setRaw(0);
+            return new ArrayList<>();
         }
-        updateV();
-        needsTransmit = true;
     }
 
     @Override
-    public void populatePopup(JPopupMenu m) {
-        super.populatePopup(m);
-        JMenuItem m_default = new JMenuItem("Reset to default value");
-        m_default.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                applyDefaultValue();
-                getControlComponent().setValue(value.getDouble());
-                handleAdjustment();
-            }
-        });
-        m.add(m_default);
+    public void setPresets(Object presets) {
+        ArrayList<PresetDouble> prevValue = getPresets();
+        this.presets = (ArrayList<PresetDouble>) presets;
+        firePropertyChange(PRESETS, prevValue, this.presets);
+    }
+
+    @Override
+    public PresetDouble getPreset(int i) {
+        return (PresetDouble) super.getPreset(i);
     }
 
     public void updateModulation(int index, double amount) {
@@ -122,7 +118,7 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
             if (modulators == null) {
                 modulators = new ArrayList<Modulation>();
             }
-            Modulator modulator = axoObj.patch.Modulators.get(index);
+            Modulator modulator = axoObjectInstance.getPatchModel().getPatchModulators().get(index);
             //System.out.println("updatemodulation2:" + modulator.name);
             Modulation n = null;
             for (Modulation m : modulators) {
@@ -130,11 +126,9 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
                     if ((modulator.name == null) || (modulator.name.isEmpty())) {
                         n = m;
                         break;
-                    } else {
-                        if (modulator.name.equals(m.modName)) {
-                            n = m;
-                            break;
-                        }
+                    } else if (modulator.name.equals(m.modName)) {
+                        n = m;
+                        break;
                     }
                 }
             }
@@ -146,12 +140,12 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
             n.source = modulator.objinst;
             n.sourceName = modulator.objinst.getInstanceName();
             n.modName = modulator.name;
-            n.getValue().setDouble(amount);
+            n.setValue(amount);
             n.destination = this;
-            axoObj.patch.updateModulation(n);
+            axoObjectInstance.getPatchModel().updateModulation(n);
         } else {
             // remove modulation target if exists
-            Modulator modulator = axoObj.patch.Modulators.get(index);
+            Modulator modulator = axoObjectInstance.getPatchModel().getPatchModulators().get(index);
             if (modulator == null) {
                 return;
             }
@@ -166,7 +160,7 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
                 if (n.destination == this) {
                     modulators.remove(n);
                 }
-                axoObj.patch.updateModulation(n);
+                axoObjectInstance.getPatchModel().updateModulation(n);
             }
             if (modulators.isEmpty()) {
                 modulators = null;
@@ -174,6 +168,7 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
         }
     }
 
+    @Override
     public ArrayList<Modulation> getModulators() {
         return modulators;
     }
@@ -183,45 +178,75 @@ public abstract class ParameterInstanceFrac32<Tx extends ParameterFrac32> extend
     }
 
     @Override
-    public Parameter getParameterForParent() {
-        Parameter p = super.getParameterForParent();
-        ((ParameterFrac32) p).DefaultValue = value;
-        return p;
-    }
-
-    @Override
     public void CopyValueFrom(ParameterInstance p) {
         super.CopyValueFrom(p);
         if (p instanceof ParameterInstanceFrac32) {
             ParameterInstanceFrac32 p1 = (ParameterInstanceFrac32) p;
             modulators = p1.getModulators();
-            presets = p1.presets;
-            value.setRaw(p1.value.getRaw());
-            updateV();
+            setValue(p1.getValue());
         }
     }
 
     @Override
-    public boolean handleAdjustment() {
-        Preset p = GetPreset(presetEditActive);
-        if (p != null) {
-            p.value = new ValueFrac32(getControlComponent().getValue());
-        } else {
-            if (value.getDouble() != getControlComponent().getValue()) {
-                value.setDouble(getControlComponent().getValue());
-                needsTransmit = true;
-                UpdateUnit();
-            } else {
-                return false;
-            }
-
-        }
-        return true;
+    public String GenerateParameterInitializer() {
+// { type: param_type_frac, unit: param_unit_abstract, signals: 0, pfunction: 0, d: { frac: { finalvalue:0,  0,  0,  0,  0}}},
+//        String pname = GetUserParameterName();
+        String s = "{ type: " + parameter.GetCType()
+                + ", unit: " + parameter.GetCUnit()
+                + ", signals: 0"
+                + ", pfunction: " + ((GetPFunction() == null) ? "0" : GetPFunction());
+        double v = getValue();
+        s += ", d: { frac: { finalvalue: 0"
+                + ", value: " + valToInt32(v)
+                + ", modvalue: " + valToInt32(v)
+                + ", offset: " + GetCOffset()
+                + ", multiplier: " + GetCMultiplier()
+                + "}}},\n";
+        return s;
     }
-    
+
+    @Override
+    public String variableName(String vprefix, boolean enableOnParent) {
+        if (getOnParent() && (enableOnParent)) {
+            return "%" + ControlOnParentName() + "%";
+        } else {
+            return PExName(vprefix) + ".d.frac.finalvalue";
+        }
+    }
+
+    @Override
+    public String valueName(String vprefix) {
+        return PExName(vprefix) + ".value";
+    }
+
     @Override
     public String GenerateCodeInitModulator(String vprefix, String StructAccces) {
         return "";
-    }    
-    
+    }
+
+    /**
+     * **
+     */
+    @Override
+    public Double getValue() {
+        if (value == null) {
+            return 0.0;
+        } else {
+            return value;
+        }
+    }
+
+    @Override
+    public void setValue(Object value) {
+        Double oldvalue = this.value;
+        this.value = (Double)value;
+        needsTransmit = true;
+        firePropertyChange(
+                VALUE,
+                oldvalue, value);
+        if (paramOnParent != null) {
+            paramOnParent.setDefaultValue((Double)value);
+        }
+    }
+
 }

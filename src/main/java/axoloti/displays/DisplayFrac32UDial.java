@@ -34,11 +34,6 @@ public class DisplayFrac32UDial extends Display {
     }
 
     @Override
-    public DisplayInstanceFrac32UDial InstanceFactory() {
-        return new DisplayInstanceFrac32UDial();
-    }
-
-    @Override
     public void updateSHA(MessageDigest md) {
         super.updateSHA(md);
         md.update("frac32.u.dial".getBytes());
@@ -56,4 +51,8 @@ public class DisplayFrac32UDial extends Display {
         return TypeName;
     }
 
+    @Override
+    public String GetCMetaType() {
+        return "display_meta_type_dial_uq27";
+    }
 }

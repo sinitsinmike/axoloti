@@ -19,9 +19,6 @@ package axoloti.inlets;
 
 import axoloti.datatypes.DataType;
 import axoloti.object.AxoObjectInstanceZombie;
-import components.LabelComponent;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 
 /**
  *
@@ -36,16 +33,10 @@ public class InletInstanceZombie extends InletInstance {
         this.axoObj = obj;
         this.inletname = name;
         this.objname = obj.getInstanceName();
-        setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-        jack = new components.JackInputComponent(this);
-        add(jack);
-        add(Box.createHorizontalStrut(2));
-        add(new LabelComponent(this.inletname));
-        add(Box.createHorizontalGlue());
     }
 
     @Override
-    public DataType GetDataType() {
+    public DataType getDataType() {
         return new axoloti.datatypes.DTZombie();
     }
 
@@ -53,4 +44,5 @@ public class InletInstanceZombie extends InletInstance {
     public String GetLabel() {
         return inletname;
     }
+
 }

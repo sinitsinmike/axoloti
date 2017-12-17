@@ -17,7 +17,7 @@
  */
 package axoloti.displays;
 
-import components.VGraphComponent;
+import axoloti.atom.AtomDefinitionController;
 import java.nio.ByteBuffer;
 
 /**
@@ -28,17 +28,8 @@ public class DisplayInstanceFrac8U128VBar extends DisplayInstance<DisplayFrac8U1
 
     final int n = 128;
 
-    public DisplayInstanceFrac8U128VBar() {
-        super();
-    }
-
-    private VGraphComponent vgraph;
-
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        vgraph = new VGraphComponent(n, 128, 0, 128);
-        add(vgraph);
+    DisplayInstanceFrac8U128VBar(AtomDefinitionController controller) {
+        super(controller);
     }
 
     @Override
@@ -46,7 +37,7 @@ public class DisplayInstanceFrac8U128VBar extends DisplayInstance<DisplayFrac8U1
         String s = "{\n"
                 + "   int _i;\n"
                 + "   for(_i=0;_i<" + n + ";_i++)\n"
-                + "   " + GetCName()+ "[_i] = 0;\n"
+                + "   " + GetCName() + "[_i] = 0;\n"
                 + "}\n";
         return s;
     }
@@ -58,6 +49,7 @@ public class DisplayInstanceFrac8U128VBar extends DisplayInstance<DisplayFrac8U1
 
     byte dst[] = new byte[n];
     int idst[] = new int[n];
+    int[] value;
 
     @Override
     public void ProcessByteBuffer(ByteBuffer bb) {
@@ -65,17 +57,30 @@ public class DisplayInstanceFrac8U128VBar extends DisplayInstance<DisplayFrac8U1
         for (int i = 0; i < n; i++) {
             idst[i] = dst[i];//&0xff;
         }
-        vgraph.setValue(idst);
-    }
-
-    @Override
-    public void updateV() {
-
+        setValue(idst);
     }
 
     @Override
     public int getLength() {
         return n / 4;
+    }
+
+    public int[] getIDst() {
+        return idst;
+    }
+
+    public int getN() {
+        return n;
+    }
+
+    @Override
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = (int[]) value;
+        firePropertyChange(DISP_VALUE, null, value);
     }
 
 }

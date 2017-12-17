@@ -17,7 +17,7 @@
  */
 package qcmds;
 
-import axoloti.Connection;
+import axoloti.IConnection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,7 +47,7 @@ public class QCmdPing implements QCmdSerialTask {
     }
 
     @Override
-    public QCmd Do(Connection connection) {
+    public QCmd Do(IConnection connection) {
         connection.ClearSync();
         connection.TransmitPing();
         if (connection.WaitSync() || (noCauseDisconnect)) {
@@ -55,9 +55,10 @@ public class QCmdPing implements QCmdSerialTask {
         } else {
             if (connection.isConnected()) {
                 Logger.getLogger(QCmdPing.class.getName()).log(Level.SEVERE, "Ping: WaitSync Timeout, disconnecting now");
+                connection.disconnect();
                 return new QCmdDisconnect();
             } else {
-                return null;
+                return new QCmdDisconnect();
             }
         }
     }

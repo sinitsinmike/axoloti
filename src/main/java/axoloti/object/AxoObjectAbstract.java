@@ -18,12 +18,19 @@
 package axoloti.object;
 
 import axoloti.Modulator;
-import axoloti.Patch;
+import axoloti.attributedefinition.AxoAttribute;
+import axoloti.displays.Display;
 import axoloti.inlets.Inlet;
+import axoloti.mvc.AbstractController;
+import axoloti.mvc.AbstractDocumentRoot;
+import axoloti.mvc.AbstractModel;
 import axoloti.outlets.Outlet;
-import java.awt.Point;
+import axoloti.parameters.Parameter;
+import axoloti.property.ObjectProperty;
+import axoloti.property.Property;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.simpleframework.xml.Attribute;
 import org.simpleframework.xml.Element;
@@ -38,7 +45,7 @@ import org.simpleframework.xml.core.Persist;
  * @author Johannes Taelman
  */
 @Root(name = "objdef")
-public abstract class AxoObjectAbstract implements Comparable, Cloneable {
+public abstract class AxoObjectAbstract extends AbstractModel implements Comparable, Cloneable, IAxoObject {
 
     @Attribute
     public String id;
@@ -56,17 +63,17 @@ public abstract class AxoObjectAbstract implements Comparable, Cloneable {
     HashSet<String> upgradeSha;
 
     @Element(name = "sDescription", required = false)
-    public String sDescription;
+    String sDescription;
 
     public String shortId;
 
     public boolean createdFromRelativePath = false;
 
     @Element(name = "author", required = false)
-    public String sAuthor;
+    private String sAuthor;
     @Element(name = "license", required = false)
-    public String sLicense;
-    public String sPath;
+    private String sLicense;
+    private String sPath;
 
     @Commit
     public void Commit() {
@@ -92,29 +99,6 @@ public abstract class AxoObjectAbstract implements Comparable, Cloneable {
         this.id = id;
         this.sha = null;
         this.upgradeSha = null;
-    }
-
-    Inlet GetInlet(String n) {
-        return null;
-    }
-
-    Outlet GetOutlet(String n) {
-        return null;
-    }
-
-    public ArrayList<Inlet> GetInlets() {
-        return null;
-    }
-
-    public ArrayList<Outlet> GetOutlets() {
-        return null;
-    }
-
-    public AxoObjectInstanceAbstract CreateInstance(Patch patch, String InstanceName1, Point location) {
-        return null;
-    }
-
-    public void DeleteInstance(AxoObjectInstanceAbstract o) {
     }
 
     @Override
@@ -160,6 +144,10 @@ public abstract class AxoObjectAbstract implements Comparable, Cloneable {
         return null;
     }
 
+    public Set<String> GetModules() {
+        return null;
+    }
+
     public String getDefaultInstanceName() {
         if (shortId == null) {
             return "obj";
@@ -181,13 +169,123 @@ public abstract class AxoObjectAbstract implements Comparable, Cloneable {
         this.uuid = uuid;
     }
 
-    public void FireObjectModified(Object src) {
+    
+/* MVC clean methods below... */
+    public static final Property OBJ_INLETS = new ObjectProperty("Inlets", ArrayList.class, AxoObjectAbstract.class);
+    public static final Property OBJ_OUTLETS = new ObjectProperty("Outlets", ArrayList.class, AxoObjectAbstract.class);
+    public static final Property OBJ_ATTRIBUTES = new ObjectProperty("Attributes", ArrayList.class, AxoObjectAbstract.class);
+    public static final Property OBJ_PARAMETERS = new ObjectProperty("Parameters", ArrayList.class, AxoObjectAbstract.class);
+    public static final Property OBJ_DISPLAYS = new ObjectProperty("Displays", ArrayList.class, AxoObjectAbstract.class);
+
+    public abstract List<Inlet> getInlets();
+
+    public abstract List<Outlet> getOutlets();
+
+    public abstract List<AxoAttribute> getAttributes();
+
+    public abstract List<Parameter> getParameters();
+
+    public abstract List<Display> getDisplays();
+
+    public void setInlets(ArrayList<Inlet> inlets) {
     }
 
-    public void addObjectModifiedListener(ObjectModifiedListener oml) {
+    public void setOutlets(ArrayList<Outlet> outlets) {
+    }
+    public void setAttributes(ArrayList<AxoAttribute> attributes) {
     }
 
-    public void removeObjectModifiedListener(ObjectModifiedListener oml) {
+    public void setParameters(ArrayList<Parameter> parameters) {
+    }
+
+    public void setDisplays(ArrayList<Display> displays) {
+    }
+
+    private String StringDenull(String s) {
+        if (s == null) return "";
+        return s;
+    }
+    
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        String oldvalue = this.id;
+        this.id = id;
+        firePropertyChange(
+                AxoObject.OBJ_ID,
+                oldvalue, id);
+    }
+
+    @Override
+    public String getDescription() {
+        return StringDenull(sDescription);
+    }
+
+    public void setDescription(String sDescription) {
+        String oldvalue = this.sDescription;
+        this.sDescription = sDescription;
+        firePropertyChange(
+                AxoObject.OBJ_DESCRIPTION,
+                oldvalue, sDescription);
+    }
+
+    @Override
+    public String getLicense() {
+        return StringDenull(sLicense);
+    }
+
+    public void setLicense(String sLicense) {
+        String oldvalue = this.sLicense;
+        this.sLicense = sLicense;
+        firePropertyChange(
+                AxoObject.OBJ_LICENSE,
+                oldvalue, sLicense);
+    }
+
+    @Override
+    public String getPath() {
+        return StringDenull(sPath);
+    }
+
+    public void setPath(String sPath) {
+        String oldvalue = this.sPath;
+        this.sPath = sPath;
+        firePropertyChange(
+                AxoObject.OBJ_PATH,
+                oldvalue, sPath);
+    }
+
+    @Override
+    public String getAuthor() {
+        return StringDenull(sAuthor);
+    }
+
+    public void setAuthor(String sAuthor) {
+        String oldvalue = this.sAuthor;
+        this.sAuthor = sAuthor;
+        firePropertyChange(
+                AxoObject.OBJ_AUTHOR,
+                oldvalue, sAuthor);
+    }
+
+    // Let's violate the MVC pattern for now and use a singleton controller for this model
+    // how undo/redo must be handled when open documents contain instances is yet unclear...
+    private ObjectController controller;
+
+    @Override
+    public ObjectController createController(AbstractDocumentRoot documentRoot, AbstractController parent) {
+        if (controller == null) {
+            controller = new ObjectController(this, documentRoot);
+        }
+        return controller;
+    }
+
+    @Override
+    public boolean isCreatedFromRelativePath() {
+        return createdFromRelativePath;
     }
 
 }

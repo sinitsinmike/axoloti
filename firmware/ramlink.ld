@@ -2,29 +2,23 @@ ENTRY(xpatch_init)
 
 MEMORY
 {
-/*
- originally 
-  24kB for program
-  64kB for variables
- new:
-  56kB for program
-  64kB for variables 
- next:
-  72kB for program!
-*/
 
-      SRAM (rwx) : ORIGIN = 0x00011000, LENGTH = 0x0000B000 /* 44kB in RAM1 */
-      SRAM2 (rwx) : ORIGIN = 0x2001C000, LENGTH = 0x00002000 /* first 8kB in SRAM2 */
+      SRAM (rwx)  : ORIGIN = 0x00000000, LENGTH = 64k  /* first 64kB of SRAM1 */
+      SRAM2 (rwx) : ORIGIN = 0x2001C000, LENGTH =  8k  /* first 8kB in SRAM2 */
+	  SRAM3 (rwx) : ORIGIN = 0x20020000, LENGTH = 64k  /* whole of SRAM3 */
       CCMSRAM (rw) : ORIGIN = 0x10000000, LENGTH = 0x0000C000 /* CCM - ccmramend */
-    sdram : org = 0xC0000000, len = 0x800000
+      SDRAM : org = 0xC0000000, len = 0x800000
 }
 
 SECTIONS {
 
+	header : {
+		LONG(0x32787861) /* signature "axx2"  */
+		LONG(patch_root_chunk)
+	} > SRAM
+
     .text : ALIGN(16) SUBALIGN(16)
     {
-	/* Note: the .boot section _must_ be first in the resulting binary,
-	 * as that is where the firmware calls the patch when loaded. */
         * (.boot);
         * (.text);
         etext = .;
@@ -50,14 +44,14 @@ SECTIONS {
     {
         * (.rodata);
         * (.rodata.*);
-    } > SRAM
+    } > SRAM3
 
-    .data (NOLOAD): ALIGN(4) SUBALIGN(4)
+    .data : ALIGN(4) SUBALIGN(4)
     {
         sdata = .;
         * (.data);
         edata = .;
-    } > SRAM
+    } > SRAM3
 
     .sram2 (NOLOAD): ALIGN(4) SUBALIGN(4) 
     {
@@ -74,13 +68,19 @@ SECTIONS {
         PROVIDE(_pbss_end = .);        
     } > CCMSRAM
     
+    .sdram.data : ALIGN(4) SUBALIGN(4)
+    {
+        KEEP(*(.sdramdata))
+        KEEP(*(.sdramdata.*))
+    } > SDRAM
+
     .sdram (NOLOAD) : ALIGN(4) SUBALIGN(4)
     {
         KEEP(*(.sdram))
         KEEP(*(.sdram.*))
         PROVIDE(_sdram_dyn_start = .);
-        PROVIDE(_sdram_dyn_end = ORIGIN(sdram) + LENGTH(sdram));
-    } > sdram
+        PROVIDE(_sdram_dyn_end = ORIGIN(SDRAM) + LENGTH(SDRAM));
+    } > SDRAM
 
 
  /*   

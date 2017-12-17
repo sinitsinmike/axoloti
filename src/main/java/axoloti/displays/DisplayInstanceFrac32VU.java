@@ -17,7 +17,7 @@
  */
 package axoloti.displays;
 
-import components.displays.VUComponent;
+import axoloti.atom.AtomDefinitionController;
 
 /**
  *
@@ -25,22 +25,8 @@ import components.displays.VUComponent;
  */
 public class DisplayInstanceFrac32VU extends DisplayInstanceFrac32<DisplayFrac32VU> {
 
-    private VUComponent vu;
-
-    public DisplayInstanceFrac32VU() {
+    DisplayInstanceFrac32VU(AtomDefinitionController controller) {
+        super(controller);
     }
 
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-
-        vu = new VUComponent();
-        vu.setValue(0);
-        add(vu);
-    }
-
-    @Override
-    public void updateV() {
-        vu.setValue(value.getDouble());
-    }
 }

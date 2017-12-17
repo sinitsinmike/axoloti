@@ -17,7 +17,7 @@
  */
 package axoloti.displays;
 
-import components.displays.DispComponent;
+import axoloti.atom.AtomDefinitionController;
 
 /**
  *
@@ -25,22 +25,8 @@ import components.displays.DispComponent;
  */
 public class DisplayInstanceFrac32UDial extends DisplayInstanceFrac32<DisplayFrac32UDial> {
 
-    private DispComponent dial;
-
-    public DisplayInstanceFrac32UDial() {
-        super();
+    DisplayInstanceFrac32UDial(AtomDefinitionController controller) {
+        super(controller);
     }
 
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-
-        dial = new DispComponent(0.0, 0.0, 64.0);
-        add(dial);
-    }
-
-    @Override
-    public void updateV() {
-        dial.setValue(value.getDouble());
-    }
 }

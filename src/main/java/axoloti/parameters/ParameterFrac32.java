@@ -18,6 +18,8 @@
 package axoloti.parameters;
 
 import axoloti.datatypes.ValueFrac32;
+import axoloti.property.DoubleProperty;
+import axoloti.property.Property;
 import java.util.List;
 import org.simpleframework.xml.Element;
 
@@ -28,7 +30,9 @@ import org.simpleframework.xml.Element;
 public abstract class ParameterFrac32<T extends ParameterInstanceFrac32> extends Parameter<T> {
 
     @Element(required = false)
-    public ValueFrac32 DefaultValue;
+    public ValueFrac32 DefaultValue = new ValueFrac32(0);
+
+    static final Property DEFAULTVALUE = new DoubleProperty("DefaultValue", ParameterFrac32.class, "Default");
 
     public ParameterFrac32() {
     }
@@ -43,9 +47,18 @@ public abstract class ParameterFrac32<T extends ParameterInstanceFrac32> extends
     }
 
     @Override
-    public List<String> getEditableFields() {
+    public List<Property> getEditableFields() {
         List l = super.getEditableFields();
-        l.add("DefaultValue");
+        l.add(DEFAULTVALUE);
         return l;
+    }
+
+    @Override
+    public Double getDefaultValue() {
+        return DefaultValue.getDouble();
+    }
+
+    public void setDefaultValue(Double DefaultValue) {
+        this.DefaultValue = new ValueFrac32(DefaultValue);
     }
 }

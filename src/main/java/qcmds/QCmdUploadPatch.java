@@ -18,7 +18,7 @@
 package qcmds;
 
 import axoloti.Axoloti;
-import axoloti.Connection;
+import axoloti.IConnection;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -32,14 +32,14 @@ import java.util.logging.Logger;
  */
 public class QCmdUploadPatch implements QCmdSerialTask {
 
-    File f;
+    final String basepath;
 
     public QCmdUploadPatch() {
-        f = null;
+        basepath = System.getProperty(Axoloti.HOME_DIR)+"/build/xpatch";
     }
 
-    public QCmdUploadPatch(File f) {
-        this.f = f;
+    public QCmdUploadPatch(String basepath) {
+        this.basepath = basepath;
     }
 
     @Override
@@ -52,15 +52,7 @@ public class QCmdUploadPatch implements QCmdSerialTask {
         return "Done uploading patch";
     }
 
-    @Override
-    public QCmd Do(Connection connection) {
-        connection.ClearSync();
-        try {
-            if (f == null) {
-                String buildDir=System.getProperty(Axoloti.HOME_DIR)+"/build";
-                f = new File(buildDir + "/xpatch.bin");
-            }
-            Logger.getLogger(QCmdUploadPatch.class.getName()).log(Level.INFO, "bin path: {0}", f.getAbsolutePath());
+    void UploadBinFile(IConnection connection, File f, int baseaddr) throws FileNotFoundException, IOException {
             int tlength = (int) f.length();
             FileInputStream inputStream = new FileInputStream(f);
             int offset = 0;
@@ -79,10 +71,26 @@ public class QCmdUploadPatch implements QCmdSerialTask {
                 if (nRead != l) {
                     Logger.getLogger(QCmdUploadPatch.class.getName()).log(Level.SEVERE, "file size wrong?{0}", nRead);
                 }
-                connection.UploadFragment(buffer, connection.getTargetProfile().getPatchAddr() + offset);
+                connection.UploadFragment(buffer, baseaddr + offset);
                 offset += nRead;
             } while (tlength > 0);
-            inputStream.close();
+            inputStream.close();        
+    }
+    
+    @Override
+    public QCmd Do(IConnection connection) {
+        connection.ClearSync();
+        try {
+            // from now on there can be multiple segments!
+            File f = new File(basepath + ".sram1.bin");
+            File f2 = new File(basepath + ".sram3.bin");
+            File f3 = new File(basepath + ".sdram.bin");
+            Logger.getLogger(QCmdUploadPatch.class.getName()).log(Level.INFO, "bin path: {0}", f.getAbsolutePath() + " " + f2.getAbsolutePath());
+            UploadBinFile(connection, f, connection.getTargetProfile().getPatchAddr());
+            if (f2.length() > 0)
+                UploadBinFile(connection, f2, connection.getTargetProfile().getSRAM3Addr());
+            if (f3.length() > 0)
+                UploadBinFile(connection, f3, connection.getTargetProfile().getSDRAMAddr());
             return this;
         } catch (FileNotFoundException ex) {
             Logger.getLogger(QCmdUploadPatch.class.getName()).log(Level.SEVERE, "FileNotFoundException", ex);

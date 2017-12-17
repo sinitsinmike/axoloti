@@ -19,21 +19,17 @@ package axoloti;
 
 import axoloti.datatypes.DataType;
 import axoloti.inlets.InletInstance;
-import axoloti.object.AxoObjectInstanceAbstract;
+import axoloti.mvc.AbstractModel;
+import axoloti.object.IAxoObjectInstance;
 import axoloti.outlets.OutletInstance;
-import java.awt.BasicStroke;
+import axoloti.property.DestinationArrayProperty;
+import axoloti.property.Property;
+import axoloti.property.SourceArrayProperty;
 import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.RenderingHints;
-import java.awt.Stroke;
-import java.awt.geom.QuadCurve2D;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
+import java.util.Arrays;
+import static java.util.Arrays.asList;
+import java.util.List;
 import org.simpleframework.xml.*;
 
 /**
@@ -41,125 +37,113 @@ import org.simpleframework.xml.*;
  * @author Johannes Taelman
  */
 @Root(name = "net")
-public class Net extends JComponent {
+public class Net extends AbstractModel {
 
-    @ElementList(inline = true, required = false)
-    ArrayList<OutletInstance> source;
-    @ElementList(inline = true, required = false)
-    ArrayList<InletInstance> dest = new ArrayList<InletInstance>();
-    Patch patch;
+    private OutletInstance[] sources;
+    private InletInstance[] dests;
     boolean selected = false;
 
-    public Net() {
+    public Net(
+            @ElementList(name = "source", inline = true, required = false) List<OutletInstance> source,
+            @ElementList(name = "dest", inline = true, required = false) List<InletInstance> dest
+    ) {
         if (source == null) {
-            source = new ArrayList<OutletInstance>();
+            this.sources = new OutletInstance[]{};
+        } else {
+            this.sources = source.toArray(new OutletInstance[]{});
         }
         if (dest == null) {
-            dest = new ArrayList<InletInstance>();
+            this.dests = new InletInstance[]{};
+        } else {
+            this.dests = dest.toArray(new InletInstance[]{});
         }
-
-        setSize(1, 1);
-        setLocation(0, 0);
-        setOpaque(false);
     }
 
-    public Net(Patch patch) {
-        this();
-        this.patch = patch;
+    @ElementList(name = "source", inline = true, required = false)
+    public List<OutletInstance> getSourceList() {
+        if (sources == null) {
+            return null;
+        }
+        if (sources.length == 0) {
+            return null;
+        }
+        return asList(sources);
     }
 
-    public void PostConstructor() {
-        // InletInstances and OutletInstances actually already exist, need to replace dummies with the real ones
-        ArrayList<OutletInstance> source2 = new ArrayList<OutletInstance>();
-        for (OutletInstance i : source) {
-            String objname = i.getObjname();
-            String outletname = i.getOutletname();
-            AxoObjectInstanceAbstract o = patch.GetObjectInstance(objname);
-            if (o == null) {
-                Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net source obj : {0}::{1}", new Object[]{i.getObjname(), i.getOutletname()});
-                patch.nets.remove(this);
-                return;
+    @ElementList(name = "dest", inline = true, required = false)
+    public List<InletInstance> getDestList() {
+        if (dests == null) {
+            return null;
+        }
+        if (dests.length == 0) {
+            return null;
+        }
+        return asList(dests);
+    }
+
+    public Net() {
+        this.sources = new OutletInstance[]{};
+        this.dests = new InletInstance[]{};
+    }
+
+    public Net(OutletInstance[] sources, InletInstance[] dests) {
+        this.sources = sources;
+        this.dests = dests;
+    }
+
+    public void validate() {
+        if (sources == null) {
+            throw new Error("source is null, empty array required");
+        }
+        if (dests == null) {
+            throw new Error("dest is null, empty array required");
+        }
+        if (dests.length + sources.length < 2) {
+            throw new Error("less than 2 iolets connected, should not exist");
+        }
+        for (int j = 0; j < dests.length; j++) {
+            InletInstance i = dests[j];
+            IAxoObjectInstance o = i.getObjectInstance();
+            if (o == null) continue;
+            if (!o.getInletInstances().contains(i)) {
+                String inletName = i.getName();
+                InletInstance i2 = o.GetInletInstance(inletName);
+                if (i2 == null) {
+                    throw new Error("detached net");
+                }
+                dests[j] = i2;
             }
-            OutletInstance r = o.GetOutletInstance(outletname);
-            if (r == null) {
-                Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net source outlet : {0}::{1}", new Object[]{i.getObjname(), i.getOutletname()});
-                patch.nets.remove(this);
-                return;
+        }
+        for (int j = 0; j < sources.length; j++) {
+            OutletInstance i = sources[j];
+            IAxoObjectInstance o = i.getObjectInstance();
+            if (o == null) continue;
+            if (!o.getOutletInstances().contains(i)) {
+                String outletName = i.getName();
+                OutletInstance i2 = o.GetOutletInstance(outletName);
+                if (i2 == null) {
+                    throw new Error("detached net");
+                }
+                sources[j] = i2;
             }
-            source2.add(r);
         }
-        ArrayList<InletInstance> dest2 = new ArrayList<InletInstance>();
-        for (InletInstance i : dest) {
-            String objname = i.getObjname();
-            String inletname = i.getInletname();
-            AxoObjectInstanceAbstract o = patch.GetObjectInstance(objname);
-            if (o == null) {
-                Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net dest obj :{0}::{1}", new Object[]{i.getObjname(), i.getInletname()});
-                patch.nets.remove(this);
-                return;
-            }
-            InletInstance r = o.GetInletInstance(inletname);
-            if (r == null) {
-                Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "could not resolve net dest inlet :{0}::{1}", new Object[]{i.getObjname(), i.getInletname()});
-                patch.nets.remove(this);
-                return;
-            }
-            dest2.add(r);
-        }
-        source = source2;
-        dest = dest2;
-        updateBounds();
-    }
-
-    public boolean isSelected() {
-        return selected;
-    }
-
-    public void setSelected(boolean selected) {
-        if (this.selected == selected) {
-            return;
-        }
-        this.selected = selected;
-        for (OutletInstance i : source) {
-            i.setHighlighted(selected);
-        }
-        for (InletInstance i : dest) {
-            i.setHighlighted(selected);
-        }
-        repaint();
-    }
-
-    public boolean getSelected() {
-        return this.selected;
-    }
-
-    public void connectInlet(InletInstance inlet) {
-        if (inlet.GetObjectInstance().patch != patch) {
-            return;
-        }
-        dest.add(inlet);
-        updateBounds();
-    }
-
-    public void connectOutlet(OutletInstance outlet) {
-        if (outlet.GetObjectInstance().patch == patch) {
-            source.add(outlet);
-        }
-        updateBounds();
     }
 
     public boolean isValidNet() {
-        if (source.isEmpty()) {
+        if (sources == null) {
             return false;
         }
-        if (source.size() > 1) {
+        if (sources.length != 1) {
             return false;
         }
-        if (dest.isEmpty()) {
+        if (dests == null) {
             return false;
         }
-        for (InletInstance s : dest) {
-            if (!GetDataType().IsConvertableToType(s.GetDataType())) {
+        if (dests.length == 0) {
+            return false;
+        }
+        for (InletInstance s : dests) {
+            if (!getDataType().IsConvertableToType(s.getDataType())) {
                 return false;
             }
         }
@@ -167,184 +151,70 @@ public class Net extends JComponent {
     }
 
     Color GetColor() {
-        Color c = GetDataType().GetColor();
+        Color c = getDataType().GetColor();
         if (c == null) {
             c = Theme.getCurrentTheme().Cable_Default;
         }
         return c;
     }
-    final static float[] dash = {2.f, 4.f};
-    final static Stroke strokeValidSelected = new BasicStroke(1.75f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
-    final static Stroke strokeValidDeselected = new BasicStroke(0.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
-    final static Stroke strokeBrokenSelected = new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, dash, 0.f);
-    final static Stroke strokeBrokenDeselected = new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, dash, 0.f);
-    final QuadCurve2D.Float curve = new QuadCurve2D.Float();
 
-    float CtrlPointY(float x1, float y1, float x2, float y2) {
-        return Math.max(y1, y2) + Math.abs(y2 - y1) * 0.1f + Math.abs(x2 - x1) * 0.1f;
-    }
-
-    void DrawWire(Graphics2D g2, float x1, float y1, float x2, float y2) {
-        curve.setCurve(x1, y1, (x1 + x2) / 2, CtrlPointY(x1, y1, x2, y2), x2, y2);
-        g2.draw(curve);
-    }
-
-    public void updateBounds() {
-        int min_y = Integer.MAX_VALUE;
-        int min_x = Integer.MAX_VALUE;
-        int max_y = Integer.MIN_VALUE;
-        int max_x = Integer.MIN_VALUE;
-
-        for (InletInstance i : dest) {
-            Point p1 = i.getJackLocInCanvas();
-            min_x = Math.min(min_x, p1.x);
-            min_y = Math.min(min_y, p1.y);
-            max_x = Math.max(max_x, p1.x);
-            max_y = Math.max(max_y, p1.y);
-        }
-        for (OutletInstance i : source) {
-            Point p1 = i.getJackLocInCanvas();
-            min_x = Math.min(min_x, p1.x);
-            min_y = Math.min(min_y, p1.y);
-            max_x = Math.max(max_x, p1.x);
-            max_y = Math.max(max_y, p1.y);
-        }
-        int fudge = 8;
-        this.setBounds(min_x - fudge, min_y - fudge,
-                Math.max(1, max_x - min_x + (2 * fudge)),
-                (int)CtrlPointY(min_x, min_y, max_x, max_y) - min_y + (2 * fudge));
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        float shadowOffset = 0.5f;
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        Point p0;
-        Color c;
-        if (isValidNet()) {
-            if (selected) {
-                g2.setStroke(strokeValidSelected);
-            } else {
-                g2.setStroke(strokeValidDeselected);
-            }
-
-            c = GetDataType().GetColor();
-            p0 = source.get(0).getJackLocInCanvas();
-        } else {
-            if (selected) {
-                g2.setStroke(strokeBrokenSelected);
-            } else {
-                g2.setStroke(strokeBrokenDeselected);
-            }
-
-            if (GetDataType() != null) {
-                c = GetDataType().GetColor();
-            } else {
-                c = Theme.getCurrentTheme().Cable_Shadow;
-            }
-
-            if (!source.isEmpty()) {
-                p0 = source.get(0).getJackLocInCanvas();
-            } else if (!dest.isEmpty()) {
-                p0 = dest.get(0).getJackLocInCanvas();
-            } else {
-                throw new Error("empty nets should not exist");
-            }
-        }
-
-        Point from = SwingUtilities.convertPoint(getPatchGui().Layers, p0, this);
-        for (InletInstance i : dest) {
-            Point p1 = i.getJackLocInCanvas();
-
-            Point to = SwingUtilities.convertPoint(getPatchGui().Layers, p1, this);
-            g2.setColor(Theme.getCurrentTheme().Cable_Shadow);
-            DrawWire(g2, from.x + shadowOffset, from.y + shadowOffset, to.x + shadowOffset, to.y + shadowOffset);
-            g2.setColor(c);
-            DrawWire(g2, from.x, from.y, to.x, to.y);
-        }
-        for (OutletInstance i : source) {
-            Point p1 = i.getJackLocInCanvas();
-
-            Point to = SwingUtilities.convertPoint(getPatchGui().Layers, p1, this);
-            g2.setColor(Theme.getCurrentTheme().Cable_Shadow);
-            DrawWire(g2, from.x + shadowOffset, from.y + shadowOffset, to.x + shadowOffset, to.y + shadowOffset);
-            g2.setColor(c);
-            DrawWire(g2, from.x, from.y, to.x, to.y);
-
-        }
-    }
-
-    public PatchGUI getPatchGui() {
-        return (PatchGUI) patch;
-    }
-
-    public boolean NeedsLatch() {
-        // reads before last write on net
-        int lastSource = 0;
-        for (OutletInstance s : source) {
-            int i = patch.objectinstances.indexOf(s.GetObjectInstance());
-            if (i > lastSource) {
-                lastSource = i;
-            }
-        }
-        int firstDest = java.lang.Integer.MAX_VALUE;
-        for (InletInstance d : dest) {
-            int i = patch.objectinstances.indexOf(d.GetObjectInstance());
-            if (i < firstDest) {
-                firstDest = i;
-            }
-        }
-        return (firstDest <= lastSource);
-    }
-
-    public boolean IsFirstOutlet(OutletInstance oi) {
-        if (source.size() == 1) {
-            return true;
-        }
-        for (AxoObjectInstanceAbstract o : patch.objectinstances) {
-            for (OutletInstance i : o.GetOutletInstances()) {
-                if (source.contains(i)) {
-                    // o is first objectinstance connected to this net
-                    return oi == i;
-                }
-            }
-        }
-        Logger.getLogger(Net.class.getName()).log(Level.SEVERE, "IsFirstOutlet: shouldn't get here");
-        return false;
-    }
-
-    public DataType GetDataType() {
-        if (source.isEmpty()) {
+    public DataType getDataType() {
+        if (sources == null) {
             return null;
         }
-        if (source.size() == 1) {
-            return source.get(0).GetDataType();
+        if (sources.length == 0) {
+            return null;
         }
-        java.util.Collections.sort(source);
-        DataType t = source.get(0).GetDataType();
+        if (sources.length == 1) {
+            return sources[0].getDataType();
+        }
+        OutletInstance first_outlet = java.util.Collections.min(Arrays.asList(sources));
+        DataType t = first_outlet.getDataType();
         return t;
-    }
-    
-    public ArrayList<OutletInstance> GetSource() {
-        return source;
     }
 
     public String CType() {
-        DataType d = GetDataType();
+        DataType d = getDataType();
         if (d != null) {
             return d.CType();
         } else {
             return null;
         }
     }
+    public final static Property NET_SOURCES = new SourceArrayProperty("Sources", Net.class);
+    public final static Property NET_DESTINATIONS = new DestinationArrayProperty("Destinations", Net.class);
 
-    public String CName() {
-        int i = patch.nets.indexOf(this);
-        return "net" + i;
+    public OutletInstance[] getSources() {
+        return sources;
+    }
+
+    public void setSources(OutletInstance[] sources) {
+        OutletInstance[] old_value = this.sources;
+        this.sources = sources;
+        validate();
+        firePropertyChange(
+                NET_SOURCES,
+                old_value, sources);
+    }
+
+    public InletInstance[] getDestinations() {
+        return dests;
+    }
+
+    public void setDestinations(InletInstance[] dests) {
+        InletInstance[] old_value = this.dests;
+        this.dests = dests;
+        validate();
+        firePropertyChange(
+                NET_DESTINATIONS,
+                old_value, dests);
+    }
+
+    @Override
+    public List<Property> getProperties() {
+        List<Property> l = new ArrayList<>();
+        l.add(NET_SOURCES);
+        l.add(NET_DESTINATIONS);
+        return l;
     }
 }

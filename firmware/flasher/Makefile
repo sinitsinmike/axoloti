@@ -20,7 +20,12 @@ endif
 
 # Enable this if you want the linker to remove unused code and data
 ifeq ($(USE_LINK_GC),)
-  USE_LINK_GC = yes
+  USE_LINK_GC = no
+endif
+
+# Linker extra options here.
+ifeq ($(USE_LDOPT),)
+  USE_LDOPT = --print-memory-usage
 endif
 
 # If enabled, this option allows to compile the application in THUMB mode.
@@ -30,7 +35,7 @@ endif
 
 # Enable this if you want to see the full log while compiling.
 ifeq ($(USE_VERBOSE_COMPILE),)
-  USE_VERBOSE_COMPILE = yes
+  USE_VERBOSE_COMPILE = no
 endif
 
 #
@@ -65,37 +70,35 @@ PROJECT = flasher
 BUILDDIR = flasher_build
 
 # Imported source files and paths
-CHIBIOS = ${axoloti_release}/chibios
+CHIBIOS = ${axoloti_release}/ChibiOS_16.1.8
+CHIBIOS_CONTRIB = $(CHIBIOS)/community
 
 include board.mk
-include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
-include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
-include $(CHIBIOS)/os/kernel/kernel.mk
-#include $(CHIBIOS)/test/test.mk
+include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+include $(CHIBIOS_CONTRIB)/os/hal/hal.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/STM32/STM32F4xx/platform.mk
+include $(CHIBIOS)/os/hal/osal/rt/osal.mk
+# RTOS files (optional).
+include $(CHIBIOS)/os/rt/rt.mk
+include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 	
 # Define linker script file here
-LDSCRIPT= STM32F407xG.ld
+LDSCRIPT = ../STM32F427trojan.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(PORTSRC) \
+CSRC = $(STARTUPSRC) \
        $(KERNSRC) \
+       $(PORTSRC) \
+       $(OSALSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(CHIBIOS)/os/various/shell.c \
-       $(CHIBIOS)/os/various/chprintf.c \
-       $(CHIBIOS)/os/various/memstreams.c \
-       ../STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
+       $(STREAMSSRC) \
        ../glcdfont.c \
        ../axoloti_control.c \
        ../axoloti_board.c \
-       ../sdram.c \
        ../crc32.c \
-       ../flash.c \
-       ../watchdog.c \
-       ../stm32f4xx_fmc.c \
        main.c  
 
        
@@ -124,13 +127,14 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC = $(PORTASM)
+ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = ../ \
-		 $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+INCDIR = ./ ../ \
+         $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
          $(FATFSINC) \
          $(CHIBIOS)/os/various \
+         $(CHIBIOS)/os/hal/lib/streams \
          ../STM32F4xx_HAL_Driver/Inc 
 
 #
@@ -154,6 +158,7 @@ LD   = $(TRGT)gcc
 CP   = $(TRGT)objcopy
 AS   = $(TRGT)gcc -x assembler-with-cpp
 OD   = $(TRGT)objdump
+SZ   = $(TRGT)size
 HEX  = $(CP) -O ihex
 BIN  = $(CP) -O binary
 
@@ -221,5 +226,23 @@ VPATH = .
 # End of user defines
 ##############################################################################
 
-RULESPATH = $(CHIBIOS)/os/ports/GCC/ARMCMx
+RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
 include $(RULESPATH)/rules.mk
+
+SPLITFILES := $(BUILDDIR)/$(PROJECT).sram1.bin \
+            $(BUILDDIR)/$(PROJECT).sram3.bin \
+            $(BUILDDIR)/$(PROJECT).sdram.bin
+
+%.sram1.bin: %.elf
+	@echo Creating $@
+	@$(CP) -O binary -R .sdram.* -R .rodata -R .rodata.* -R .data -R .data.* $< $@
+
+%.sram3.bin: %.elf
+	@echo Creating $@
+	@$(CP) -O binary --only-section=.rodata --only-section=.rodata.* --only-section=.data --only-section=.data.* $< $@
+
+%.sdram.bin: %.elf
+	@echo Creating $@
+	@$(CP) -O binary --only-section=.sdram.* $< $@
+	
+POST_MAKE_ALL_RULE_HOOK: $(SPLITFILES)

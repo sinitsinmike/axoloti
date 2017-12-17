@@ -17,9 +17,13 @@
  */
 package qcmds;
 
-import axoloti.Patch;
+import axoloti.PatchController;
 import axoloti.utils.OSDetect;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,10 +33,10 @@ import java.util.logging.Logger;
  */
 public class QCmdCompilePatch extends QCmdShellTask {
 
-    Patch p;
+    PatchController patchController;
 
-    public QCmdCompilePatch(Patch p) {
-        this.p = p;
+    public QCmdCompilePatch(PatchController patchController) {
+        this.patchController = patchController;
     }
 
     @Override
@@ -45,8 +49,32 @@ public class QCmdCompilePatch extends QCmdShellTask {
         if (success) {
             return "Done compiling patch";
         } else {
-            return "Compiling patch failed ( " + p.getFileNamePath() + " ) ";
+            return "Compiling patch failed ( " + patchController.getFileNamePath() + " ) ";
         }
+    }
+    
+    @Override
+    public String[] GetEnv() {
+        ArrayList<String> list = new ArrayList<>();
+        list.addAll(Arrays.asList(super.GetEnv()));
+        /*
+        Set<String> moduleSet = this.patchController.getModel().getModules();
+        if(moduleSet!=null) {
+            String modules = "";
+            String moduleDirs = "";
+            for(String m : moduleSet) {
+                modules += m + " ";
+                moduleDirs += 
+                    this.patchController.getModel().getModuleDir(m) 
+                    + " ";
+            }
+            list.add("MODULES=" + modules);
+            list.add("MODULE_DIRS=" + moduleDirs);
+        }
+        */
+        String vars[] = new String[list.size()];
+        list.toArray(vars);
+        return vars;
     }
     
     @Override
@@ -70,6 +98,6 @@ public class QCmdCompilePatch extends QCmdShellTask {
 
     @Override
     QCmd err() {
-        return new QCmdShowCompileFail(p);
+        return new QCmdShowCompileFail(patchController);
     }
 }

@@ -17,7 +17,7 @@
  */
 package axoloti.displays;
 
-import components.displays.VLineComponent;
+import axoloti.atom.AtomDefinitionController;
 
 /**
  *
@@ -25,27 +25,8 @@ import components.displays.VLineComponent;
  */
 public class DisplayInstanceFrac4ByteVBar extends DisplayInstanceFrac32<DisplayFrac4ByteVBar> {
 
-    private VLineComponent vbar[];
-
-    public DisplayInstanceFrac4ByteVBar() {
+    DisplayInstanceFrac4ByteVBar(AtomDefinitionController controller) {
+        super(controller);
     }
 
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-        vbar = new VLineComponent[4];
-        for (int i = 0; i < 4; i++) {
-            vbar[i] = new VLineComponent(0, -64, 64);
-            vbar[i].setValue(0);
-            add(vbar[i]);
-        }
-    }
-
-    @Override
-    public void updateV() {
-        vbar[0].setValue((byte) ((value.getRaw() & 0x000000FF)));
-        vbar[1].setValue((byte) ((value.getRaw() & 0x0000FF00) >> 8));
-        vbar[2].setValue((byte) ((value.getRaw() & 0x00FF0000) >> 16));
-        vbar[3].setValue((byte) ((value.getRaw() & 0xFF000000) >> 24));
-    }
 }

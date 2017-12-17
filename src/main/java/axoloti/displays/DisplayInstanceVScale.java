@@ -17,27 +17,17 @@
  */
 package axoloti.displays;
 
-import components.displays.VValueLabelsComponent;
+import axoloti.atom.AtomDefinitionController;
 import java.nio.ByteBuffer;
 
 /**
  *
  * @author Johannes Taelman
  */
-public class DisplayInstanceVScale extends DisplayInstance<DisplayVScale> {
+public class DisplayInstanceVScale extends DisplayInstance1<DisplayVScale> {
 
-    private VValueLabelsComponent vlabels;
-
-    public DisplayInstanceVScale() {
-        super();
-    }
-
-    @Override
-    public void PostConstructor() {
-        super.PostConstructor();
-
-        vlabels = new VValueLabelsComponent(-60, 10, 10);
-        add(vlabels);
+    public DisplayInstanceVScale(AtomDefinitionController controller) {
+        super(controller);
     }
 
     @Override
@@ -55,7 +45,13 @@ public class DisplayInstanceVScale extends DisplayInstance<DisplayVScale> {
     }
 
     @Override
-    public void updateV() {
+    public Object getValue() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setValue(Object o) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

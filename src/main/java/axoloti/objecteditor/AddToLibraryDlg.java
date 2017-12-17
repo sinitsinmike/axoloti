@@ -23,6 +23,7 @@ import static axoloti.MainFrame.axoObjects;
 import axoloti.object.AxoObject;
 import axoloti.object.AxoObjects;
 import axoloti.utils.AxolotiLibrary;
+import axoloti.utils.Preferences;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -276,16 +277,16 @@ public class AddToLibraryDlg extends javax.swing.JDialog {
             obj.shortId = objname;
         }
         obj.id = jObjectName.getText();
-        obj.sPath = jFileTxt.getText();
+        obj.setPath(jFileTxt.getText());
         obj.setUUID(obj.GenerateUUID());
-        File f = new File(obj.sPath);
+        File f = new File(obj.getPath());
         if (!f.exists()) {
             File dir = f.getParentFile();
             if (!dir.exists()) {
                 dir.mkdirs();
             }
         }
-        MainFrame.axoObjects.WriteAxoObject(obj.sPath, obj);
+        MainFrame.axoObjects.WriteAxoObject(obj.getPath(), obj);
         axoObjects.LoadAxoObjects();
 
         setVisible(false);
@@ -330,11 +331,11 @@ public class AddToLibraryDlg extends javax.swing.JDialog {
        jObjectName.setText(obj.id);
 
         AxolotiLibrary sellib = null;
-        for (AxolotiLibrary lib : MainFrame.prefs.getLibraries()) {
+        for (AxolotiLibrary lib : Preferences.getPreferences().getLibraries()) {
             if (!lib.isReadOnly()) {
                 jLibrary.addItem(lib.getId());
             }
-            if (obj.sPath != null && obj.sPath.startsWith(lib.getLocalLocation())) {
+            if (obj.getPath() != null && obj.getPath().startsWith(lib.getLocalLocation())) {
                if (sellib == null || sellib.getLocalLocation().length() < lib.getLocalLocation().length()) {
                     sellib = lib;
                 }
@@ -363,7 +364,7 @@ public class AddToLibraryDlg extends javax.swing.JDialog {
 
     String GetDestinationPath() {
         if (jLibrary.getSelectedIndex() >= 0) {
-            AxolotiLibrary lib = MainFrame.prefs.getLibrary((String) jLibrary.getSelectedObjects()[0]);
+            AxolotiLibrary lib = Preferences.getPreferences().getLibrary((String) jLibrary.getSelectedObjects()[0]);
             StringBuilder file = new StringBuilder();
  
             file.append(lib.getLocalLocation());

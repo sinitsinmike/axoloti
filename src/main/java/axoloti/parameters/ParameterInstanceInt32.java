@@ -17,31 +17,29 @@
  */
 package axoloti.parameters;
 
-import axoloti.Preset;
-import axoloti.Theme;
-import axoloti.datatypes.Value;
-import axoloti.datatypes.ValueInt32;
+import axoloti.PresetInt;
 import axoloti.object.AxoObjectInstance;
+import java.beans.PropertyChangeEvent;
+import java.util.ArrayList;
 import org.simpleframework.xml.Attribute;
+import org.simpleframework.xml.ElementList;
+import org.simpleframework.xml.ElementListUnion;
 
 /**
  *
  * @author Johannes Taelman
  */
-public abstract class ParameterInstanceInt32<T extends Parameter> extends ParameterInstance<T> {
-    
-    final ValueInt32 value = new ValueInt32();
+public abstract class ParameterInstanceInt32<T extends ParameterInt32> extends ParameterInstance<T, Integer> {
 
     @Attribute(name = "value", required = false)
-    public int getValuex() {
-        return value.getInt();
-    }
+    Integer value = 0;
+
+    @ElementListUnion({
+        @ElementList(entry = "Preset", type = PresetInt.class, inline = false, required = false)
+    })
+    ArrayList<PresetInt> presets;
 
     public ParameterInstanceInt32() {
-    }
-
-    public ParameterInstanceInt32(@Attribute(name = "value") int v) {
-        value.setInt(v);
     }
 
     public ParameterInstanceInt32(T param, AxoObjectInstance axoObj1) {
@@ -49,14 +47,69 @@ public abstract class ParameterInstanceInt32<T extends Parameter> extends Parame
     }
 
     @Override
-    public ValueInt32 getValue() {
-        return value;
+    public int valToInt32(Integer v) {
+        return (int) v;
     }
 
     @Override
-    public void setValue(Value value) {
-        this.value.setInt(value.getInt());
-        updateV();
+    public Integer int32ToVal(int v) {
+        return v;
+    }
+
+    @Override
+    public PresetInt presetFactory(int index, Integer value) {
+        return new PresetInt(index, value);
+    }
+
+    @Override
+    public ArrayList<PresetInt> getPresets() {
+        if (presets != null) {
+            return presets;
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public void setPresets(Object presets) {
+        ArrayList<PresetInt> prevValue = getPresets();
+        this.presets = (ArrayList<PresetInt>) presets;
+        firePropertyChange(ParameterInstance.PRESETS, prevValue, this.presets);
+    }
+
+    @Override
+    public PresetInt getPreset(int i) {
+        return (PresetInt) super.getPreset(i);
+    }
+
+    @Override
+    public String GenerateParameterInitializer() {
+        String s = "{ type: " + parameter.GetCType()
+                + ", unit: " + parameter.GetCUnit()
+                + ", signals: 0"
+                + ", pfunction: " + ((GetPFunction() == null) ? "0" : GetPFunction());
+        int v = getValue();
+        s += ", d: { intt: { finalvalue: 0"
+                + ", value: " + v
+                + ", modvalue: " + v
+                + ", minimum: " + parameter.getMinValue()
+                + ", maximum: " + parameter.getMaxValue()
+                + "}}},\n";
+        return s;
+    }
+
+    @Override
+    public String variableName(String vprefix, boolean enableOnParent) {
+        if (getOnParent() && (enableOnParent)) {
+            return "%" + ControlOnParentName() + "%";
+        } else {
+            return PExName(vprefix) + ".d.intt.finalvalue";
+        }
+    }
+
+    @Override
+    public String valueName(String vprefix) {
+        return PExName(vprefix) + ".t_int.value";
     }
 
     @Override
@@ -64,55 +117,43 @@ public abstract class ParameterInstanceInt32<T extends Parameter> extends Parame
         super.CopyValueFrom(p);
         if (p instanceof ParameterInstanceInt32) {
             ParameterInstanceInt32 p1 = (ParameterInstanceInt32) p;
-            presets = p1.presets;
-            value.setRaw(p1.value.getRaw());
+            setValue(p1.getValue());
         }
+    }
+
+    /**
+     * **
+     */
+    @Override
+    public Integer getValue() {
+        return value;
     }
 
     @Override
-    public void setOnParent(Boolean b) {
-        super.setOnParent(b);
-        if ((b != null) && b) {
-            setForeground(Theme.getCurrentTheme().Parameter_On_Parent_Highlight);
-        } else {
-            setForeground(Theme.getCurrentTheme().Parameter_Default_Foreground);
-        }
+    public void setValue(Object value) {
+        Integer oldvalue = this.value;
+        this.value = (Integer)value;
+        needsTransmit = true;
+        firePropertyChange(
+                ParameterInstance.VALUE,
+                oldvalue, value);
+    }
+
+    public Integer getMinValue() {
+        return getModel().getMinValue();
+    }
+
+    public Integer getMaxValue() {
+        return getModel().getMaxValue();
     }
 
     @Override
-    public void ShowPreset(int i) {
-        this.presetEditActive = i;
-        if (i > 0) {
-            Preset p = GetPreset(presetEditActive);
-            if (p != null) {
-                setBackground(Theme.getCurrentTheme().Paramete_Preset_Highlight);
-                getControlComponent().setValue(p.value.getDouble());
-            } else {
-                setBackground(Theme.getCurrentTheme().Parameter_Default_Background);
-                getControlComponent().setValue(value.getDouble());
-            }
-        } else {
-            setBackground(Theme.getCurrentTheme().Parameter_Default_Background);
-            getControlComponent().setValue(value.getDouble());
+    public void modelPropertyChange(PropertyChangeEvent evt) {
+        super.modelPropertyChange(evt);
+        if (ParameterInt32.VALUE_MIN.is(evt)) {
+            firePropertyChange(ParameterInt32.VALUE_MIN, evt.getOldValue(), evt.getNewValue());
+        } else if (ParameterInt32.VALUE_MAX.is(evt)) {
+            firePropertyChange(ParameterInt32.VALUE_MAX, evt.getOldValue(), evt.getNewValue());
         }
     }
-
-    @Override
-    public boolean handleAdjustment() {
-        Preset p = GetPreset(presetEditActive);
-        if (p != null) {
-            p.value = new ValueInt32((int) getControlComponent().getValue());
-        } else {
-            if (value.getInt() != (int) getControlComponent().getValue()) {
-                value.setInt((int) getControlComponent().getValue());
-                needsTransmit = true;
-                UpdateUnit();
-            }
-            else {
-                return false;
-            }
-        }
-        return true;
-    }
-
 }

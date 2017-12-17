@@ -17,8 +17,8 @@
  */
 package axoloti.attributedefinition;
 
-import axoloti.attribute.AttributeInstanceInt32;
-import axoloti.object.AxoObjectInstance;
+import axoloti.property.IntegerProperty;
+import axoloti.property.Property;
 import java.util.List;
 import org.simpleframework.xml.Attribute;
 
@@ -29,11 +29,11 @@ import org.simpleframework.xml.Attribute;
 public class AxoAttributeInt32 extends AxoAttribute {
 
     @Attribute
-    public int MinValue;
+    public Integer MinValue = 0;
     @Attribute
-    public int MaxValue;
+    public Integer MaxValue = 1;
     @Attribute
-    public int DefaultValue;
+    public Integer DefaultValue = 0;
 
     public AxoAttributeInt32() {
     }
@@ -45,21 +45,38 @@ public class AxoAttributeInt32 extends AxoAttribute {
         this.DefaultValue = DefaultValue;
     }
 
-    public int getMinValue() {
+    static final Property ATOM_MINVALUE = new IntegerProperty("MinValue", AxoAttributeInt32.class, "Minimum");
+    static final Property ATOM_MAXVALUE = new IntegerProperty("MaxValue", AxoAttributeInt32.class, "Maximum");
+    static final Property ATOM_DEFAULTVALUE = new IntegerProperty("DefaultValue", AxoAttributeInt32.class, "Default");
+
+    public Integer getMinValue() {
         return MinValue;
     }
 
-    public int getMaxValue() {
+    public Integer getMaxValue() {
         return MaxValue;
     }
 
-    public int getDefaultValue() {
+    public Integer getDefaultValue() {
         return DefaultValue;
     }
 
-    @Override
-    public AttributeInstanceInt32 InstanceFactory(AxoObjectInstance o) {
-        return new AttributeInstanceInt32(this, o);
+    public void setMinValue(Integer MinValue) {
+        Integer oldValue = this.MinValue;
+        this.MinValue = MinValue;
+        firePropertyChange(ATOM_MINVALUE, oldValue, MinValue);
+    }
+
+    public void setMaxValue(Integer MaxValue) {
+        Integer oldValue = this.MaxValue;
+        this.MaxValue = MaxValue;
+        firePropertyChange(ATOM_MAXVALUE, oldValue, MaxValue);
+    }
+
+    public void setDefaultValue(Integer DefaultValue) {
+        Integer oldValue = this.DefaultValue;
+        this.DefaultValue = DefaultValue;
+        firePropertyChange(ATOM_DEFAULTVALUE, oldValue, DefaultValue);
     }
 
     static public final String TypeName = "int";
@@ -70,11 +87,11 @@ public class AxoAttributeInt32 extends AxoAttribute {
     }
 
     @Override
-    public List<String> getEditableFields() {
+    public List<Property> getEditableFields() {
         List l = super.getEditableFields();
-        l.add("MinValue");
-        l.add("MaxValue");
-        l.add("DefaultValue");
+        l.add(ATOM_MINVALUE);
+        l.add(ATOM_MAXVALUE);
+        l.add(ATOM_DEFAULTVALUE);
         return l;
     }
 }

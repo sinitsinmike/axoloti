@@ -23,6 +23,7 @@ import axoloti.datatypes.ValueFrac32;
 import axoloti.realunits.NativeToReal;
 import axoloti.utils.Constants;
 import axoloti.utils.KeyUtils;
+import axoloti.utils.Preferences;
 import java.awt.AWTException;
 import java.awt.BasicStroke;
 import java.awt.Cursor;
@@ -37,9 +38,9 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.text.ParseException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.text.ParseException;
 
 /**
  *
@@ -97,7 +98,7 @@ public class DialComponent extends ACtrlComponent {
             double v;
             if ((MousePressedBtn == MouseEvent.BUTTON1)) {
                 this.robotMoveToCenter();
-                if (MainFrame.prefs.getMouseDialAngular()) {
+                if (Preferences.getPreferences().getMouseDialAngular()) {
                     int y = e.getY();
                     int x = e.getX();
                     int radius = Math.min(getSize().width, getSize().height) / 2 - layoutTick;
@@ -117,7 +118,7 @@ public class DialComponent extends ACtrlComponent {
                     }
                     v = value + t * ((int) Math.round((MousePressedCoordY - e.getYOnScreen())));
                 }
-                setValue(v);
+                fireValue(v);
                 e.consume();
             }
         }
@@ -181,34 +182,34 @@ public class DialComponent extends ACtrlComponent {
                 case KeyEvent.VK_UP:
                 case KeyEvent.VK_RIGHT:
                     fireEventAdjustmentBegin();
-                    setValue(getValue() + steps);
+                    fireValue(getValue() + steps);
                     ke.consume();
                     break;
                 case KeyEvent.VK_DOWN:
                 case KeyEvent.VK_LEFT:
                     fireEventAdjustmentBegin();
-                    setValue(getValue() - steps);
+                    fireValue(getValue() - steps);
                     ke.consume();
                     break;
                 case KeyEvent.VK_PAGE_UP:
                     fireEventAdjustmentBegin();
-                    setValue(getValue() + 5 * steps);
+                    fireValue(getValue() + 5 * steps);
                     ke.consume();
                     break;
                 case KeyEvent.VK_PAGE_DOWN:
                     fireEventAdjustmentBegin();
-                    setValue(getValue() - 5 * steps);
+                    fireValue(getValue() - 5 * steps);
                     ke.consume();
                     break;
                 case KeyEvent.VK_HOME:
                     fireEventAdjustmentBegin();
-                    setValue(getMin());
+                    fireValue(getMin());
                     fireEventAdjustmentFinished();
                     ke.consume();
                     break;
                 case KeyEvent.VK_END:
                     fireEventAdjustmentBegin();
-                    setValue(getMax());
+                    fireValue(getMax());
                     fireEventAdjustmentFinished();
                     ke.consume();
                     break;
@@ -219,7 +220,7 @@ public class DialComponent extends ACtrlComponent {
                     if (convs != null) {
                         for (NativeToReal c : convs) {
                             try {
-                                setValue(c.FromReal(keybBuffer));
+                                fireValue(c.FromReal(keybBuffer));
                                 converted = true;
                                 break;
                             } catch (ParseException ex2) {
@@ -229,7 +230,7 @@ public class DialComponent extends ACtrlComponent {
                     if (!converted) {
                         // otherwise, try parsing
                         try {
-                            setValue(Float.parseFloat(keybBuffer));
+                            fireValue(Float.parseFloat(keybBuffer));
                         } catch (java.lang.NumberFormatException ex) {
                         }
                     }
@@ -399,9 +400,13 @@ public class DialComponent extends ACtrlComponent {
             this.setToolTipText(s);
         }
         repaint();
-        fireEvent();
     }
 
+    public void fireValue(double value) {
+        setValue(value);
+        fireEvent();
+    }
+    
     @Override
     public double getValue() {
         return value;

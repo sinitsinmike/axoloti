@@ -648,14 +648,14 @@ public class Display extends gentools {
     static AxoObject CreateDisplayBool32() {
         AxoObject o = new AxoObject("bool", "display boolean");
         o.inlets.add(new InletBool32("in", "input"));
-        o.displays.add(new DisplayBool32("v"));
+        //o.displays.add(new DisplayBool32("v"));
         o.sKRateCode = "%v%=%in%;\n";
         return o;
     }
 
     static AxoObject CreateDisplayNote() {
         AxoObject o = new AxoObject("note", "display note");
-        o.sAuthor = "Mark Harris";
+        o.setAuthor("Mark Harris");
         o.inlets.add(new InletFrac32Bipolar("in", "input"));
         o.displays.add(new DisplayNoteLabel("v"));
         o.sKRateCode = "%v%=%in%;\n";

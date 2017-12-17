@@ -2,40 +2,58 @@
 
 set -e
 
-if [ ! -d "../chibios" ]; 
+PLATFORM_ROOT="$(cd $(dirname $0); pwd -P)"
+
+mkdir -p "${PLATFORM_ROOT}/src"
+cd "${PLATFORM_ROOT}"
+
+CH_VERSION=16.1.8
+if [ ! -d "${PLATFORM_ROOT}/../chibios_${CH_VERSION}" ]; 
 then
-    CH_VERSION=2.6.9
+    cd "${PLATFORM_ROOT}/src"
     ARDIR=ChibiOS_${CH_VERSION}
     ARCHIVE=${ARDIR}.zip
-    if [ ! -f ${ARCHIVE} ]; 
+    if [ ! -f ${ARCHIVE} ];
     then
         echo "downloading ${ARCHIVE}"
         curl -L https://sourceforge.net/projects/chibios/files/ChibiOS%20GPL3/Version%20${CH_VERSION}/${ARCHIVE} > ${ARCHIVE}
     else
         echo "${ARCHIVE} already downloaded"
     fi
-
     unzip -q -o ${ARCHIVE}
-    rm ${ARCHIVE}
-    mv ${ARDIR} chibios
-    cd chibios/ext
-    unzip -q -o ./fatfs-0.9-patched.zip
+#    mv ${ARDIR} chibios
+    cd ${ARDIR}/ext
+    7z x ./fatfs-0.10b-patched.7z
     cd ../../
-    mv chibios ..
+    mv ${ARDIR} ../..
+
+    echo "fixing ChibiOS community from ChibiOS-Contrib"
+    cd ${PLATFORM_ROOT}/../chibios_${CH_VERSION}
+    rm -rf community
+    git clone https://github.com/axoloti/ChibiOS-Contrib.git community
+    cd community 
+    git checkout patch-1
+
+    cd "${PLATFORM_ROOT}"
+else
+    echo "chibios directory already present, skipping..."
 fi
 
-if [ ! -f "bin/arm-none-eabi-gcc.exe" ];
+if [ ! -f "${PLATFORM_ROOT}/gcc-arm-none-eabi-6-2017-q1-update/bin/arm-none-eabi-gcc.exe" ];
 then
-    ARCHIVE=gcc-arm-none-eabi-4_9-2015q2-20150609-win32.zip
+    ARDIR=gcc-arm-none-eabi-6-2017-q1-update
+    ARCHIVE=${ARDIR}-win32.zip
     if [ ! -f ${ARCHIVE} ]; 
     then
         echo "downloading ${ARCHIVE}"
-        curl -L https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/${ARCHIVE} > ${ARCHIVE}
+        curl -L https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/6_1-2017q1/${ARCHIVE} > ${ARCHIVE}
     else
         echo "${ARCHIVE} already downloaded"
     fi    
-    unzip -q -o ${ARCHIVE}
+    unzip -q -o ${ARCHIVE} -d ${ARDIR}
     rm ${ARCHIVE}
+else
+    echo "gcc-arm-none-eabi-6-2017-q1-update/bin/arm-none-eabi-gcc already present, skipping..."
 fi
 
 if [ ! -f "bin/make.exe" ];

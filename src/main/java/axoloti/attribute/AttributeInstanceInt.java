@@ -17,8 +17,12 @@
  */
 package axoloti.attribute;
 
+import axoloti.atom.AtomDefinitionController;
 import axoloti.attributedefinition.AxoAttribute;
 import axoloti.object.AxoObjectInstance;
+import axoloti.property.IntegerProperty;
+import axoloti.property.Property;
+import java.util.List;
 import org.simpleframework.xml.Attribute;
 
 /**
@@ -29,12 +33,20 @@ public abstract class AttributeInstanceInt<T extends AxoAttribute> extends Attri
 
     @Attribute
     int value;
+    public static final Property ATTR_VALUE = new IntegerProperty("Value", AttributeInstanceInt.class);
 
-    public AttributeInstanceInt() {
+    AttributeInstanceInt() {
     }
 
-    public AttributeInstanceInt(T param, AxoObjectInstance axoObj1) {
-        super(param, axoObj1);
+    public AttributeInstanceInt(AtomDefinitionController controller, AxoObjectInstance axoObj1) {
+        super(controller, axoObj1);
+    }
+
+    @Override
+    public List<Property> getProperties() {
+        List<Property> l = super.getProperties();
+        l.add(ATTR_VALUE);
+        return l;
     }
 
     @Override
@@ -44,4 +56,17 @@ public abstract class AttributeInstanceInt<T extends AxoAttribute> extends Attri
             value = a1.value;
         }
     }
+
+    public Integer getValue() {
+        return value;
+    }
+
+    public void setValue(Integer value) {
+        Integer oldvalue = this.value;
+        this.value = value;
+        firePropertyChange(
+                ATTR_VALUE,
+                oldvalue, value);
+    }
+
 }
