@@ -80,11 +80,8 @@ public class PAxoObjectInstanceViewAbstract extends PatchPNode implements IAxoOb
         super(patchView);
         this.controller = controller;
         titleBar = new PatchPNode(patchView);
-        initComponent();
-    }
-
-    private void initComponent() {
         setVisible(false);
+        initComponents();
     }
 
     @Override
