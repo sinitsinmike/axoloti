@@ -177,7 +177,7 @@ static USBH_StatusTypeDef USBH_R24_InterfaceInit(USBH_HandleTypeDef *phost) {
 
     usbh_midi_init(); 
     for(interface=0; interface<phost->device.CfgDesc.bNumInterfaces && interface < USBH_MAX_NUM_INTERFACES; interface++) {
-        if( (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceClass == 0xff) &&
+        if( (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceClass == USB_VENDOR_CLASS_ID) &&
             (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceSubClass == 3) ) {
 
             // bizarre, why select the interface... all it does is put it in current interface and then log it,
