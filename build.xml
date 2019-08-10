@@ -237,6 +237,13 @@
 	<exec dir="." executable="perl" failifexecutionfails="false">
 		<arg line="thirdparty/Markdown_1.0.1/Markdown.pl -output 'doc/user guide.html' --html4tags doc/userguide.md"/>
 	</exec>
+	
+	<exec dir="." executable="rm" failifexecutionfails="false" osfamily="Windows">
+		<arg line="-rf doc/doxygen/output"/>
+	</exec>
+	<exec dir="." executable="doxygen" failifexecutionfails="false" osfamily="Windows">
+		<arg line="doc/doxygen/Doxyfile"/>
+	</exec>
   </target>
 
   <target name="bundle" if="build.bundle" depends="calc.build.version, calc.short.version, userguide">

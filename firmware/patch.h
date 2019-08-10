@@ -15,6 +15,15 @@
  * You should have received a copy of the GNU General Public License along with
  * Axoloti. If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+ /**
+ * @file    patch.h
+ * @brief   Axoloti Core DSP patch macros and structures.
+ *
+ * @addtogroup PATCH
+ * @{
+ */
+ 
 #ifndef __PATCH_H
 #define __PATCH_H
 #include <stdint.h>
@@ -38,6 +47,7 @@ typedef struct {
   int32_t value;
 } PresetParamChange_t;
 
+
 typedef struct {
   fptr_patch_init_t fptr_patch_init;
   fptr_patch_dispose_t fptr_patch_dispose;
@@ -59,12 +69,15 @@ extern patchMeta_t patchMeta;
 
 extern int dspLoadPct; // DSP load in percent
 
+/**
+ * @brief Patch source.
+ */
 typedef enum {
-  START_SD = -1,
-  START_FLASH = -2,
-  BY_FILENAME = -3,
-  LIVE = -4,
-  UNINITIALIZED = -5
+  START_SD = -1,		 /**< Loaded from Axoloti SDCard slot.  		   */
+  START_FLASH = -2,	     /**< Loaded from STM32 flash memory.  			   */
+  BY_FILENAME = -3,		 /**< Loaded by file.                			   */
+  LIVE = -4,			 /**< Live, executed from Axoloti Patcher directly.*/
+  UNINITIALIZED = -5	 /**< Not initialized.                			   */
 // and positive numbers are index in patch bank
 } loadPatchIndex_t;
 extern loadPatchIndex_t loadPatchIndex;
@@ -73,7 +86,7 @@ typedef enum {
   RUNNING = 0,
   STOPPED = 1,
   STOPPING = 2,
-  	STARTFAILED = 3,
+  STARTFAILED = 3,
 // and positive numbers are index in patch bank
 } patchStatus_t;
 

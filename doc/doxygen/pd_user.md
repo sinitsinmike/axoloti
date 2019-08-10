@@ -1,0 +1,90 @@
+# Pure Data {#pd_user}
+
+# Conversion
+
+## Scaling, units {#pd_user_scaling}
+PD (Pure Data) is scaled in physical units represented in floating point numbers: Hertz (Hz) for frequency, milliseconds for time. 
+Axoloti parameters have a fixed point number representation that is closer to the implemented algorithms.
+Axoloti parameters have a range of 0.0u to 64.0u or -64.0u to 64.0u. 
+For math this represents the 0.0 to 1.0 or -1.0 to 1.0 range. That means 64.0u multiplied with 64.0u equals 64.0u.
+For trigonometric functions, -64.0u corresponds to -180 degrees, 64u to 180 degrees.
+For pitch frequency, 0.0u corresponds to 329.6Hz which is the standard tuning of the middle "E" note on a music keyboard. One unit increment is the next key higher on the keyboard (semitones).
+12.0u up is a doubling of frequency (octave interval in music). 12.0u down is half the frequency.
+
+## Control rate versus messages {#pd_user_control_rate_vs_messages}
+PD uses messages (events) to trigger the execution of methods of objects. Messages can be a single number, a symbol, or a list of numbers and symbols.
+The PD message architecture needs dynamic memory allocation which conflicts with running on architectures with limited memory.
+The messages also need to be parsed, preventing inter-object compiler optimization.
+Axoloti does not have such messages, to avoid spending computation time on message parsing. 
+The "bang" message to trigger parameter-less methods of objects in PD is often replaced with a "trig" (trigger) input in Axoloti. A "trig" input is activated on the transition from false to true. 
+Axoloti does not have "hot" or "cold" inlets. Execution in Axoloti is not message-driven. Execution order is as described in the chapter "Execution order".
+This means there is no equivalent of these PD objects:
+<ul>
+	<li>trigger (t)
+	<li>bang
+	<li>loadbang
+	<li>select (s)
+	<li>route (r)
+	<li>moses
+	<li>spigot
+	<li>swap
+	<li>change
+	<li>pack
+	<li>unpack
+	<li>until
+</ul>
+
+## Wire types {#pd_user_wire_types}
+PD has thick black cables for audio rate (s-rate) signals. Axoloti uses red cables and connectors for this purpose.
+PD implicitly adds multiple audio signals connected to a single input. In Axoloti you have to use an explicit + object, or a mixer.
+PD has thin black cables for messages. Messages do not exist in Axoloti. Axoloti has control-rate signals instead.
+
+## Object arguments {#pd_user_object_arguments}
+Axoloti does not have object arguments.
+
+## Object conversions (PD to Axoloti) {#pd_user_object_conversions}
+<ul>
+	<li>osc~ : The axoloti osc/square does not have a frequency input in Hz. Adjust the pitch dial to set a constant frequency. If a changing frequency is needed, the "pitchm" inlet can be used to modulate the pitch. 1.0u on this input corresponds with increasing the pitch dial one unit. 
+	<li>metro : The axoloti lfo/square object outputs a periodic square wave signal. This can be connected to yellow "trig" inputs. The cycle time in milliseconds can be found after clicking 2 times on the frequency label to change its unit to time.
+	<li>line/vline : The Axoloti env/line objects produce 2-interval or 3-interval piecewise linear ramps with adjustable time intervals and values.
+	<li>f or float : With the hot and cold inputs, the float object can be used as a memory. 
+	<li>sig~ : use nointerp~ or interp~ to convert a control signal to audio rate, without or with linear interpolation.
+	<li>select, route : while not directly equivalent (event-driven), the inmux objects can be used to select/route one of its inputs. 
+	<li>catch~, throw~ : no equivalent yet. Use wires and mixers.
+	<li>send~ (s~), receive~ (r~) : no equivalent yet. Use wires.
+	<li>random : randtrigi
+	<li>sqrt : for now: use log->div2->+c->exp. Adjust c to 32 to get the square root of the fraction mapped to 0..1 range. Adjust c to 8 to get the square root of the fraction mapped to 0..64 range.
+	<li>delay : delayedpulse
+	<li>pd : this is a subpatch object. Refer to the chapter "Subpatching".
+</ul>
+
+## Idiom conversion {#pd_user_idiom_conversion}
+Equivalent patches from the book "Designing Sound" are in the directory patches/idioms.
+
+### Constrained counting 
+Use the counter object.
+
+### Accumulator
+Will add accumulator object
+
+### Rounding
+Use the round object. Or force conversion of a fractional into an integer with the toInt object.
+
+### Scaling
+The mix1, mix2, mix3... objects can be used to scale and add one or more inputs. 
+
+### Looping with until
+Mostly used to initialize tables. In Axoloti, tables can be initialized with C-code. For an example of this, see patches/tests/table.
+
+### Message complement
+For reciprocal, you can use log->+64->inv->exp. Accurate to about 8 bits of precision.
+
+### Weighted Random Selection
+
+### Delay cascade
+Use the delayedpulse object for generating delayed triggers.
+
+### Last Float and Averages
+
+### Float Low Pass
+Use the "smooth" object.
