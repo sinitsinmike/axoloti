@@ -72,7 +72,7 @@ case $OS in
         echo "detected Fedora"
         sudo dnf group install "Development Tools"
         sudo dnf -y install libusb dfu-util libtool libudev-devel automake autoconf \
-        ant curl bzip2
+        ant curl bzip2 p7zip-plugins
         ;;
     *)
         echo "Cannot handle dist: $OS"
