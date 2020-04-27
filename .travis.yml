@@ -1,39 +1,52 @@
-os:
-  - linux
-  - osx
 language: java
-osx_image: xcode8.2
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+    - os: osx
+      osx_image: xcode9.4
 before_install:
   - >
     case "${TRAVIS_OS_NAME:-linux}" in
     linux)
       sudo apt-get update -qq
-      sudo apt-get install -qq oracle-java8-installer fakeroot
-      jdk_switcher use oraclejdk8
-      ./platform_linux/build.sh
+      sudo apt-get install -qq fakeroot
+      curl https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 -o gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
+      tar xfj gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 -C platform_linux/
+      rm gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
+      curl https://d3pxv6yz143wms.cloudfront.net/8.232.09.1/java-1.8.0-amazon-corretto-jdk_8.232.09-1_amd64.deb > java-1.8.0-amazon-corretto-jdk_8.232.09-1_amd64.deb
+      sudo dpkg -i java-1.8.0-amazon-corretto-jdk_8.232.09-1_amd64.deb
+      rm java-1.8.0-amazon-corretto-jdk_8.232.09-1_amd64.deb
+      export JAVA_HOME="/usr/lib/jvm/java-1.8.0-amazon-corretto"
+      ./platform_linux/build.sh --noninteractive
       ;;
     osx)
-      brew install ant
+      brew update
+      brew install ant p7zip
+      curl https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2 -o gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2
+      tar xfj gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2 -C /Applications/
+      rm gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2
+      curl https://d3pxv6yz143wms.cloudfront.net/8.232.09.1/amazon-corretto-8.232.09.1-macosx-x64.pkg > amazon-corretto-8.232.09.1-macosx-x64.pkg
+      sudo installer -pkg amazon-corretto-8.232.09.1-macosx-x64.pkg -target /
+      export JAVA_HOME=/Library/Java/JavaVirtualMachines/amazon-corretto-8.jdk/Contents/Home
+      rm amazon-corretto-8.232.09.1-macosx-x64.pkg
       ./platform_osx/build.sh
       ;;
     esac;
     javac -version;
-
 script:
   - ant
+  - ant check_fw
   - ant -Dbuild.bundle=true bundle
-  - ant -Dbuild.runtime=true runtime
-
 before_deploy:
   - pwd
   - ls ${TRAVIS_BUILD_DIR}
   - ls ${TRAVIS_BUILD_DIR}/build
   - ls ${TRAVIS_BUILD_DIR}/build/bundles
-    
 deploy:
   provider: releases
   api_key:
-    secure: LlmFhw4NWvaRzlefhBs6L0JXdasgh8t8mjAXxR/bYgEf50zBHdO3bAvEOg2IrFF4th/cWIO8130UkboZ7pgpyrct8jrGE7knWeFgbgdW2JYobpgSx5fthX036xhx6OiShnYgOnxDds68jJK9duLA2MDrQov5itzPdrEgZuSqgYYusiV4x1lJ2iEdOErO8N6Om25M2QAVVsbu6wb5RjHbf/Uf+X1B2Mb+9J33vFnCr5P0/IBQxQkhlSA7V7RiqRyOtC2QrPsmoeAc7QjxeAClGYzWMjQ/2WNfEX8/9ZdYlf48qYnoFqbuQDkjgOxKencj9gFWJdgJw8KxL+ygU51kuvTdZaixY82Y/C34kDd4WyxO1kKS7jyvm/MWEnap/wYly+woiplrjjTMM+a6OwG0YMjpbxZn6GjUB0YP91libmLSNggwQMYxLpkSoEyAsjVM8pEH4Y+6MgmU6UQqpnUat9PnNG/BGXoTWRWefu771nWSPMW1bzds0vEF54I0daISd8gUwNAuBYSPW38woTLBzPd+M15uJ9ThVD6EfwJsifZ5RDNGSr6JFn37sKQ7Imcu7d3QKVXV9URpOZs/enJmfiGgVaKXCWA0Cw1rSP90XK8ERJqguQJ5uGfuAMcWuXzgvXAVPzDopY1ZzYHFqd3B+ro2WmsqzT8OLGKdlrfsFX0=
+    secure: so5vDC0HnVbw6tmKq0ASqYZpNa5PZzVoC9eDTKkMfafoJUimom9D9nPUXIFmqq3ZBMQLZSxmQTaA2jATydv8gaRfHf/MtMSkpSjNFkyrUQtuSEPiMcmJ4F/ROlFKn6OZdInWcyCF/kswYxwCuZP1rzvSV/Vm9Zl3JogbLOtgvAdJYpUpWk/Q8UjgppirNr/oKDEXk/qB0td8ri9TUTvhLKKslqpn6Zv92Sk0gU+rp74YoyDxQD8yWiCMZoJ3bmQziBP2jFoK5vGK7sKGjpea3duVTjGi/GbzDJkUJyyyFjksK+8c8nu+1uv8TUC7yJHms3Rek5zjk4cBCLYKV/tcnMtv+Lpc7v/zRGMg+SFVk9VImS5HNJDyqeFdzxZ5t3ilHNzPPef0odaqRievhMDhSBxJd380YDnmV+HtSpnSWE6I412oWa2e4F+objz9/OKOFMUABGf03izni1riagVylekwHUBIqwE7ebIexQMzbbmsIc1Rkq/0+zHARJIPdYQvVK5t0oes9WFzAGkwRdUrH32da94XxV2VpqT3JlmF3XEMay3uIjx/s1mewV97t+QfLqeXy1zE38oHaAAX20fFdthcJe149BXqOrVolVCLVghcCNv9FutotYmX9bMJN4xl+3EyAnjcf/2yU2TP55DZABFP1KsHW3aS8c/icuWVvW0=
   file: 
     - build/bundles/*
     - build/runtime/*/axo_runtime*
